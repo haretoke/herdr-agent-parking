@@ -521,7 +521,7 @@ server is never restarted.
       one-value flags (`--model x`), variadic ones (`--add-dir a b`, until the next flag) and
       optional-value ones (`--worktree name`, `--debug api`) as `claude --help` lists them;
       the value of an unknown flag is not assumed, so it is dropped and reported too
-- [ ] `--from-pr [value]` and `--teleport [session]` pick a session too and are removed
+- [x] `--from-pr [value]` and `--teleport [session]` pick a session too and are removed
 
 ### herdr_api
 - [ ] `HERDR_BIN_PATH` is used when set, otherwise `herdr` on `PATH`

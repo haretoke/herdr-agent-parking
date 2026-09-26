@@ -54,7 +54,7 @@ ARITY = {
 
 # Flags that pick or name the session; the resume supplies `--resume <uuid>` itself.
 SESSION_FLAGS = {"--resume", "-r", "--continue", "-c", "--session-id", "--name", "-n",
-                 "--fork-session"}
+                 "--fork-session", "--from-pr", "--teleport"}
 
 
 def _is_flag(token):

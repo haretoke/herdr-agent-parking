@@ -72,5 +72,14 @@ class ResumeFlagsTest(unittest.TestCase):
         self.assertEqual(result.dropped, ["value"])
 
 
+    def test_from_pr_and_teleport_pick_a_session_and_are_removed(self):
+        for given in ([CLAUDE, "--from-pr", "123", "--model", "x"],
+                      [CLAUDE, "--teleport", "--model", "x"],
+                      [CLAUDE, "--teleport=abc", "--model", "x"]):
+            with self.subTest(argv=given):
+                result = argv.resume_flags(given)
+                self.assertEqual((result.flags, result.dropped), (["--model", "x"], []))
+
+
 if __name__ == "__main__":
     unittest.main()
