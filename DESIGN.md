@@ -93,7 +93,7 @@ Every Claude pane on this server, with these columns:
 | idle | The plugin's tracking (below). Time that began before tracking started is shown as a lower bound with `≥` |
 | ctx | From the transcript (below): `37k 18%`, `37k`, or `compacted 2h`. Empty when the transcript cannot be read |
 | rss | `VmRSS` from `/proc/<pid>/status` on Linux, else `ps -o rss= -p` (both KiB, spike 0-9), over every `pid` in `pane process-info`'s `foreground_processes`, summed (MCP servers and `caffeinate` sit in the same foreground group as Claude; parking frees the whole group). The Claude-only value is kept in the JSON output. Empty for parked sessions |
-| ver | The Claude process's `name` in `process-info` (measured: `"2.1.283"`, the basename of the executable `~/.local/share/claude/versions/2.1.283`). The current version comes from `os.readlink` of the running process's `argv[0]` (`~/.local/bin/claude`), not from `PATH`, because the plugin runs in the Herdr server's environment. `old` when they differ. Where `readlink` does not apply, fall back to the `claude_command` setting; without that, no badge |
+| ver | The running version: on Linux the basename of `readlink /proc/<pid>/exe`, on macOS `process-info`'s `name` (the basename of `~/.local/share/claude/versions/<v>`). The current version: the `realpath` of the running `argv[0]` when it is a path (macOS), else of `claude_command` on `PATH`, else of `~/.local/bin/claude` (the plugin runs in the Herdr server's environment). `old` when they differ; no badge when either is unknown. On Linux Herdr 0.9.1 gives the Claude process no `argv`, so argv comes from `/proc/<pid>/cmdline` (spike 0-10) |
 | parked | Records show 💤, the park time and the first line of the note |
 
 - The dashboard's own pane and non-Claude panes are not listed. The footer shows the
@@ -220,8 +220,10 @@ again resumes from step 3 when a focus tag is already there.
    Then `agent read <P>` to make sure Claude's input box is empty: with a half-typed
    line, `agent prompt "/exit"` may append `/exit` to it and submit both (spike).
    If not empty, refuse with "empty the input box first".
-2. `pane process-info --pane <P>`: from `foreground_processes` take the Claude
-   process's `pid`, `argv`, `name` (version) and `cwd`. Also `pane layout --pane <P>`
+2. `pane process-info --pane <P>`: the Claude process is the foreground group leader
+   (`pid == foreground_process_group_id`); take its `pid` and `cwd`, its `argv` (from
+   `/proc/<pid>/cmdline` when Herdr gives none, as on Linux) and its version (see the
+   `ver` column). Also `pane layout --pane <P>`
    to store the neighbour pane, the split direction and ratio in the record's
    `layout_hint` (used by recreate; stored regardless of `on_park`).
 3. RSS from `/proc/<pid>/status` or `ps -o rss= -p` (display only; continue on failure).
@@ -616,7 +618,7 @@ Everything below is unverified and appears as a spike in `plan.md`:
 - Whether a `[[events]]` hook still sees `agent_session` right after Claude exits, and
   what `pane.exited` means.
 - The state directory not being a bind mount in containers (inferred).
-- `old` detection where `readlink` does not apply; `ps` units on macOS and Linux.
+- `old` detection for npm global and Homebrew installs (not available to test).
 - `agent prompt "/exit"` with a half-typed line; how to tell an empty input box from
   `agent read`; the `send-keys` alternative.
 - `claude --resume <UUID>` while the same UUID runs elsewhere.

@@ -329,12 +329,34 @@ server is never restarted.
       and `/proc/1/status` said `VmRSS: 48 kB`, so both are KiB. Slim Linux images can
       lack procps, so on Linux the plugin reads `VmRSS` from `/proc/<pid>/status`
       (no dependency) and uses `ps` only where `/proc` is missing (macOS)
-- [ ] `old` detection: `os.readlink` of the running process's `argv[0]`
+- [x] `old` detection: `os.readlink` of the running process's `argv[0]`
       (`~/.local/bin/claude`) gives the current `versions/<v>`, compared with
       `process-info`'s `name` (the version at launch). What happens with npm global or
       Homebrew installs; otherwise resolve `claude_command` on `PATH`, and without that
       no badge (the plugin runs in the Herdr server's environment, so a container's
       `PATH` may not hold the user's `claude`)
+      (2026-09-27, native installer on the Mac and in the Herdr devcontainer; read-only
+      on both live servers):
+      - macOS: for all 9 Claude panes `process-info` gave `argv` and `name` = the
+        running executable's version, matching `lsof` txt
+        (`~/.local/share/claude/versions/<v>`): 3 on 2.1.283, 4 on 2.1.282, 2 on 2.1.281
+        and 2.1.280. `readlink ~/.local/bin/claude` gave the current 2.1.283, so 6 of 9
+        would show `old`. `ps -o comm=` only shows the symlink path, not the version.
+      - Linux (Debian 13 container, Herdr 0.9.1): `process-info` gave the Claude
+        process **without `argv`, `argv0` or `cmdline`**, with `name: "claude"`, and
+        with `pid == foreground_process_group_id`. `/proc/<pid>/cmdline` was readable
+        and held the args (`claude --resume <name>`, `claude --worktree <w> --resume
+        <uuid>`), `/proc/<pid>/comm` was `claude`, and `readlink /proc/<pid>/exe` gave
+        `~/.local/share/claude/versions/<v>` (2.1.280, 2.1.281 while the current link
+        pointed at 2.1.282).
+      - So: find the Claude process as the foreground group leader
+        (`pid == foreground_process_group_id`), take its argv from `process-info` or
+        else `/proc/<pid>/cmdline`, and its running version from `/proc/<pid>/exe` on
+        Linux or `name` on macOS when it looks like a version. The current version is
+        the `realpath` of `argv[0]` when that is a path, else of `claude_command` on
+        `PATH`, else of `~/.local/bin/claude`; no badge when either side is unknown.
+        npm global and Homebrew installs were not available to test; they fall to "no
+        badge" unless a version appears in the executable path
 - [ ] `ps -o rss=` for the Claude pid alone versus the sum over `foreground_processes`
       (MCP servers, `caffeinate`; 4 processes measured in one group)
 - [ ] after `pane run <P> "printf ..."` shows the note, `agent start` does not return
@@ -431,12 +453,17 @@ server is never restarted.
 - [ ] only `agent == "claude"` panes become rows; the dashboard's own pane (`HERDR_PANE_ID`) is excluded
 - [ ] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
       cwd, status and the `agent_session` UUID
-- [ ] the Claude process's pid, argv and version come from `process-info`, empty when absent
+- [ ] the Claude process is the foreground group leader (`pid == foreground_process_group_id`)
+- [ ] its argv comes from `process-info`, else from `/proc/<pid>/cmdline` (NUL-separated),
+      else is empty
+- [ ] its running version is the basename of `readlink /proc/<pid>/exe` when `/proc`
+      exists, else `process-info`'s `name` when it looks like a version, else unknown
 - [ ] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
       from `ps -o rss=`, and the row survives when both fail
 - [ ] RSS is the sum over every foreground pid, with the Claude-only value kept
-- [ ] the version is compared with the `readlink` target of `argv[0]`: `old` when different,
-      no badge when equal or unknown; `claude_command` is the fallback
+- [ ] the current version is the basename of the `realpath` of `argv[0]` when it is a path,
+      else of `claude_command` found on `PATH`, else of `~/.local/bin/claude`; `old` when it
+      differs from the running version, no badge when equal or either is unknown
 - [ ] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript
 - [ ] a record whose `pane_id` hosts a Claude with the same `agent_session.value` becomes
       `resumed` and its label is restored (resumed by hand)
