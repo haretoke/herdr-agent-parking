@@ -19,16 +19,15 @@ class Entry:
 
 
 class Tracker:
-    def __init__(self, clock, summary_for):
+    def __init__(self, clock):
         self.clock = clock
-        self.summary_for = summary_for
         self.entries = {}
 
     @classmethod
-    def load(cls, path, clock, summary_for):
+    def load(cls, path, clock):
         """A tracker with the entries saved at `path`; a missing or broken file (or entry)
         starts empty, since the tracking only helps."""
-        tracker = cls(clock, summary_for)
+        tracker = cls(clock)
         try:
             saved = json.loads(path.read_text(encoding="utf-8"))
             for pane_id, raw in saved.items():
@@ -46,11 +45,12 @@ class Tracker:
         storage.write_json(path, {k: {"seq": v.seq, "status": v.status, "since": times.iso(v.since),
                                       "lower_bound": v.lower_bound} for k, v in self.entries.items()})
 
-    def poll(self, pane_id, seq, status):
-        """Record what `agent.list` says about `pane_id` now; returns its entry."""
+    def poll(self, pane_id, seq, status, summary=None):
+        """Record what `agent.list` says about `pane_id` now (`summary`: its session's
+        transcript, used the first time the pane is seen); returns its entry."""
         entry = self.entries.get(pane_id)
         if entry is None:
-            entry = self._first(seq, status, self.summary_for(pane_id))
+            entry = self._first(seq, status, summary)
             self.entries[pane_id] = entry
         elif seq != entry.seq:
             if not (entry.from_event and entry.status == status):

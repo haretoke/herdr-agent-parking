@@ -29,7 +29,7 @@ class BuildTestCase(FlowRuntimeTestCase):
         self.rt = self.runtime(base)
         self.rt.system = system or FakeSystem(proc=False)
         self.rt.summary_for = lambda session_id: getattr(self, "summaries", {}).get(session_id)
-        self.tracker = idle.Tracker(self.rt.clock, lambda pane_id: None)
+        self.tracker = idle.Tracker(self.rt.clock)
         return inventory.build(self.rt, self.tracker, own)
 
 
