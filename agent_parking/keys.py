@@ -26,20 +26,26 @@ class KeyParser:
                 keys.extend(self._text(byte))
                 position += 1
                 continue
-            sequence = buffer[position:position + 3]
-            if sequence == b"\x1b":
-                keys.append("esc")
-                break
-            if sequence[1:2] not in (b"[", b"O"):
+            kind = buffer[position + 1:position + 2]
+            if kind == b"[":  # CSI: parameters, then one final byte in 0x40-0x7E
+                end = position + 2
+                while end < len(buffer) and not 0x40 <= buffer[end] <= 0x7E:
+                    end += 1
+                if end >= len(buffer):
+                    self.pending = buffer[position:]
+                    break
+                keys.extend([ARROWS[buffer[end:end + 1]]] if buffer[end:end + 1] in ARROWS else [])
+                position = end + 1
+            elif kind == b"O":  # SS3: one more byte
+                if position + 2 >= len(buffer):
+                    self.pending = buffer[position:]
+                    break
+                keys.extend([ARROWS[buffer[position + 2:position + 3]]]
+                            if buffer[position + 2:position + 3] in ARROWS else [])
+                position += 3
+            else:
                 keys.append("esc")
                 position += 1
-                continue
-            if len(sequence) < 3:
-                self.pending = sequence
-                break
-            if sequence[2:3] in ARROWS:
-                keys.append(ARROWS[sequence[2:3]])
-            position += 3
         return keys
 
     def _text(self, byte):

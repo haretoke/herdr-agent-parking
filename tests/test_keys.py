@@ -23,6 +23,12 @@ class KeyParserTest(unittest.TestCase):
         self.assertEqual(parser.feed(data[:2]), [])
         self.assertEqual(parser.feed(data[2:]), ["メ", "モ"])
 
+    def test_other_escape_sequences_are_consumed_whole_even_when_split(self):
+        parser = KeyParser()
+        self.assertEqual(parser.feed(b"a\x1b[3~b\x1b[1;5Ac\x1b[15~"), ["a", "b", "up", "c"])
+        self.assertEqual(parser.feed(b"\x1b[2"), [])
+        self.assertEqual(parser.feed(b"4~d"), ["d"])
+
 
 if __name__ == "__main__":
     unittest.main()
