@@ -789,7 +789,12 @@ server is never restarted.
       `/compact <focus>` in a code block and no tag (that line is now the fallback
       focus); the idle column stayed `—` (the events of the wait arrived together, see
       below); a report line exactly as wide as the pane lost its last character
-- [ ] Mac local: `C` compacts then parks, and the resumed session starts from the summary
+- [x] Mac local: `C` compacts then parks, and the resumed session starts from the summary
+      (2026-09-27, haiku, `on_park = close`): the note came first, then the preparation
+      and its confirmation (focus from the reply), then `/compact`, then the park; the
+      pane closed and the row said `compacted 0m` with the note. `r` recreated the pane
+      and resumed the same UUID, the row still `compacted`; asked what happened before,
+      the resumed Claude answered from its summary ("…replied with ok, no actual work")
 - [ ] Mac local: ctx matches the statusline (tokens and percentage) for a haiku session and
       an Opus session with the window configured
 - [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
