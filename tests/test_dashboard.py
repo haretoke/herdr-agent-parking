@@ -130,5 +130,19 @@ class GoTest(unittest.TestCase):
         self.assertIn("no pane", shown.lines(78, 20)[-2])
 
 
+class ParkRefusedTest(unittest.TestCase):
+    def test_s_on_a_row_that_cannot_be_parked_says_why_and_does_nothing(self):
+        cases = [(live(status="working"), "working"), (live(status="blocked"), "blocked"),
+                 (live(status="unknown"), "unknown"), (live(status="parked", record={}), "already parked")]
+        for row, reason in cases:
+            with self.subTest(status=row.status):
+                actions = FakeActions()
+                shown = board(row, actions=actions)
+                shown.on_input(b"s")
+                self.assertIn(reason, shown.message)
+                self.assertIsNone(shown.dialog)
+                self.assertEqual(actions.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()

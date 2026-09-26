@@ -1,7 +1,7 @@
 """The dashboard's screen and keys, free of terminal and socket I/O (the loop that
 drives it is in `terminal`)."""
 
-from . import display, keys, table
+from . import display, keys, ready, table
 
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
@@ -18,6 +18,7 @@ class Dashboard:
         self._refresh = refresh   # () -> inventory.Inventory
         self.actions = actions    # what the keys do (actions.Actions)
         self.message = ""
+        self.dialog = None
         self._on_event = on_event  # a Herdr event, before the list is read again
         self.rows = []
         self.others = {}
@@ -77,6 +78,7 @@ class Dashboard:
     def on_input(self, data):
         for key in self.keys.feed(data):
             self.message = ""
+        self.dialog = None
             if key == "q":
                 self.quit = True
             elif key == "i":
@@ -85,9 +87,25 @@ class Dashboard:
                 self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
             elif key == "g":
                 self._go()
+            elif key == "s":
+                self._park()
 
     def _row(self):
         return self.rows[self.selected] if self.rows else None
+
+    def _refusal(self, row, action):
+        """Why `action` cannot start on `row` (None when it can): the same statuses as the
+        park and compact flows check again before acting."""
+        if row is None:
+            return "no session selected"
+        if row.record is not None:
+            return "cannot %s: already parked" % action
+        if row.status not in ready.READY_STATUSES:
+            return "cannot %s: Claude is %s" % (action, row.status or "unknown")
+        return None
+
+    def _park(self):
+        self.message = self._refusal(self._row(), "park") or ""
 
     def _go(self):
         row = self._row()
