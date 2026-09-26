@@ -652,6 +652,9 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
   Claude's `Resume this session with` line, is gone, so the record is the only trace.
 - Pane IDs, tab IDs, labels and cwd survive a server restart and closed IDs are not
   reused (spike 0-1), so a record's `pane_id` stays valid across restarts.
+- A dashboard that was open during the restart comes back as a plain shell pane in the
+  plugin root, still labelled `Agent parking` (seen on the Mac): Herdr does not start
+  plugin panes again. Close it and open the dashboard with the action.
 - No automatic resume (eating the memory again right after a restart defeats the
   purpose). `resume_on_startup` from `[[startup]]` is a future extension; in v1 a
   person presses `r`.

@@ -817,8 +817,13 @@ server is never restarted.
       one `ps -o pid=,rss= -p a,b,c` per refresh if it shows)
 - [ ] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
       returns; decide whether the stop signal should interrupt it
-- [ ] after a Herdr server restart (throwaway session): a parked pane keeps its record
+- [x] after a Herdr server restart (throwaway session): a parked pane keeps its record
       and label and `r` resumes it in the same pane ID (spike 0-1, 0-2)
+      (2026-09-27): `w1:pE` parked with a note, the server stopped and started again;
+      the pane came back as a shell labelled `💤 Session acknowledgment`, the new
+      dashboard listed it as parked with the note, and `r` answered `resumed w1:pE` with
+      the same UUID and the label cleared. The dashboard that was open during the
+      restart came back as a plain shell labelled `Agent parking` (noted in DESIGN)
 
 ## Open items
 
