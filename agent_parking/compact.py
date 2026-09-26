@@ -48,8 +48,10 @@ UNKNOWN_COMMAND = "Unknown command:"
 def _send_and_wait(rt, pane_id, text):
     # The wait rides on the prompt request, so no status change can slip in between
     # (it may take minutes: the preparation can commit and push).
+    seconds = rt.settings["prepare_timeout_seconds"]
     return rt.herdr.call("agent.prompt", {"target": pane_id, "text": text, "wait": {
-        "until": ["idle", "done", "blocked"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
+        "until": ["idle", "done", "blocked"], "timeout_ms": int(seconds * 1000)}},
+        timeout=seconds + herdr_api.WAIT_MARGIN_SECONDS)
 
 
 REPORT_LINES = 8
@@ -76,7 +78,8 @@ def run(rt, pane_id, focus):
     sent_at = rt.clock()
     timeout = rt.settings["compact_timeout_seconds"]
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": ("/compact " + line).strip(), "wait": {
-        "until": ["idle", "done"], "timeout_ms": int(timeout * 1000)}})
+        "until": ["idle", "done"], "timeout_ms": int(timeout * 1000)}},
+        timeout=timeout + herdr_api.WAIT_MARGIN_SECONDS)
     if transcript.compacted_since(rt.rows_for(pane.session_id), sent_at):
         return Outcome("compacted", "", None)
     return Outcome("compact_failed", "no new compaction in the transcript within %s s" % timeout, None)

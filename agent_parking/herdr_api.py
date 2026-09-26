@@ -6,6 +6,8 @@ import uuid
 from collections import namedtuple
 
 MAX_LINE_BYTES = 4 * 1024 * 1024
+# Extra socket time for requests that wait inside Herdr, so Herdr's own timeout answers first.
+WAIT_MARGIN_SECONDS = 30
 
 
 Pane = namedtuple("Pane", "pane_id tab_id workspace_id agent agent_status cwd label title session_id")

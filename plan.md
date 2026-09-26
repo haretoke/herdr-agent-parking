@@ -630,7 +630,7 @@ server is never restarted.
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
       `"keep"` and a reason is returned
 - [x] a timeout gives `park_failed` and the pane is untouched
-- [ ] requests that wait inside Herdr (`agent.start`, the preparation and `/compact` prompts)
+- [x] requests that wait inside Herdr (`agent.start`, the preparation and `/compact` prompts)
       use a socket timeout longer than their Herdr-side wait
 - [x] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [x] the note is stored; an empty note is `null`

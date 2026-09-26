@@ -36,9 +36,10 @@ def resume(rt, session_id):
             pass
     flags = argv.resume_flags(record.get("argv") or ["claude"]).flags
     try:
+        start_ms = int(rt.settings["start_timeout_ms"])
         rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
-                                      "args": ["--resume", session_id] + flags,
-                                      "timeout_ms": int(rt.settings["start_timeout_ms"])})
+                                      "args": ["--resume", session_id] + flags, "timeout_ms": start_ms},
+                      timeout=start_ms / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
     except herdr_api.HerdrError as error:
         if error.code != "agent_not_ready":
             raise
