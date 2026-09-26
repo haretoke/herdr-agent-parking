@@ -63,5 +63,13 @@ class ResumeTest(ActionsTestCase):
         self.assertEqual(acting.now(), acting.rt.clock())
 
 
+class SwapTest(ActionsTestCase):
+    def test_swap_runs_the_swap_flow(self):
+        acting = self.actions()
+        with unittest.mock.patch.object(resume, "swap", return_value=("parked", "resumed")) as flow:
+            self.assertEqual(acting.swap("w1:p2"), ("parked", "resumed"))
+        flow.assert_called_once_with(acting.rt, "w1:p2")
+
+
 if __name__ == "__main__":
     unittest.main()

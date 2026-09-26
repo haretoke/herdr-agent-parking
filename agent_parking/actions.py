@@ -33,3 +33,6 @@ class Actions:
 
     def resume(self, session_id, new_workspace):
         return resume.resume(self.rt, session_id, new_workspace=new_workspace)
+
+    def swap(self, pane_id):
+        return resume.swap(self.rt, pane_id)
