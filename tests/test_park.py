@@ -2,7 +2,7 @@ import copy
 import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from agent_parking import config, herdr_api, park, runtime, state, transcript
@@ -271,6 +271,39 @@ class LabelFormatTest(unittest.TestCase):
 
     def test_a_broken_format_falls_back_to_the_default(self):
         self.assertEqual(self.label("{nope} {title", "work"), "💤 work")
+
+
+class BulkTest(unittest.TestCase):
+    def test_targets_are_idle_or_done_rows_past_the_threshold_lower_bounds_included(self):
+        from agent_parking.idle import Entry
+        from agent_parking.inventory import Row
+        rows = [Row(pane_id="w1:p1", status="idle"), Row(pane_id="w1:p2", status="done"),
+                Row(pane_id="w1:p3", status="idle"), Row(pane_id="w1:p4", status="blocked"),
+                Row(pane_id="w1:p5", status="working"), Row(pane_id="w1:p6", status="idle")]
+        entries = {"w1:p1": Entry(1, "idle", NOW - timedelta(minutes=75), False),
+                   "w1:p2": Entry(1, "done", NOW - timedelta(minutes=60), True),
+                   "w1:p3": Entry(1, "idle", NOW - timedelta(minutes=59), False),
+                   "w1:p4": Entry(1, "blocked", NOW - timedelta(hours=3), False),
+                   "w1:p5": Entry(1, "working", NOW - timedelta(hours=3), False)}
+        targets, skipped = park.bulk_targets(rows, entries, NOW, minutes=60)
+        self.assertEqual([r.pane_id for r in targets], ["w1:p1", "w1:p2"])
+        self.assertEqual({r.pane_id: reason for r, reason in skipped},
+                         {"w1:p3": "idle 59m", "w1:p4": "blocked", "w1:p5": "working", "w1:p6": "idle time unknown"})
+
+    def test_a_failure_does_not_stop_the_others_and_every_result_is_reported(self):
+        calls = []
+
+        def one(pane_id):
+            calls.append(pane_id)
+            if pane_id == "w1:p2":
+                raise herdr_api.HerdrError("gone", "pane_not_found")
+            return park.Outcome("parked", "", {"pane_id": pane_id})
+
+        results = park.bulk_park(["w1:p1", "w1:p2", "w1:p3"], one)
+        self.assertEqual(calls, ["w1:p1", "w1:p2", "w1:p3"])
+        self.assertEqual([(p, o.kind) for p, o in results],
+                         [("w1:p1", "parked"), ("w1:p2", "park_failed"), ("w1:p3", "parked")])
+        self.assertIn("gone", results[1][1].message)
 
 
 class ConfirmationTest(unittest.TestCase):

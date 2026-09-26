@@ -628,7 +628,7 @@ server is never restarted.
 - [x] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [x] the note is stored; an empty note is `null`
 - [x] the context numbers at park time are stored in `context_at_park`
-- [ ] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
+- [x] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
       continues after one failure, and reports the results
 - [x] the label format is configurable, cut at 80 characters, and free of control characters
 

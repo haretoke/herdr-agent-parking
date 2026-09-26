@@ -3,7 +3,7 @@
 import unicodedata
 from collections import namedtuple
 
-from . import config, herdr_api, inventory, layout, records, screen, times, transcript
+from . import config, display, herdr_api, inventory, layout, records, screen, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -126,3 +126,33 @@ def confirmation(row):
     title = '"%s"' % row.name if row.name else ""
     return [("park %s %s" % (row.pane_id, title)).rstrip(), LOST_WORK,
             "note (empty for none; a blank line or Ctrl-D ends it):"]
+
+
+def bulk_targets(rows, entries, now, minutes):
+    """The rows `S` parks: idle or done for at least `minutes` (a `≥` lower bound counts),
+    and the others with the reason they are left out."""
+    targets, skipped = [], []
+    for row in rows:
+        entry = entries.get(row.pane_id)
+        if row.status not in PARKABLE:
+            skipped.append((row, row.status or "unknown"))
+        elif entry is None:
+            skipped.append((row, "idle time unknown"))
+        elif (now - entry.since).total_seconds() < minutes * 60:
+            skipped.append((row, "%s %s" % (row.status, display.age((now - entry.since).total_seconds()))))
+        else:
+            targets.append(row)
+    return targets, skipped
+
+
+def bulk_park(pane_ids, park_one):
+    """Park each pane in turn with `park_one(pane_id)`; one failure does not stop the rest.
+    Returns `[(pane_id, Outcome)]`."""
+    results = []
+    for pane_id in pane_ids:
+        try:
+            outcome = park_one(pane_id)
+        except (herdr_api.HerdrError, records.Refused, OSError) as error:
+            outcome = Outcome("park_failed", str(error), None)
+        results.append((pane_id, outcome))
+    return results
