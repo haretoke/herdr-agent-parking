@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from collections import namedtuple
 from . import records
 from .times import parse as parse_time
@@ -143,3 +144,41 @@ def percent(tokens, window):
     if tokens is None or not window:
         return None
     return tokens * 100 // window
+
+
+Reply = namedtuple("Reply", "found text focus")
+FOCUS = re.compile(r"<compact-focus>(.*?)</compact-focus>", re.S)
+
+
+def _text(row):
+    message = row.get("message") if isinstance(row.get("message"), dict) else {}
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    return "\n".join(item.get("text", "") for item in content or []
+                     if isinstance(item, dict) and item.get("type") == "text")
+
+
+def _is_prompt(row, prompt):
+    """The user line of `prompt`: its own text, or for a slash command the
+    `<command-name>` line Claude writes for it."""
+    if row.get("type") != "user" or row.get("isMeta"):
+        return False
+    text = _text(row)
+    if text.strip() == prompt.strip():
+        return True
+    command = prompt.split()[0] if prompt.startswith("/") else None
+    return command is not None and ("<command-name>%s</command-name>" % command) in text
+
+
+def preparation_reply(rows, prompt):
+    """The assistant's reply to the last `prompt` in `rows`, and the one-line focus of its
+    last `<compact-focus>` tag ("" without one)."""
+    starts = [i for i, row in enumerate(rows) if _is_prompt(row, prompt)]
+    if not starts:
+        return Reply(found=False, text="", focus="")
+    texts = [_text(row) for row in rows[starts[-1] + 1:] if row.get("type") == "assistant"]
+    text = "\n".join(t for t in texts if t)
+    tags = FOCUS.findall(text)
+    focus = " ".join(tags[-1].split()) if tags else ""
+    return Reply(found=True, text=text, focus=focus)

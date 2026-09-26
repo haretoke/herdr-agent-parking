@@ -206,6 +206,37 @@ class LoadTest(TranscriptTestCase):
         self.assertEqual(transcript.load(path).tokens, 36890)
 
 
+def said(text, ts="2026-09-26T16:40:00Z"):
+    return {"type": "assistant", "timestamp": ts,
+            "message": {"content": [{"type": "text", "text": text}], "usage": {"input_tokens": 1}}}
+
+
+class FocusTest(unittest.TestCase):
+    REPORT = ("Saved the plan.\n<compact-focus>ネクステージ調査の結論と\n成果物の一覧を残す</compact-focus>\n"
+              "`/compact ネクステージ調査の結論と成果物の一覧を残す`")
+
+    def test_the_focus_comes_from_the_reply_after_the_sent_prompt(self):
+        rows = [user("Prepare to compact."), said("<compact-focus>old</compact-focus>"),
+                user("Prepare to compact."), said(self.REPORT)]
+        reply = transcript.preparation_reply(rows, "Prepare to compact.")
+        self.assertTrue(reply.found)
+        self.assertEqual(reply.focus, "ネクステージ調査の結論と 成果物の一覧を残す")
+        self.assertEqual(reply.text, self.REPORT)
+
+    def test_a_skill_command_is_matched_by_its_command_name_line(self):
+        rows = [user("<command-message>prepare-compact</command-message>\n<command-name>/prepare-compact</command-name>"),
+                user("Base directory for this skill: ...", isMeta=True), said(self.REPORT)]
+        reply = transcript.preparation_reply(rows, "/prepare-compact")
+        self.assertEqual(reply.focus, "ネクステージ調査の結論と 成果物の一覧を残す")
+
+    def test_no_tag_gives_an_empty_focus_and_no_prompt_gives_nothing_found(self):
+        rows = [user("Prepare to compact."), said("Nothing to save.")]
+        reply = transcript.preparation_reply(rows, "Prepare to compact.")
+        self.assertEqual((reply.found, reply.focus, reply.text), (True, "", "Nothing to save."))
+        missing = transcript.preparation_reply([said("<compact-focus>x</compact-focus>")], "Prepare to compact.")
+        self.assertEqual((missing.found, missing.focus), (False, ""))
+
+
 class PercentTest(unittest.TestCase):
     def test_the_percentage_is_truncated_like_the_statusline(self):
         for tokens, window, expected in [(36890, 200_000, 18), (199_999, 200_000, 99), (0, 200_000, 0),

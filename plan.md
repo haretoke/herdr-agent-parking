@@ -559,8 +559,9 @@ server is never restarted.
       the statusline file `context-windows.json` by session id, else is unknown
 - [x] the percentage is truncated (36890 / 200000 → 18) and absent when the window is unknown
 - [x] a missing, unreadable or empty transcript gives an empty ctx
-- [ ] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
-      after the line whose user text equals the sent prompt; none gives an empty focus
+- [x] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
+      after the line whose user text equals the sent prompt (for a slash command, its
+      `<command-name>` line); none gives an empty focus
 - [ ] a new `compact_boundary` after a given time is detected
 - [ ] the last conversation time is the `timestamp` of the last `user` / `assistant` line that is
       not `isMeta`; bookkeeping lines (`cost-state`, `file-history-snapshot`, ...) are ignored
