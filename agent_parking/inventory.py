@@ -33,6 +33,10 @@ class Row:
     record: Optional[dict] = None         # the park record, for parked sessions
 
 
+# The dashboard's rows, and how many panes run each other agent (the "codex: n" in the title).
+Inventory = namedtuple("Inventory", "rows others")
+
+
 def claude_panes(panes, own_pane_id):
     """The panes Herdr recognizes as Claude, without the dashboard's own pane."""
     return [p for p in panes if p.agent == "claude" and p.pane_id != own_pane_id]
