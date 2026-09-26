@@ -38,3 +38,23 @@ class TextInput:
         elif len(key) == 1:
             self.rows[-1] += key
         return None
+
+
+class Confirm:
+    """Lines to read and the keys that choose (`{"enter": "yes", "e": "edit"}`); Esc
+    cancels. With `others_cancel` any other key cancels too (a `(y/N)` question)."""
+
+    def __init__(self, lines, choices, others_cancel=False):
+        self.shown = list(lines)
+        self.choices = dict(choices)
+        self.others_cancel = others_cancel
+
+    def lines(self):
+        return self.shown
+
+    def on_key(self, key):
+        if key in self.choices:
+            return ("done", self.choices[key])
+        if key in ("esc", "ctrl-c") or self.others_cancel:
+            return CANCEL
+        return None

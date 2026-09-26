@@ -1,6 +1,6 @@
 import unittest
 
-from agent_parking.dialogs import TextInput
+from agent_parking.dialogs import Confirm, TextInput
 
 
 def type_keys(dialog, keys):
@@ -42,6 +42,23 @@ class MultiLineTest(unittest.TestCase):
         dialog = TextInput(["note:"], multiline=True, initial="ab\n")
         type_keys(dialog, ["backspace", "backspace"])
         self.assertEqual(dialog.lines(), ["note:", "> a"])
+
+
+class ConfirmTest(unittest.TestCase):
+    def test_the_given_keys_choose_esc_cancels_and_other_keys_wait(self):
+        dialog = Confirm(["resume w1:p2", "Enter to resume, e to edit the note, Esc to cancel"],
+                         {"enter": "yes", "e": "edit"})
+        self.assertEqual(dialog.lines()[0], "resume w1:p2")
+        self.assertIsNone(dialog.on_key("j"))
+        self.assertEqual(dialog.on_key("e"), ("done", "edit"))
+        self.assertEqual(dialog.on_key("enter"), ("done", "yes"))
+        self.assertEqual(dialog.on_key("esc"), ("cancel", None))
+
+    def test_a_yes_no_question_takes_anything_but_y_as_no(self):
+        dialog = Confirm(["restart it anyway? (y/N)"], {"y": "yes"}, others_cancel=True)
+        self.assertEqual(dialog.on_key("n"), ("cancel", None))
+        self.assertEqual(dialog.on_key("enter"), ("cancel", None))
+        self.assertEqual(dialog.on_key("y"), ("done", "yes"))
 
 
 if __name__ == "__main__":
