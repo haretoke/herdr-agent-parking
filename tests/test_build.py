@@ -163,5 +163,30 @@ class RecordStatusTest(BuildTestCase):
                                  status)
 
 
+class PollAgainTest(BuildTestCase):
+    def test_a_second_build_shows_the_new_status_memory_ctx_and_a_longer_idle_time(self):
+        now = [NOW]
+        system = FakeSystem(proc=False)
+        system.rss = {200: 200_000}
+        self.summaries = {UUID: transcript.EMPTY._replace(tokens=37_000)}
+        first = self.build({"pane.list": [pane_list(raw_pane("w1:p2")), pane_list(raw_pane("w1:p2")),
+                                          pane_list(raw_pane("w1:p2", status="working"))],
+                            "agent.list": {"type": "agent_list", "agents": [{"pane_id": "w1:p2", "state_change_seq": 4}]},
+                            "pane.process_info": PROCESS}, system=system).rows[0]
+        self.rt.clock = self.tracker.clock = lambda: now[0]
+        self.assertEqual((first.status, first.rss_kb, first.ctx, first.idle), ("idle", 200_000, "37k", "≥0m"))
+
+        now[0] += timedelta(minutes=5)
+        second = inventory.build(self.rt, self.tracker, "w1:p9").rows[0]
+        self.assertEqual(second.idle, "≥5m")
+
+        now[0] += timedelta(minutes=1)
+        system.rss[200] = 260_000
+        self.summaries[UUID] = transcript.EMPTY._replace(tokens=52_000)
+        self.fake.script["agent.list"] = {"type": "agent_list", "agents": [{"pane_id": "w1:p2", "state_change_seq": 5}]}
+        third = inventory.build(self.rt, self.tracker, "w1:p9").rows[0]
+        self.assertEqual((third.status, third.rss_kb, third.ctx, third.idle), ("working", 260_000, "52k", "—"))
+
+
 if __name__ == "__main__":
     unittest.main()
