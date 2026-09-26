@@ -109,6 +109,8 @@ class Dashboard:
                 self._go()
             elif key == "s":
                 self._park()
+            elif key == "x":
+                self._forget()
 
     def _row(self):
         return self.rows[self.selected] if self.rows else None
@@ -132,6 +134,24 @@ class Dashboard:
         self._ask(dialogs.TextInput(park.confirmation(row), multiline=True),
                   lambda note: self._later("parking %s…" % row.pane_id,
                                            lambda: _said(self.actions.park(row.pane_id, note), row.pane_id)))
+
+    def _parked_row(self):
+        """The selected row when it has a park record; else None and a message."""
+        row = self._row()
+        if row is None or row.record is None:
+            self.message = "no record for this row"
+            return None
+        return row
+
+    def _forget(self):
+        row = self._parked_row()
+        if row is None:
+            return
+        question = 'forget the record of %s "%s"? The transcript stays. (y/N)' % (
+            row.pane_id or "(no pane)", row.name or "")
+        self._ask(dialogs.Confirm([question], {"y": "yes"}, others_cancel=True),
+                  lambda _: self._later("forgetting…", lambda: self.actions.forget(row.session_id) or
+                                        "forgot the record of %s" % row.session_id[:8]))
 
     def _ask(self, dialog, on_done):
         self.dialog, self.on_done = dialog, on_done
