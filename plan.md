@@ -507,7 +507,7 @@ server is never restarted.
       retention test covers deletion)
 - [x] a record in `parking` is never overwritten (a second park of the same UUID)
 - [x] resumed records move to `resumed/` and are deleted after the retention (boundary ±1 s)
-- [ ] a note with newlines and control characters round-trips unchanged
+- [x] a note with newlines and control characters round-trips unchanged
 - [ ] moving `pane_id` keeps the old ID in `pane_id_history`
 
 ### argv

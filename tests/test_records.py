@@ -57,6 +57,13 @@ class WriteTest(RecordsTestCase):
         self.assertEqual(sorted(p.name for p in self.dir.iterdir()), [UUID + ".json"])
 
 
+class NoteTest(RecordsTestCase):
+    def test_a_note_with_newlines_and_control_characters_round_trips(self):
+        note = "LUT の一覧を貼る前で止めた\n次: 焦点は\t色域\r\n\x1b[31mred\x1b[0m \x00   end"
+        records.write(self.dir, record(note=note))
+        self.assertEqual(records.list_records(self.dir)[0]["note"], note)
+
+
 class StartParkingTest(RecordsTestCase):
     def test_a_second_park_of_a_session_in_parking_is_refused_and_keeps_the_first(self):
         records.start_parking(self.dir, record(status="parking", note="first"))
