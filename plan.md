@@ -429,20 +429,55 @@ server is never restarted.
       that pane even with `on_park = close`)
       (2026-09-27): yes. Closing the only pane of a new tab removed the tab from
       `tab list`. `on_park = close` keeps such a pane, as designed
-- [ ] whether a parked session can be compacted headless
+- [x] whether a parked session can be compacted headless
       (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the documented list of
       slash commands available with `-p`). If it works, parked sessions can be compacted
       later (future extension)
-- [ ] what happens when `/prepare-compact` is sent where the skill is not installed
+      (2026-09-27, Claude Code 2.1.283, haiku, no Claude running on that session): yes.
+      `claude -p --resume <uuid> --model haiku "/compact keep only the word HEADLESS"
+      < /dev/null` exited 0 and appended a second `compact_boundary` (`trigger: manual`,
+      same `sessionId`, rows marked `entrypoint: sdk-cli`) to the same transcript; the
+      summary honoured the focus and no assistant line followed, so the session reads as
+      compacted. Without `< /dev/null` it waits 3 s for stdin and warns. Must be run with
+      `CLAUDE*` variables unset (see spike 0-2). So a parked session can be compacted
+      later without starting its UI (future extension: `c` on a parked row)
+- [x] what happens when `/prepare-compact` is sent where the skill is not installed
       (how an unknown slash command is handled)
-- [ ] whether a resume or hook activity alone, without any user action, appends lines to
+      (2026-09-27, tested with `/no-such-skill-xyz`): Claude shows `Unknown command:
+      /no-such-skill-xyz` locally, nothing goes to the model, a `system` /
+      `informational` line is added to the transcript, and `agent prompt --wait` returns
+      `agent_prompt_stalled` (no working state within 5 s). The compact flow treats
+      `agent_prompt_stalled` + `Unknown command: <prepare_command>` on screen as "skill
+      missing", sends `prepare_prompt` instead, and says so in the confirmation box
+- [x] whether a resume or hook activity alone, without any user action, appends lines to
       the transcript (if not, the time of the last conversation line can feed idle time;
       if so, which line types are usable)
-- [ ] whether `Compact Instructions` in `CLAUDE.md` also applies to automatic compaction
-- [ ] how to tell that `agent prompt "/compact <focus>"` finished: the `working → idle`
+      (2026-09-27): a resume followed by 10 s idle added no line (65 → 65, the Herdr
+      integration's SessionStart hook included). `/exit` added three lines without a
+      timestamp (`file-history-snapshot`, `cost-state` ×2). A `/compact` adds bookkeeping
+      lines (`last-prompt`, `ai-title`, `mode`, `permission-mode`, `atis-latch`,
+      `attachment`) around the boundary. So the last conversation time is the
+      `timestamp` of the last `user` / `assistant` line that is not `isMeta`; it can feed
+      idle time for panes the dashboard has not watched, instead of the `≥` lower bound
+- [x] whether `Compact Instructions` in `CLAUDE.md` also applies to automatic compaction
+      (2026-09-27, haiku, one run each, a `## Compact Instructions` section asking for the
+      codeword `PINEAPPLE-42` in every summary): manual `/compact` (headless) put the
+      codeword in the summary. Automatic compaction did not: in `-p` mode it never fired
+      (154k context with `--autocompact 100k`, two turns, no boundary); interactively
+      (`--autocompact 100k`, the same session) it fired (`trigger: auto`, 155139 →
+      4716 tokens) and its summary lacked the codeword. One sample, but the README should
+      only promise the section for manual `/compact`
+- [x] how to tell that `agent prompt "/compact <focus>"` finished: the `working → idle`
       transition or the new boundary line
-- [ ] the lag between `Stop` and the transcript when the preparation reply is read (is
+      (2026-09-27): `agent prompt <P> "/compact keep the LAG words" --wait` returned
+      `done` after 16.3 s, and the new `compact_boundary` was already in the transcript
+      at that moment. The flow waits with `--wait` and then confirms that the boundary
+      count grew; the boundary is the proof, the wait is the trigger to look
+- [x] the lag between `Stop` and the transcript when the preparation reply is read (is
       the assistant text already written?)
+      (2026-09-27, 3 tries): each time `agent prompt ... --wait` returned, the assistant's
+      reply text was already in the transcript. The flow reads right after the wait and
+      retries once after 0.5 s only if the reply is missing
 
 ### state / config
 - [ ] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this

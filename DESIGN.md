@@ -196,7 +196,10 @@ Conditions: `idle` or `done`, and the input box is empty (the same check as park
 
 1. Send the preparation command with `agent prompt`: `prepare_command` (default
    `/prepare-compact`). For environments without the skill, the setting
-   `prepare_prompt` sends the built-in request text instead.
+   `prepare_prompt` sends the built-in request text instead. When the skill is missing,
+   Claude answers `Unknown command: /prepare-compact` locally and `agent prompt`
+   returns `agent_prompt_stalled` (spike 0-18); the flow then sends the built-in text
+   and notes it in the confirmation box.
 2. `agent wait --until idle` with a long timeout (`prepare_timeout_seconds`, default
    600), because the preparation may commit and push.
 3. Find the line the plugin sent in the transcript and take the focus tag from the
@@ -205,9 +208,11 @@ Conditions: `idle` or `done`, and the input box is empty (the same check as park
    focus can be edited. Without a tag, the focus is shown empty and can be typed.
 5. `agent prompt <P> "/compact <focus>"`: the focus is one line (newlines become
    spaces); an empty focus sends `/compact` alone.
-6. Done when a new `compact_boundary` line appears (whether the `working → idle`
-   transition or the boundary line is the better signal is a spike); ctx turns into
-   `compacted`. `C` then continues with the park procedure.
+6. `agent prompt ... --wait` returns once the compaction is over, and the new
+   `compact_boundary` line is already written then (spike 0-21, 16 s for a small
+   session). The flow confirms that the boundary count grew; ctx turns into
+   `compacted`. `C` then continues with the park procedure. The preparation reply is
+   also in the transcript as soon as its wait returns (spike 0-22).
 
 If the agent becomes `blocked` during the preparation (a permission dialog or a
 question), the flow stops and the dashboard says to go to the pane. Pressing `c`
@@ -325,8 +330,11 @@ event has no time either. So the plugin tracks it:
   `released: true` on exit) and one `pane.agent_status_changed` per Claude pane (that
   type requires a `pane_id`), and reopens it when the set of Claude panes changes
   (spike 0-6). When the connection drops, polling alone continues.
-- A row seen for the first time gets `since = now` and `lower_bound = true`, shown as
-  `≥ 3m`. From the next change on, the value is exact.
+- A row seen for the first time takes `since` from its transcript: the `timestamp` of
+  the last `user` / `assistant` line that is not `isMeta` (nothing else is appended
+  while a session sits idle; spike 0-19). Only without a readable transcript does it
+  get `since = now` and `lower_bound = true`, shown as `≥ 3m`. From the next status
+  change on, the dashboard's own tracking takes over.
 - Nothing is tracked while the dashboard is closed. People who want continuous
   tracking keep it open in the tab placement. Herdr 0.9.1 plugins have no resident or
   scheduled mechanism (`[[startup]]` runs once and exits, `[[events]]` starts a
@@ -556,8 +564,9 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
   distributes it through its skill mirror (the same path as the herdr-pane-viewer
   skill); public users follow the README to copy it into their Claude skills
   directory. The README also recommends a `Compact Instructions` section in
-  `CLAUDE.md` (documented by Claude Code; whether it also applies to automatic
-  compaction is unverified).
+  `CLAUDE.md` for manual `/compact` (documented by Claude Code; in spike 0-20 it
+  reached a manual summary but not an automatic one, so the README promises it only
+  for manual compaction, which is what the dashboard sends).
 - The README states that the Claude integration (`herdr integration status` shows
   `claude: current`) is required, how this relates to `session.resume_agents_on_restore`,
   and that Codex is not supported.
@@ -614,26 +623,15 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 - Records for sessions exited by hand (above).
 - Automatic resume from `[[startup]]` (`resume_on_startup`).
 - A light resident pane (hidden tab) that only tracks idle time.
-- Headless compaction of a parked session (`claude -p --resume <uuid> "/compact"`),
-  if the spike shows it works.
+- Compacting a parked session without starting its UI:
+  `claude -p --resume <uuid> "/compact <focus>" < /dev/null` works (spike 0-17: same
+  session, new boundary, focus honoured). It must run with `CLAUDE*` variables unset.
 - Bulk park by an RSS threshold.
 
 ## Open items
 
 Everything below is unverified and appears as a spike in `plan.md`:
 
-- Whether a `[[events]]` hook still sees `agent_session` right after Claude exits, and
-  what `pane.exited` means.
 - The state directory not being a bind mount in containers (inferred).
 - `old` detection for npm global and Homebrew installs (not available to test).
-- `agent prompt "/exit"` with a half-typed line; how to tell an empty input box from
-  `agent read`; the `send-keys` alternative.
-- `claude --resume <UUID>` while the same UUID runs elsewhere.
-- Headless `/compact` (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the
-  documented list of `-p` slash commands).
-- What happens when `/prepare-compact` is sent where the skill is not installed.
-- Whether a resume or hook activity alone appends transcript lines (if not, the last
-  conversation line's time could feed idle time).
-- Whether `Compact Instructions` in `CLAUDE.md` also applies to automatic compaction.
-- How to detect that `/compact <focus>` finished (`working → idle` or the boundary line).
-- The lag between `Stop` and the transcript when the preparation reply is read.
+- Everything else was settled by the spikes in `plan.md` (0-1 to 0-22).
