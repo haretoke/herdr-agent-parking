@@ -608,7 +608,7 @@ server is never restarted.
 - [x] the input box is read from `agent read --format ansi`: `❯` alone and `❯` followed only
       by dim (`ESC[2m`) placeholder text are empty; any other text is a draft; no `❯` line
       between rules is "unknown" and refused
-- [ ] the park confirmation always carries the warning about lost background tasks
+- [x] the park confirmation always carries the warning about lost background tasks
 - [ ] the record is written before `/exit` is sent (order of the fake herdr calls)
 - [ ] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
       `label_before`, all read before `/exit`, and `parked_mode` after

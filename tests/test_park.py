@@ -78,5 +78,16 @@ class DraftTest(ParkTestCase):
                                           "strip_ansi": False})
 
 
+class ConfirmationTest(unittest.TestCase):
+    def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
+        from agent_parking.inventory import Row
+        for row in (Row(pane_id="w8:p36", name="proto_tunnel", status="idle"), Row(pane_id="w1:p2")):
+            with self.subTest(row=row):
+                text = "\n".join(park.confirmation(row))
+                self.assertIn(row.pane_id, text)
+                self.assertIn("background tasks", text)
+                self.assertIn("subagents", text)
+
+
 if __name__ == "__main__":
     unittest.main()
