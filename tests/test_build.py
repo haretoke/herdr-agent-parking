@@ -131,5 +131,14 @@ class ResumedByHandTest(BuildTestCase):
         self.assertEqual(records.read(paths.resumed, OTHER)["pane_id"], "w1:p6")
 
 
+class ConflictTest(BuildTestCase):
+    def test_another_session_in_the_records_pane_is_a_conflict_row_and_the_record_stays(self):
+        self.park(OTHER, "w1:p5", "color notes", 2)
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p5"))})
+        self.assertEqual([(r.pane_id, r.status, r.session_id) for r in got.rows],
+                         [("w1:p5", "idle", UUID), ("w1:p5", "conflict", OTHER)])
+        self.assertIsNotNone(records.read(state.paths(self.environ, self.settings).records, OTHER))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -220,6 +220,8 @@ def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
             continue
         pane = by_id.get(decision.pane_id)
         found = _record_row(rt, decision.record, pane, now)
+        if decision.kind == "conflict":
+            found.status = "conflict"
         if pane is not None:
             found.workspace_label = workspace_labels.get(pane.workspace_id)
             found.tab_label = tab_labels.get(pane.tab_id)
