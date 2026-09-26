@@ -25,12 +25,18 @@ class Tracker:
 
     @classmethod
     def load(cls, path, clock, summary_for):
-        """A tracker with the entries saved at `path`."""
+        """A tracker with the entries saved at `path`; a missing or broken file (or entry)
+        starts empty, since the tracking only helps."""
         tracker = cls(clock, summary_for)
-        saved = json.loads(path.read_text(encoding="utf-8"))
-        for pane_id, raw in saved.items():
-            tracker.entries[pane_id] = Entry(raw["seq"], raw["status"], times.parse(raw["since"]),
-                                             raw["lower_bound"])
+        try:
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            for pane_id, raw in saved.items():
+                since = times.parse(raw["since"])
+                if since is None:
+                    raise ValueError("bad time")
+                tracker.entries[pane_id] = Entry(raw["seq"], raw["status"], since, bool(raw["lower_bound"]))
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            tracker.entries = {}
         return tracker
 
     def save(self, path, live_pane_ids):
