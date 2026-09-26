@@ -7,7 +7,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional
 
-from . import display, herdr_api, transcript
+from . import display, herdr_api, idle, transcript
 
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 
@@ -167,17 +167,31 @@ def _labels(rt, method, key, id_key):
     return {item.get(id_key): item.get("label") for item in result.get(key) or []}
 
 
+def _state_seqs(rt):
+    """`{pane_id: state_change_seq}` from `agent.list` (Herdr's only clue to when a status
+    changed); none when Herdr cannot say."""
+    try:
+        agents = rt.herdr.call("agent.list", {}).get("agents") or []
+    except herdr_api.HerdrError:
+        return {}
+    return {agent.get("pane_id"): agent.get("state_change_seq") for agent in agents}
+
+
 def build(rt, tracker, own_pane_id):
     """The dashboard's rows now: every Claude pane but the dashboard's own."""
     now = rt.clock()
     panes = rt.herdr.panes()
     workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
     tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
+    seqs = _state_seqs(rt)
     rows = []
     for pane in claude_panes(panes, own_pane_id):
         found = row(pane, workspace_labels, tab_labels)
         _add_process(rt, found)
-        found.ctx = _ctx(rt, found.session_id, now)
+        summary = rt.summary_for(found.session_id) if found.session_id else None
+        found.ctx = _ctx(rt, summary, found.session_id, now)
+        entry = tracker.poll(found.pane_id, seqs.get(found.pane_id), found.status, summary)
+        found.idle = idle.text(entry, now)
         rows.append(found)
     return Inventory(rows, other_agents(panes))
 
@@ -198,8 +212,7 @@ def _add_process(rt, found):
     found.old = is_old(found.version, current_version(argv0, rt.settings, rt.system, rt.environ))
 
 
-def _ctx(rt, session_id, now):
-    summary = rt.summary_for(session_id) if session_id else None
+def _ctx(rt, summary, session_id, now):
     if summary is None:
         return ""
     window = transcript.window_size(summary.model, session_id, rt.settings["context_window_by_model"],

@@ -1,9 +1,10 @@
 import unittest
+from datetime import timedelta
 
 from agent_parking import idle, inventory, transcript
 from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
-from tests.flows import PROCESS, UUID, FlowRuntimeTestCase
+from tests.flows import NOW, PROCESS, UUID, FlowRuntimeTestCase
 
 
 def raw_pane(pane_id, agent="claude", status="idle", session_id=UUID, label=None, title="work"):
@@ -50,7 +51,7 @@ class BuildRowsTest(BuildTestCase):
 class LabelErrorTest(BuildTestCase):
     def test_labels_that_cannot_be_read_are_left_out(self):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "workspace.list": Error("internal"),
-                          "tab.list": Error("internal")})
+                          "tab.list": Error("internal"), "agent.list": Error("internal")})
         self.assertEqual([(r.pane_id, r.tab_label, r.workspace_label) for r in got.rows], [("w1:p2", None, None)])
 
 
@@ -78,6 +79,18 @@ class CtxTest(BuildTestCase):
         self.summaries = {UUID: summary}
         got = self.build(base)
         self.assertEqual([r.ctx for r in got.rows], ["37k 18%", ""])
+
+
+class IdleTest(BuildTestCase):
+    def test_idle_time_comes_from_the_tracker_fed_by_agent_list(self):
+        self.summaries = {UUID: transcript.EMPTY._replace(last_activity=NOW - timedelta(minutes=72))}
+        agents = [{"pane_id": "w1:p2", "state_change_seq": 4, "agent_status": "idle"},
+                  {"pane_id": "w1:p3", "state_change_seq": 9, "agent_status": "working"}]
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p3", status="working"),
+                                                 raw_pane("w1:p4", session_id=None)),
+                          "agent.list": {"type": "agent_list", "agents": agents}})
+        self.assertEqual([r.idle for r in got.rows], ["1h12m", "—", "≥0m"])
+        self.assertEqual((self.tracker.entries["w1:p2"].seq, self.tracker.entries["w1:p3"].seq), (4, 9))
 
 
 if __name__ == "__main__":
