@@ -88,6 +88,19 @@ class LoadTest(unittest.TestCase):
         self.assertEqual(loaded["prepare_prompt"], "Prepare to compact.")
         self.assertEqual(self.logged, [])
 
+    def test_context_window_by_model_keeps_only_prefixes_with_positive_integers(self):
+        self.write('{"context_window_by_model": {"claude-haiku": 200000, "claude-opus-5": 1000000,'
+                   ' "": 5, "claude-x": 0, "claude-y": "big", "claude-z": 1.5, "claude-w": true}}')
+        loaded = self.load()
+        self.assertEqual(loaded["context_window_by_model"], {"claude-haiku": 200000, "claude-opus-5": 1000000})
+        for bad in ("''", "claude-x", "claude-y", "claude-z", "claude-w"):
+            self.assertTrue(any(bad in line for line in self.logged), bad)
+
+    def test_context_window_by_model_that_is_not_an_object_is_ignored(self):
+        self.write('{"context_window_by_model": [200000]}')
+        self.assertEqual(self.load()["context_window_by_model"], {})
+        self.assertEqual(len(self.logged), 1)
+
     def test_the_defaults_are_not_shared_between_loads(self):
         first = self.load()
         first["context_window_by_model"]["claude-x"] = 1

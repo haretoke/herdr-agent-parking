@@ -489,8 +489,8 @@ server is never restarted.
 - [x] `records_dir` moves only the records; `observed.json` and the log stay in the state directory (`~` expands to
       `HOME`)
 - [x] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR` (absolute only), then `~/.claude`
-- [ ] `context_window_by_model` is a map of model id prefix to a positive integer; other
-      shapes are ignored with a logged reason
+- [x] `context_window_by_model` is a map of model id prefix to a positive integer; other
+      shapes are ignored with a logged reason (per entry; a non-object as a whole)
 - [ ] `prepare_command`, `prepare_prompt` and `prepare_timeout_seconds` are read with their
       defaults; a set `prepare_prompt` takes precedence over `prepare_command`
 

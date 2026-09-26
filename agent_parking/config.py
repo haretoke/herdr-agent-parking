@@ -81,6 +81,20 @@ def load(path, log):
             log("%s: unknown key %r is ignored" % (path, key))
         elif not VALID[key](value):
             log("%s: %s = %r is not valid; using %r" % (path, key, value, DEFAULTS[key]))
+        elif key == "context_window_by_model":
+            settings[key] = _context_windows(value, lambda line: log("%s: %s" % (path, line)))
         else:
             settings[key] = value
     return settings
+
+
+def _context_windows(given, log):
+    """The entries of `context_window_by_model` that map a model id prefix to a
+    positive integer token count."""
+    kept = {}
+    for prefix, tokens in given.items():
+        if prefix and isinstance(tokens, int) and not isinstance(tokens, bool) and tokens > 0:
+            kept[prefix] = tokens
+        else:
+            log("context_window_by_model[%r] = %r is ignored" % (prefix, tokens))
+    return kept
