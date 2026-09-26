@@ -700,7 +700,7 @@ server is never restarted.
 - [x] `r` shows the full note and the resume command, Enter resumes, Esc returns
 - [x] `R` parks and resumes in one go, with the same-version confirmation
 - [x] `g` moves to the pane and closes the dashboard
-- [ ] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
+- [x] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
 - [x] `n` rewrites the note
 - [x] `x` deletes the record after confirmation and never touches the transcript
 - [x] `/` filters by name, cwd and label
