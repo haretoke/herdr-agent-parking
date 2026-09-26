@@ -9,6 +9,10 @@ KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m
 MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
 
 
+def _key(row):
+    return row.session_id or row.pane_id
+
+
 class Dashboard:
     def __init__(self, refresh, on_event=lambda event: None):
         self._refresh = refresh   # () -> inventory.Inventory
@@ -23,8 +27,15 @@ class Dashboard:
         self.events_on = True
 
     def refresh(self):
+        """Read the list again; the selection stays on its session (or pane) wherever the
+        row moved, else on the nearest row left."""
+        chosen = _key(self.rows[self.selected]) if self.rows else None
         inventory = self._refresh()
         self.rows, self.others = inventory.rows, inventory.others
+        keys = [_key(row) for row in self.rows]
+        if chosen in keys:
+            self.selected = keys.index(chosen)
+        self.selected = max(0, min(self.selected, len(self.rows) - 1))
 
     def title(self):
         running = [row for row in self.rows if row.record is None]

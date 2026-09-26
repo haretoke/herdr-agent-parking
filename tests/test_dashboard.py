@@ -83,5 +83,21 @@ class HeightTest(unittest.TestCase):
         self.assertIn("session 9", "".join(shown.lines(78, 10)))  # no jump back to the top
 
 
+class KeepSelectionTest(unittest.TestCase):
+    def test_the_selection_follows_its_session_when_a_refresh_reorders_the_rows(self):
+        a = live("w8:p1", session_id="a")
+        b = live("w8:p2", session_id="b")
+        c = live("w8:p3", session_id="c")
+        parked_b = live("w8:p2", session_id="b", status="parked", record={})
+        inventories = [Inventory([a, b, c], {}), Inventory([a, c, parked_b], {}), Inventory([a], {})]
+        shown = dashboard.Dashboard(refresh=lambda: inventories.pop(0))
+        shown.refresh()
+        shown.on_input(b"j")
+        shown.refresh()
+        self.assertEqual(shown.selected, 2)  # b moved to the parked block
+        shown.refresh()
+        self.assertEqual(shown.selected, 0)  # gone: the nearest row that is left
+
+
 if __name__ == "__main__":
     unittest.main()
