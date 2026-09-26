@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, records, times
+from . import argv, display, herdr_api, records, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -22,6 +22,13 @@ def resume(rt, session_id):
     pane = rt.herdr.pane(pane_id)
     if record.get("cwd") and pane is not None and pane.cwd != record["cwd"]:
         _type(rt, pane_id, "cd " + shlex.quote(record["cwd"]))
+    if record.get("note"):
+        # A secondary display; Claude's full-screen UI covers it (spike 0-12).
+        lines = ["💤 " + line for line in record["note"].splitlines()]
+        try:
+            _type(rt, pane_id, "printf '%s\\n' " + " ".join(shlex.quote(line) for line in lines))
+        except herdr_api.HerdrError:
+            pass
     flags = argv.resume_flags(record.get("argv") or ["claude"]).flags
     rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
                                   "args": ["--resume", session_id] + flags,

@@ -54,6 +54,26 @@ class CwdTest(ResumeTestCase):
         self.assertFalse(any(t.startswith("cd ") for t in texts))
 
 
+class NotePrintTest(ResumeTestCase):
+    def test_the_note_is_printed_before_the_start(self):
+        self.park_record(note="LUT の一覧を貼る前で止めた\n次は色域")
+        resume.resume(self.resuming(), UUID)
+        texts = [r["params"]["text"] for r in self.fake.requests if r["method"] == "pane.send_input"]
+        self.assertEqual(texts, ["printf '%s\\n' '💤 LUT の一覧を貼る前で止めた' '💤 次は色域'"])
+        self.assertLess(self.fake.methods().index("pane.send_input"), self.fake.methods().index("agent.start"))
+
+    def test_a_failed_print_does_not_stop_the_resume(self):
+        from tests.fake_herdr import Error
+        self.park_record(note="x")
+        resume.resume(self.resuming(**{"pane.send_input": Error("pane_busy")}), UUID)
+        self.assertIn("agent.start", self.fake.methods())
+
+    def test_no_note_prints_nothing(self):
+        self.park_record(note=None)
+        resume.resume(self.resuming(), UUID)
+        self.assertNotIn("pane.send_input", self.fake.methods())
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re
