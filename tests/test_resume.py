@@ -103,6 +103,17 @@ class AfterStartTest(ResumeTestCase):
         self.assertIn(other, saved["error"])
 
 
+class NotReadyTest(ResumeTestCase):
+    def test_a_start_held_by_a_dialog_is_pending_and_keeps_the_label(self):
+        from tests.fake_herdr import Error
+        self.park_record()
+        outcome = resume.resume(self.resuming(**{"agent.start": Error("agent_not_ready", "blocked during startup")}), UUID)
+        self.assertEqual(outcome.kind, "resume_pending")
+        self.assertIn("answer", outcome.message)
+        self.assertNotIn("pane.rename", self.fake.methods())
+        self.assertEqual(self.saved()["status"], "resume_pending")
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re

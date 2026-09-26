@@ -664,7 +664,7 @@ server is never restarted.
 - [x] the note is printed with `pane.send_input` of `printf ...` + Enter before the resume; a failure does not stop it
 - [x] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
 - [x] a mismatch gives `resume_failed` with both IDs in `error`
-- [ ] `agent_not_ready` gives `resume_pending` and leaves the label
+- [x] `agent_not_ready` gives `resume_pending` and leaves the label
 - [ ] a retry from `resume_pending` with a matching Claude already running only restores the
       label and moves the record
 - [ ] a timeout gives `resume_failed` with the last 10 lines of `pane read` as the reason

@@ -30,9 +30,17 @@ def resume(rt, session_id):
         except herdr_api.HerdrError:
             pass
     flags = argv.resume_flags(record.get("argv") or ["claude"]).flags
-    rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
-                                  "args": ["--resume", session_id] + flags,
-                                  "timeout_ms": int(rt.settings["start_timeout_ms"])})
+    try:
+        rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
+                                      "args": ["--resume", session_id] + flags,
+                                      "timeout_ms": int(rt.settings["start_timeout_ms"])})
+    except herdr_api.HerdrError as error:
+        if error.code != "agent_not_ready":
+            raise
+        record["status"] = "resume_pending"
+        records.write(rt.paths.records, record)
+        return Outcome("resume_pending", "Claude is waiting at a dialog (trust, login); answer it in the "
+                                         "pane (g), then press r again", record)
     started = rt.herdr.pane(pane_id)
     running = started.session_id if started is not None else None
     if running != session_id:
