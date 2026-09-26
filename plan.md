@@ -752,6 +752,13 @@ server is never restarted.
       an Opus session with the window configured
 - [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
       Claudes, parks and resumes; records are in the container's state directory
+- [ ] Mac local: idle times stay exact when two status events arrive in one packet (the
+      subscription reader is buffered, so `select` may not fire for the second line; a
+      line buffer on a non-blocking socket fixes it if it shows)
+- [ ] Mac local: polling nine sessions every 2 s stays light (one `ps` per pid on macOS;
+      one `ps -o pid=,rss= -p a,b,c` per refresh if it shows)
+- [ ] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
+      returns; decide whether the stop signal should interrupt it
 - [ ] after a Herdr server restart (throwaway session): a parked pane keeps its record
       and label and `r` resumes it in the same pane ID (spike 0-1, 0-2)
 

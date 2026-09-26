@@ -86,10 +86,10 @@ Every Claude pane on this server, with these columns:
 
 | Column | Source |
 |---|---|
-| place | `workspace_id` / `tab_id` / `pane_id` (`pane list`), the workspace label (`workspace list`), the tab label (`tab list`), the pane `label` (set with `pane rename`) |
+| place | `workspace_id` / `tab_id` / `pane_id` (`pane list`) shown as `w8/t3/p36`, then one label: the pane `label` (set with `pane rename`), else the tab label (`tab list`), else the workspace label (`workspace list`). Parked rows show 💤 instead of a label. Labels Herdr cannot give are left out |
 | name | `terminal_title_stripped` (Claude writes the `-n` / `/rename` / generated title to the terminal title). For a parked session, the record's `title` |
 | cwd | `pane.cwd` (the record's `cwd` when there is a record) |
-| status | `agent_status` (working / idle / done / blocked / unknown); `parked` for a parked session |
+| status | `agent_status` (working / idle / done / blocked / unknown). Records: `parked`, `parking` (a park in progress), `pending` (`resume_pending`), `failed` (`park_failed`, `resume_failed`), `broken` (a file that is not JSON), `conflict` (another session runs in its pane) |
 | idle | The plugin's tracking (below). Time that began before tracking started is shown as a lower bound with `≥` |
 | ctx | From the transcript (below): `37k 18%`, `37k`, or `compacted 2h`. Empty when the transcript cannot be read |
 | rss | `VmRSS` from `/proc/<pid>/status` on Linux, else `ps -o rss= -p` (both KiB, spike 0-9), over every `pid` in `pane process-info`'s `foreground_processes`, summed (MCP servers and `caffeinate` sit in the same foreground group as Claude; parking frees the whole group). The Claude-only value is kept in the JSON output. Empty for parked sessions |
@@ -109,7 +109,14 @@ Every Claude pane on this server, with these columns:
   moved and the old ID goes to `pane_id_history`. If the record's pane hosts a
   different UUID, the row says "another session is running here" and the record
   stays (`r` refuses, `x` forgets). Retrying `resume_pending` is part of the same
-  reconciliation.
+  reconciliation. `parking` and `park_failed` records are never settled by their running
+  session (a park in progress, maybe in another dashboard; a park whose `/exit` did not
+  take, whose record waits for a manual `/exit`). A record that vanishes meanwhile
+  (another dashboard settled it) is skipped, never an error.
+- The selection follows its session when a refresh reorders the rows. The list scrolls to
+  keep the selected row and its detail line in view.
+- The event stream (below) is shown as `events: off` before the keys when it dropped or
+  Herdr refused it; polling goes on.
 
 ### Operations
 
@@ -404,10 +411,11 @@ from the width on every redraw, lowest priority first, and the space goes to nam
 | 78 or more | all |
 | 64–77 | without ver (an `old` session keeps a `!` beside its status) and rss |
 | 52–63 | also ctx shortened to the tokens (`37k`; `compacted 2h` becomes `cmp 2h`) and place without labels (the `w8/t3/p36` ids stay) |
-| under 52 | also without idle: selection mark, place id, name, status and the 💤 mark (about 40 columns) |
+| under 52 | also without idle and ctx: selection mark, place id, name, status and the 💤 mark (about 40 columns) |
 
 Whatever was dropped, plus the note, is shown on one detail line under the selected row
-(`idle ≥1h12m · 37k 18% · 205M · 2.1.281 old · "note..."`); `i` toggles it. Cutting the
+(`idle ≥1h12m · 37k 18% · 205M · 2.1.281 old · "note..."`); it is on at start and `i`
+toggles it; with nothing dropped and no note there is no detail line. Cutting the
 name hard instead was rejected: rows stop being recognizable and `s` / `r` hit the
 wrong one.
 
@@ -469,6 +477,11 @@ Bulk park:
  Enter to park 2 sessions, Esc to cancel
 ```
 
+- Dialogs open under the list in place of the keys; long lines wrap. An action that
+  waits for Claude (park, the preparation, `/compact`, resume, `S`) first shows what it
+  waits for, then runs; keys typed during the wait are dropped, so a `q` or Enter meant
+  for the wait does not act on what follows. Escape sequences other than the arrows
+  (Delete, Home, F-keys) are consumed whole and never type characters.
 - Keys: two `[[actions]]` (`open`: overlay, `open-tab`: tab), `contexts = ["global"]`.
   Users bind them in `config.toml` with
   `[[keys.command]] type = "plugin_action" command = "haretoke.agent-parking.open"`;
