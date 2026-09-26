@@ -217,9 +217,11 @@ again resumes from step 3 when a focus tag is already there.
 
 1. `pane get <P>`: `agent == "claude"`, `agent_status ∈ {idle, done}`, and
    `agent_session.value` is a UUID. Otherwise refuse.
-   Then `agent read <P>` to make sure Claude's input box is empty: with a half-typed
-   line, `agent prompt "/exit"` may append `/exit` to it and submit both (spike).
-   If not empty, refuse with "empty the input box first".
+   Then `agent read <P> --format ansi` to make sure Claude's input box is empty: with
+   a half-typed line, `agent prompt "/exit"` appends `/exit` and submits both as a
+   prompt (spike 0-13). The box is the last `❯` line between two `─` rules; it is empty
+   when nothing follows `❯ ` except dim (`ESC[2m`) placeholder text. If not empty,
+   refuse with "a draft is in the input box" (the person clears it with `g` + Ctrl+C).
 2. `pane process-info --pane <P>`: the Claude process is the foreground group leader
    (`pid == foreground_process_group_id`); take its `pid` and `cwd`, its `argv` (from
    `/proc/<pid>/cmdline` when Herdr gives none, as on Linux) and its version (see the

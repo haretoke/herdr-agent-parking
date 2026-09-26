@@ -367,15 +367,43 @@ server is never restarted.
       118–357 MB, the whole foreground group 131–374 MB, i.e. 13–24 MB more from 2–4
       extra processes (the stdio MCP servers' `node`, and `caffeinate`). Parking frees
       the group, so the column shows the sum; the Claude-only value is a JSON field
-- [ ] after `pane run <P> "printf ..."` shows the note, `agent start` does not return
+- [x] after `pane run <P> "printf ..."` shows the note, `agent start` does not return
       `agent_not_ready` (the shell stays in the foreground)
-- [ ] `agent prompt <P> "/exit"` with a half-typed line in Claude's input box (is
+      (2026-09-27, isolated throwaway session): after `pane run <P> "printf '%s\n'
+      '💤 note: ...'"` the pane's only foreground process was the shell
+      (`pid == shell_pid`), and `agent start -- --resume <uuid> --model haiku` returned
+      idle with the same UUID. Claude's full-screen UI then covered the note (it was no
+      longer in `pane read --source recent`), so the dashboard's confirmation box stays
+      the main place for the note, as designed
+- [x] `agent prompt <P> "/exit"` with a half-typed line in Claude's input box (is
       `/exit` appended and submitted with it?), and how `agent read` tells an empty input
       box (the shape of the prompt line). As the alternative, exiting by keys
       (`agent send-keys <P> C-c C-c`; the first Ctrl+C clears the input box): its
       reliability and the SessionEnd `reason` (other than `prompt_input_exit`?)
-- [ ] `claude --resume <UUID>` while the same UUID runs in another pane (an error like
+      (2026-09-27, Claude Code 2.1.283, isolated throwaway session):
+      - Yes, it is appended and submitted: with `half typed line` in the box,
+        `agent prompt <P> "/exit"` sent `half typed line/exit` as a prompt, Claude
+        answered it and kept running (status `done`). Parking must never send `/exit`
+        over a draft.
+      - The input box is the last line starting with `❯` between two `─` rules. Empty
+        is `❯` alone, but a fresh session shows a placeholder (`❯ Try "..."`) that
+        plain text cannot tell from typed text. `agent read --format ansi` can: the
+        placeholder is wrapped in `ESC[2m` (dim), typed text is not. So "empty" =
+        nothing after `❯ ` except dim-styled text.
+      - Keys: one `C-c` cleared the draft; a second `C-c` a second later did not exit;
+        two `C-c` 0.3 s apart on an empty box exited, with SessionEnd reason
+        `prompt_input_exit` (same as `/exit`). The double press depends on a short
+        window, so parking keeps `/exit` on an empty box and refuses a draft (the person
+        can clear it with `g` and Ctrl+C); keys are not the default path
+- [x] `claude --resume <UUID>` while the same UUID runs in another pane (an error like
       `--session-id`, a second process, or a fork?)
+      (2026-09-27, Claude Code 2.1.283): a second process. With the session running in
+      `w1:p1`, `agent start -- --resume <same uuid>` in `w1:p3` returned idle, both
+      panes reported the same `agent_session`, and a prompt answered in `w1:p3` was
+      appended to the same transcript file (no fork, no error). Two live processes then
+      write one transcript while each keeps its own context. The dashboard must check
+      every Claude pane for the UUID right before `r` and never start a second one
+      (already in the reconcile design)
 - [ ] for `on_park = close`: whether `pane layout` yields the neighbour and the split
       direction and ratio; whether `pane split` has left / up; whether `--ratio` restores
       the size; how close a recreate gets in nested splits (3 or more panes)
@@ -495,6 +523,9 @@ server is never restarted.
 - [ ] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
 - [ ] a Claude pane without `agent_session` is refused with "integration required"
 - [ ] a pane with a half-typed line is refused and no `/exit` is sent
+- [ ] the input box is read from `agent read --format ansi`: `❯` alone and `❯` followed only
+      by dim (`ESC[2m`) placeholder text are empty; any other text is a draft; no `❯` line
+      between rules is "unknown" and refused
 - [ ] the park confirmation always carries the warning about lost background tasks
 - [ ] the record is written before `/exit` is sent (order of the fake herdr calls)
 - [ ] `/exit` is sent with `agent prompt <P> "/exit"`
