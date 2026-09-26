@@ -709,7 +709,7 @@ server is never restarted.
 - [x] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
 - [x] SIGWINCH redraws
 - [x] an unexpected exception is logged to `dashboard.log` before exit
-- [ ] a second dashboard at the same time does not corrupt `observed.json`
+- [x] a second dashboard at the same time does not corrupt `observed.json`
 
 ### cli
 - [ ] `dashboard` starts the pane process
