@@ -395,6 +395,22 @@ current pane; closing it restores the previous focus and zoom). The `open-tab` a
 uses `plugin pane open --placement tab` for people who keep it open. Popups are not
 used: they have no `HERDR_PANE_ID` and block moving to other panes while open.
 
+Narrow panes (decided 2026-09-27 with Fable's recommendation): the columns are chosen
+from the width on every redraw, lowest priority first, and the space goes to name
+(at least 12 columns).
+
+| width | columns |
+|---|---|
+| 78 or more | all |
+| 64–77 | without ver (an `old` session keeps a `!` beside its status) and rss |
+| 52–63 | also ctx shortened to the tokens (`37k`; `compacted 2h` becomes `cmp 2h`) and place without labels (the `w8/t3/p36` ids stay) |
+| under 52 | also without idle: selection mark, place id, name, status and the 💤 mark (about 40 columns) |
+
+Whatever was dropped, plus the note, is shown on one detail line under the selected row
+(`idle ≥1h12m · 37k 18% · 205M · 2.1.281 old · "note..."`); `i` toggles it. Cutting the
+name hard instead was rejected: rows stop being recognizable and `s` / `r` hit the
+wrong one.
+
 ```
  Agent parking  ·  9 claude  ·  2.1 GB  ·  codex: 5 (not managed)          [?] help
  ──────────────────────────────────────────────────────────────────────────────────
