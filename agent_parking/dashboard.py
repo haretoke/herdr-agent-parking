@@ -252,16 +252,20 @@ class Dashboard:
         self.message = self._refusal(row, "compact") or ""
         if self.message:
             return
-        self._later("preparing %s: Claude saves its state first (this can take minutes)…" % row.pane_id,
-                    lambda: self._prepared(row, self.actions.prepare(row.pane_id)))
+        self._prepare(row, lambda focus: _said(self.actions.compact(row.pane_id, focus), row.pane_id))
 
-    def _prepared(self, row, outcome):
+    def _prepare(self, row, finish):
+        """Prepare, confirm, then `finish(focus)` (compact, or compact and park) gives the message."""
+        self._later("preparing %s: Claude saves its state first (this can take minutes)…" % row.pane_id,
+                    lambda: self._prepared(row, self.actions.prepare(row.pane_id), finish))
+
+    def _prepared(self, row, outcome, finish):
         if outcome.kind != "prepared":
             return _said(outcome, row.pane_id)
-        self._confirm_compact(row, outcome.reply, outcome.message)
+        self._confirm_compact(row, outcome.reply, outcome.message, finish)
         return ""
 
-    def _confirm_compact(self, row, reply, remark):
+    def _confirm_compact(self, row, reply, remark, finish):
         lines = ([remark] if remark else []) + compact.confirmation(reply)
 
         def chosen(choice):
@@ -269,10 +273,9 @@ class Dashboard:
                 self._ask(dialogs.TextInput(["focus (one line; empty sends /compact alone):"],
                                             initial=reply.focus or ""),
                           lambda focus: self._confirm_compact(row, reply._replace(focus=focus.strip() or None),
-                                                              remark))
+                                                              remark, finish))
             else:
-                self._later("compacting %s…" % row.pane_id,
-                            lambda: _said(self.actions.compact(row.pane_id, reply.focus), row.pane_id))
+                self._later("compacting %s…" % row.pane_id, lambda: finish(reply.focus))
 
         self._ask(dialogs.Confirm(lines, {"enter": "yes", "e": "edit"}), chosen)
 
