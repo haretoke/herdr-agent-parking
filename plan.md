@@ -562,6 +562,8 @@ server is never restarted.
 - [ ] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
       after the line whose user text equals the sent prompt; none gives an empty focus
 - [ ] a new `compact_boundary` after a given time is detected
+- [ ] the last conversation time is the `timestamp` of the last `user` / `assistant` line that is
+      not `isMeta`; bookkeeping lines (`cost-state`, `file-history-snapshot`, ...) are ignored
 
 ### inventory
 - [ ] only `agent == "claude"` panes become rows; the dashboard's own pane (`HERDR_PANE_ID`) is excluded
@@ -590,7 +592,8 @@ server is never restarted.
       the column (CJK counts double width)
 
 ### idle (injectable clock)
-- [ ] a row seen for the first time gets `since = now` and `lower_bound = true`
+- [ ] a row seen for the first time takes `since` from its transcript's last conversation time;
+      without one it gets `since = now` and `lower_bound = true`
 - [ ] a changed `state_change_seq` updates `since` and clears `lower_bound`
 - [ ] tracking of a vanished pane is dropped at the next save
 - [ ] `observed.json` is written by atomic rename and a broken file starts empty
