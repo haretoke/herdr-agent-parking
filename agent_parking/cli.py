@@ -1,6 +1,5 @@
 """The plugin's commands: `dashboard` (the pane process)."""
 
-import copy
 import traceback
 from datetime import datetime, timezone
 
@@ -14,7 +13,8 @@ def _now():
 def make_runtime(environ):
     """The Runtime of a plugin process: Herdr over `HERDR_SOCKET_PATH`, this machine's
     processes, the plugin's state directory, and transcripts read through a cache."""
-    settings = copy.deepcopy(config.DEFAULTS)
+    log = state.state_dir(environ) / "dashboard.log"
+    settings = config.load(state.config_dir(environ) / "config.json", lambda line: logfile.append(log, line))
     config_dir = state.claude_config_dir(environ, settings)
     summaries = transcript.Cache(transcript.load)
     return runtime.Runtime(
