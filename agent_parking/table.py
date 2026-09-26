@@ -84,7 +84,7 @@ def _ids(row):
     return "/".join(p for p in parts if p)
 
 
-def _memory(kib):
+def memory(kib):
     if kib is None:
         return ""
     if kib < 1024 * 1024:
@@ -109,5 +109,5 @@ def cells(row):
         place, place_id = (ids + " " + label if label else ids), ids
     return {"place": place, "place_id": place_id, "name": row.name or "", "status": row.status or "",
             "idle": row.idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
-            "rss": "—" if row.record is not None else _memory(row.rss_kb),
+            "rss": "—" if row.record is not None else memory(row.rss_kb),
             "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else ""}
