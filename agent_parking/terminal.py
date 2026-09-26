@@ -54,8 +54,10 @@ class Terminal:
         return size.columns, size.lines
 
     def draw(self, lines):
-        """The whole screen: each line cleared to its end, then everything below."""
-        self.write("\x1b[H" + "\r\n".join(line + "\x1b[K" for line in lines) + "\x1b[J")
+        """The whole screen: each line erased, then written, then everything below erased.
+        Erasing after the text would take the last character of a line as wide as the
+        pane (the cursor waits on it; seen on the Mac)."""
+        self.write("\x1b[H" + "\r\n".join("\x1b[2K" + line for line in lines) + "\x1b[J")
 
     def read(self, timeout, others=()):
         """(input bytes, the ones of `others` ready to read): b"" when there is no input,

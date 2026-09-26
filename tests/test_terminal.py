@@ -1,3 +1,4 @@
+import io
 import unittest
 
 from agent_parking import dashboard, herdr_api, terminal
@@ -133,6 +134,14 @@ class PendingTest(unittest.TestCase):
         self.assertIn(" parking w1:p2…", fake.frames[0])
         self.assertIn(" parked w1:p2", fake.frames[1])
         self.assertEqual(fake.timeouts[:2], [0, 0])  # the drain does not wait
+
+
+class DrawTest(unittest.TestCase):
+    def test_each_line_is_erased_before_it_is_written_so_a_full_width_line_keeps_its_last_character(self):
+        # Seen on the Mac: ESC[K after a line as wide as the pane erased its last character.
+        out = io.StringIO()
+        terminal.Terminal(stdin=io.StringIO(), stdout=out).draw(["ab", "cd"])
+        self.assertEqual(out.getvalue(), "\x1b[H\x1b[2Kab\r\n\x1b[2Kcd\x1b[J")
 
 
 if __name__ == "__main__":
