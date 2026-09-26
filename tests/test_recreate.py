@@ -76,6 +76,16 @@ class TabTest(FlowTestCase):
                                                          "cwd": "/repo", "focus": False})])
 
 
+    def test_the_dashboards_own_pane_is_never_split_for_it(self):
+        self.environ.update(HERDR_PANE_ID="w1:p9", HERDR_PLUGIN_ENTRYPOINT_ID="dashboard")
+        old_hint = {"sibling_pane_id": "w1:p9", "position": "first", "direction": "right", "ratio": 0.5, "path": []}
+        rt = self.flow(**{"pane.split": SPLIT})
+        recreate.place(rt, dict(RECORD, layout_hint=old_hint), [pane("w1:p9"), pane("w1:p7")])
+        calls = [(r["method"], r["params"]) for r in self.fake.requests]
+        self.assertEqual(calls, [("pane.split", {"target_pane_id": "w1:p7", "direction": "right",
+                                                 "cwd": "/repo", "focus": False})])
+
+
 class WorkspaceTest(FlowTestCase):
     def test_without_the_tab_a_new_tab_opens_in_the_workspace(self):
         created = {"type": "tab_created", "tab": {"tab_id": "w1:t9"}, "root_pane": {"pane_id": "w1:p20"}}

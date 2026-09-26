@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 
-from . import herdr_api, layout
+from . import herdr_api, layout, state
 
 # pane_id is the new pane, or None with the reason in message
 Placed = namedtuple("Placed", "pane_id message")
@@ -35,6 +35,8 @@ def place(rt, record, panes, new_workspace=False):
         return Placed(None, "the record has no cwd to open the pane in; resume it by hand with "
                             "`claude --resume %s` where it belongs" % record["session_id"])
     hint = record.get("layout_hint") or {}
+    # The dashboard's overlay closes with the dashboard: never put the pane beside it.
+    panes = [p for p in panes if p.pane_id != state.dashboard_pane(rt.environ)]
     existing = {p.pane_id: p for p in panes}
     sibling = existing.get(hint.get("sibling_pane_id"))
     if sibling is not None:
