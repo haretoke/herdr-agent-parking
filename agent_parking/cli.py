@@ -26,12 +26,13 @@ def make_runtime(environ):
         except OSError:
             return []
 
+    paths = state.paths(environ, settings)
     return runtime.Runtime(
         herdr=herdr_api.Herdr.from_environ(environ), system=system.System(),
-        paths=state.paths(environ, settings), settings=settings, clock=_now, environ=environ,
+        paths=paths, settings=settings, clock=_now, environ=environ,
         summary_for=lambda session_id: summaries.get(transcript.find(config_dir, session_id)),
         rows_for=rows_for,
-        statusline_windows=transcript.statusline_windows(state.state_dir(environ) / "context-windows.json"))
+        statusline_windows=transcript.statusline_windows(paths.windows))
 
 
 def main(args, environ):

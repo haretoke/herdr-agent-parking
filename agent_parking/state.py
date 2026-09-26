@@ -6,7 +6,7 @@ from pathlib import Path
 
 PLUGIN_ID = "haretoke.agent-parking"
 
-Paths = namedtuple("Paths", "records resumed observed log")
+Paths = namedtuple("Paths", "records resumed observed log windows")
 
 
 def home(environ):
@@ -55,7 +55,8 @@ def paths(environ, settings):
     if settings["records_dir"]:
         records_root = expand_home(settings["records_dir"], environ)
     return Paths(records=records_root / "records", resumed=records_root / "resumed",
-                 observed=own / "observed.json", log=own / "dashboard.log")
+                 observed=own / "observed.json", log=own / "dashboard.log",
+                 windows=own / "context-windows.json")
 
 
 def claude_config_dir(environ, settings):
