@@ -699,7 +699,7 @@ server is never restarted.
 - [ ] `c` runs the compact flow with its confirmation; `C` asks for the note first
 - [ ] `r` shows the full note and the resume command, Enter resumes, Esc returns
 - [ ] `R` parks and resumes in one go, with the same-version confirmation
-- [ ] `g` moves to the pane and closes the dashboard
+- [x] `g` moves to the pane and closes the dashboard
 - [ ] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
 - [ ] `n` rewrites the note
 - [ ] `x` deletes the record after confirmation and never touches the transcript
