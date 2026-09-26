@@ -723,8 +723,13 @@ server is never restarted.
 - [x] `list` prints the rows as JSON (with the Claude-only RSS)
 - [x] `park <pane>`, `compact <pane>` and `resume <uuid>` run the same procedures without
       the dashboard; failures exit 1 with a message
-- [ ] the manifest declares the `dashboard` pane and the `open` / `open-tab` actions, and
+- [x] the manifest declares the `dashboard` pane and the `open` / `open-tab` actions, and
       `herdr plugin link` of the clone lists both (Mac)
+      (2026-09-27, isolated throwaway session with its own `XDG_CONFIG_HOME`): the link
+      answered `plugin_linked` with the `dashboard` pane (overlay) and both actions
+      (`contexts = ["global"]`); `plugin config-dir` printed
+      `$XDG_CONFIG_HOME/herdr/plugins/config/haretoke.agent-parking`, the path the shell
+      commands compute; the user's own registry did not gain the plugin
 
 ### skill
 - [ ] `skills/prepare-compact/SKILL.md` exists (English): save state worth keeping to memory
