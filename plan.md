@@ -756,7 +756,14 @@ server is never restarted.
       again until the start timeout), and a new tab's label is its number (`1`), now left
       out of the place. The dashboard drew live data (ctx `37k`, memory, idle from the
       transcript) and the event stream stayed on
-- [ ] Mac local: close the parked pane, then `r` → recreated in the same tab and resumed
+- [x] Mac local: close the parked pane, then `r` → recreated in the same tab and resumed
+      (2026-09-27, same session): after `pane close` the row turned `(no pane)`; `r`
+      split the neighbour, swapped the new pane to the left and set the ratio (0.6
+      again), and the session came back with the same UUID in `w1:p5`. It matched only
+      because the dashboard stayed open where it was: the overlay is a split in the tab's
+      layout (`[(p1 | p4) | dashboard]`), so the recorded path was `[False]` instead of
+      `[]` (fixed below). The replayed flags lacked `--model haiku` because Herdr's own
+      restore after the server restart had started that Claude without them (spike 0-3)
 - [ ] Mac local: `on_park = close` → the pane closes → `r` recreates it next to the old neighbour
 - [ ] Mac local: `R` brings an old Claude up on the new version and `old` disappears
 - [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
