@@ -1,9 +1,12 @@
+import io
 import json
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from agent_parking import cli, state
+from tests.fake_herdr import Error, FakeHerdr
 
 
 class CliTestCase(unittest.TestCase):
@@ -54,6 +57,33 @@ class TranscriptWiringTest(CliTestCase):
         self.assertEqual(rt.summary_for(UUID).tokens, 37000)
         self.assertEqual(rt.statusline_windows, {UUID: 200000})
         self.assertEqual(rt.rows_for("5e0c1f2a-0000-4000-8000-000000000001"), [])
+
+
+class OpenTest(CliTestCase):
+    def herdr(self, reply):
+        fake = FakeHerdr({"plugin.pane.open": reply})
+        self.addCleanup(fake.close)
+        return fake
+
+    def environ(self, fake, **extra):
+        return dict({"HOME": str(self.home), "HERDR_SOCKET_PATH": fake.path, "HERDR_PLUGIN_ID": state.PLUGIN_ID,
+                     "HERDR_PLUGIN_STATE_DIR": str(self.home / "state")}, **extra)
+
+    def test_open_asks_herdr_for_the_dashboard_as_an_overlay_and_open_tab_as_a_tab(self):
+        opened = {"type": "plugin_pane_opened", "plugin_pane": {"pane_id": "w3:p9"}}
+        fake = self.herdr(opened)
+        self.assertEqual(cli.main(["open"], self.environ(fake)), 0)
+        self.assertEqual(cli.main(["open-tab"], self.environ(fake, HERDR_WORKSPACE_ID="w3")), 0)
+        self.assertEqual([r["params"] for r in fake.requests], [
+            {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "overlay", "focus": True},
+            {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "tab", "focus": True,
+             "workspace_id": "w3"}])
+
+    def test_a_refused_open_exits_1_with_herdrs_reason(self):
+        fake = self.herdr(Error("plugin_disabled", "plugin haretoke.agent-parking is disabled"))
+        with unittest.mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            self.assertEqual(cli.main(["open"], self.environ(fake)), 1)
+        self.assertIn("is disabled", stderr.getvalue())
 
 
 if __name__ == "__main__":

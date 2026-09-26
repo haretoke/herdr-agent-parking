@@ -1,5 +1,7 @@
-"""The plugin's commands: `dashboard` (the pane process)."""
+"""The plugin's commands: `dashboard` (the pane process), `open` and `open-tab` (the
+plugin actions that open it)."""
 
+import sys
 import traceback
 from datetime import datetime, timezone
 
@@ -43,4 +45,25 @@ def main(args, environ):
         except Exception:
             logfile.append(rt.paths.log, "dashboard error\n" + traceback.format_exc())
             return 1
+    if args in (["open"], ["open-tab"]):
+        return _open(environ, tab=args == ["open-tab"])
     return 2
+
+
+def _open(environ, tab):
+    """The `open` action: the dashboard over the active pane (overlay); `open-tab`: in a
+    new tab of the current workspace, for people who keep it open."""
+    params = {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "tab" if tab else "overlay",
+              "focus": True}
+    if tab and environ.get("HERDR_WORKSPACE_ID"):
+        params["workspace_id"] = environ["HERDR_WORKSPACE_ID"]
+    try:
+        herdr_api.Herdr.from_environ(environ).call("plugin.pane.open", params)
+    except herdr_api.HerdrError as error:
+        return fail(error)
+    return 0
+
+
+def fail(message):
+    print("agent-parking: %s" % message, file=sys.stderr)
+    return 1
