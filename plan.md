@@ -701,7 +701,7 @@ server is never restarted.
 - [ ] `R` parks and resumes in one go, with the same-version confirmation
 - [x] `g` moves to the pane and closes the dashboard
 - [ ] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
-- [ ] `n` rewrites the note
+- [x] `n` rewrites the note
 - [x] `x` deletes the record after confirmation and never touches the transcript
 - [ ] `/` filters by name, cwd and label
 - [x] polling updates status, RSS and ctx, and idle time advances
