@@ -43,3 +43,26 @@ def read_tail(path, cap=TAIL_BYTES):
         if isinstance(row, dict):
             rows.append(row)
     return rows
+
+
+class Cache:
+    """`read(path)` results kept per path until the file's mtime or size changes."""
+
+    def __init__(self, read):
+        self.read = read
+        self.entries = {}
+
+    def get(self, path):
+        if path is None:
+            return None
+        try:
+            stat = os.stat(path)
+        except OSError:
+            self.entries.pop(path, None)
+            return None
+        key = (stat.st_mtime_ns, stat.st_size)
+        cached = self.entries.get(path)
+        if cached is None or cached[0] != key:
+            cached = (key, self.read(path))
+            self.entries[path] = cached
+        return cached[1]

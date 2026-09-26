@@ -548,7 +548,7 @@ server is never restarted.
 - [x] the transcript of a UUID is found by globbing `<claude_config_dir>/projects/*/<uuid>.jsonl`;
       none or several give no result
 - [x] the tail read never loads more than the cap and handles a line split at the cap
-- [ ] the result is cached by mtime and size and re-read when either changes
+- [x] the result is cached by mtime and size and re-read when either changes
 - [ ] the context tokens are the sum of `input_tokens`, `cache_creation_input_tokens` and
       `cache_read_input_tokens` of the last `assistant` line with `message.usage` after
       the last `compact_boundary`

@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -77,6 +78,33 @@ class TailTest(TranscriptTestCase):
     def test_lines_that_are_not_json_objects_are_skipped(self):
         path = self.put("-a", text='{"n": 1}\nnot json\n[1]\n{"n": 2}\n')
         self.assertEqual(transcript.read_tail(path, 10_000), [{"n": 1}, {"n": 2}])
+
+
+class CacheTest(TranscriptTestCase):
+    def test_a_result_is_reused_until_the_mtime_or_the_size_changes(self):
+        path = self.put("-a", text='{"n": 1}\n')
+        reads = []
+
+        def read(p):
+            reads.append(p)
+            return len(reads)
+
+        cache = transcript.Cache(read)
+        self.assertEqual(cache.get(path), 1)
+        self.assertEqual(cache.get(path), 1)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write('{"n": 2}\n')
+        self.assertEqual(cache.get(path), 2)
+        stat = path.stat()
+        os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+        self.assertEqual(cache.get(path), 3)
+        self.assertEqual(len(reads), 3)
+
+    def test_a_missing_file_is_none_and_not_cached(self):
+        cache = transcript.Cache(lambda p: "read")
+        missing = self.config / "projects" / "-a" / "gone.jsonl"
+        self.assertIsNone(cache.get(missing))
+        self.assertIsNone(cache.get(None))
 
 
 if __name__ == "__main__":
