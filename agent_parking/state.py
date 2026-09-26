@@ -9,6 +9,17 @@ PLUGIN_ID = "haretoke.agent-parking"
 Paths = namedtuple("Paths", "records resumed observed log")
 
 
+def home(environ):
+    return environ.get("HOME") or str(Path.home())
+
+
+def expand_home(path, environ):
+    """`path` with a leading `~` replaced by the `HOME` in `environ`."""
+    if path == "~" or path.startswith("~/"):
+        return Path(home(environ) + path[1:])
+    return Path(path)
+
+
 def state_dir(environ):
     """The directory Herdr gives this plugin, or the same path computed outside it.
 
@@ -20,7 +31,7 @@ def state_dir(environ):
         return Path(own)
     base = environ.get("XDG_STATE_HOME", "")
     if not os.path.isabs(base):
-        base = os.path.join(environ.get("HOME") or str(Path.home()), ".local", "state")
+        base = os.path.join(home(environ), ".local", "state")
     return Path(base) / "herdr" / "plugins" / PLUGIN_ID
 
 
@@ -29,10 +40,6 @@ def paths(environ, settings):
     own = state_dir(environ)
     records_root = own
     if settings["records_dir"]:
-        home = environ.get("HOME") or str(Path.home())
-        given = settings["records_dir"]
-        if given == "~" or given.startswith("~/"):
-            given = home + given[1:]
-        records_root = Path(given)
+        records_root = expand_home(settings["records_dir"], environ)
     return Paths(records=records_root / "records", resumed=records_root / "resumed",
                  observed=own / "observed.json", log=own / "dashboard.log")
