@@ -688,7 +688,7 @@ server is never restarted.
 - [x] the new pane ID is written and the old one goes to `pane_id_history`
 
 ### dashboard (PTY, fake herdr, injectable clock)
-- [ ] the list is drawn at start; the columns follow the width: all from 78, without ver and rss
+- [x] the list is drawn at start; the columns follow the width: all from 78, without ver and rss
       at 64–77, ctx as tokens and place without labels at 52–63, without idle under 52
       (checked at each boundary ±1), name keeps at least 12 columns
 - [x] an `old` session keeps a `!` beside its status when ver is dropped
