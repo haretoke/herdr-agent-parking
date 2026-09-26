@@ -237,6 +237,16 @@ class FocusTest(unittest.TestCase):
         self.assertEqual((missing.found, missing.focus), (False, ""))
 
 
+class CompactedSinceTest(unittest.TestCase):
+    def test_a_boundary_at_or_after_the_given_time_is_detected(self):
+        sent = datetime(2026, 9, 26, 16, 39, 33, tzinfo=timezone.utc)
+        rows = [boundary("2026-09-26T16:00:00.000Z"), user("/compact x", ts="2026-09-26T16:39:33.100Z")]
+        self.assertFalse(transcript.compacted_since(rows, sent))
+        rows.append(boundary("2026-09-26T16:39:48.863Z"))
+        self.assertTrue(transcript.compacted_since(rows, sent))
+        self.assertFalse(transcript.compacted_since([boundary("not a time")], sent))
+
+
 class PercentTest(unittest.TestCase):
     def test_the_percentage_is_truncated_like_the_statusline(self):
         for tokens, window, expected in [(36890, 200_000, 18), (199_999, 200_000, 99), (0, 200_000, 0),

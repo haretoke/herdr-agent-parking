@@ -182,3 +182,14 @@ def preparation_reply(rows, prompt):
     tags = FOCUS.findall(text)
     focus = " ".join(tags[-1].split()) if tags else ""
     return Reply(found=True, text=text, focus=focus)
+
+
+def compacted_since(rows, moment):
+    """A compact boundary written at or after `moment` (the flow's proof that the
+    `/compact` it sent finished; spike 0-21)."""
+    for row in rows:
+        if row.get("subtype") == "compact_boundary":
+            at = parse_time(row.get("timestamp"))
+            if at is not None and at >= moment:
+                return True
+    return False

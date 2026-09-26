@@ -562,7 +562,7 @@ server is never restarted.
 - [x] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
       after the line whose user text equals the sent prompt (for a slash command, its
       `<command-name>` line); none gives an empty focus
-- [ ] a new `compact_boundary` after a given time is detected
+- [x] a new `compact_boundary` after a given time is detected
 - [ ] the last conversation time is the `timestamp` of the last `user` / `assistant` line that is
       not `isMeta`; bookkeeping lines (`cost-state`, `file-history-snapshot`, ...) are ignored
 
