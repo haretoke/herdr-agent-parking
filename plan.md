@@ -536,7 +536,7 @@ server is never restarted.
 - [x] a non-JSON reply, an `error` reply (its code kept), a closed connection and an unreachable
       socket are `HerdrError`s with distinct codes
 - [x] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
-- [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
+- [x] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
 - [ ] the subscription list is `pane.agent_detected` without a pane plus one
       `pane.agent_status_changed` per given Claude pane
 - [ ] an `error` reply to the subscription is an exception, not an empty stream

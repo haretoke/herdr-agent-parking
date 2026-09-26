@@ -57,6 +57,26 @@ class Herdr:
             raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
         return parse_reply(method, line)
 
+    def subscribe(self, subscriptions):
+        """Open an `events.subscribe` connection; returns once Herdr acknowledged it."""
+        request = {"id": "agent-parking:" + uuid.uuid4().hex, "method": "events.subscribe",
+                   "params": {"subscriptions": subscriptions}}
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client.settimeout(self.timeout)
+            client.connect(self.socket_path)
+            client.sendall(json.dumps(request).encode("utf-8") + b"\n")
+            reader = client.makefile("rb")
+            parse_reply("events.subscribe", reader.readline(MAX_LINE_BYTES + 1))
+        except OSError as error:
+            client.close()
+            raise HerdrError("could not subscribe to Herdr events: %s" % error, "unreachable") from error
+        except HerdrError:
+            client.close()
+            raise
+        client.settimeout(None)
+        return Subscription(client, reader)
+
     def pane(self, pane_id):
         raw = self.call("pane.get", {"pane_id": pane_id}).get("pane")
         return pane_from(raw) if isinstance(raw, dict) else None
@@ -82,3 +102,31 @@ def parse_reply(method, line):
         raise HerdrError("Herdr rejected %s: %s" % (method, details.get("message") or details.get("code")),
                          details.get("code"))
     return reply.get("result", {})
+
+
+class Subscription:
+    """The event lines of an `events.subscribe` connection, until Herdr closes it."""
+
+    def __init__(self, client, reader):
+        self.client = client
+        self.reader = reader
+        self.closed = False
+
+    def fileno(self):
+        return self.client.fileno()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = b"" if self.closed else self.reader.readline(MAX_LINE_BYTES + 1)
+        if not line:
+            self.close()
+            raise StopIteration
+        return json.loads(line)
+
+    def close(self):
+        if not self.closed:
+            self.closed = True
+            self.reader.close()
+            self.client.close()

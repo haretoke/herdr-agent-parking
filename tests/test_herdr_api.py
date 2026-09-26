@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from agent_parking import herdr_api
@@ -70,6 +71,31 @@ class ShapeTest(unittest.TestCase):
         info = self.herdr({"pane.process_info": full}).process_info("w1:p1")
         self.assertEqual((info.shell_pid, info.group_id), (5, 7))
         self.assertEqual(info.processes, [{"pid": 7, "name": "2.1.283", "argv": ["claude"]}, {"pid": 9}])
+
+
+class SubscribeTest(unittest.TestCase):
+    def herdr(self, script):
+        fake = FakeHerdr(script)
+        self.addCleanup(fake.close)
+        return fake, herdr_api.Herdr(fake.path)
+
+    def test_subscribe_waits_for_the_acknowledgement_then_yields_events_until_eof(self):
+        events = [{"event": "pane_agent_detected", "data": {"pane_id": "w1:p5", "agent": "claude"}},
+                  {"event": "pane.agent_status_changed", "data": {"pane_id": "w1:p5", "agent_status": "idle"}}]
+
+        def stream(fake, connection, reader, request):
+            time.sleep(0.2)
+            fake.reply(connection, request, result={"type": "subscription_started"})
+            for event in events:
+                fake.send_line(connection, event)
+
+        fake, herdr = self.herdr({"events.subscribe": stream})
+        started = time.monotonic()
+        subscription = herdr.subscribe([{"type": "pane.agent_detected"}])
+        self.assertGreaterEqual(time.monotonic() - started, 0.2)
+        self.assertEqual(list(subscription), events)
+        self.assertTrue(subscription.closed)
+        self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
 
 
 class ErrorTest(unittest.TestCase):
