@@ -787,9 +787,13 @@ server is never restarted.
       an Opus session with the window configured
 - [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
       Claudes, parks and resumes; records are in the container's state directory
-- [ ] Mac local: idle times stay exact when two status events arrive in one packet (the
+- [x] Mac local: idle times stay exact when two status events arrive in one packet (the
       subscription reader is buffered, so `select` may not fire for the second line; a
       line buffer on a non-blocking socket fixes it if it shows)
+      (2026-09-27): it showed. After `c` the row said `idle` with idle time `—` (working):
+      the events of the compaction arrived together while the dashboard waited, and only
+      the first was read. Fixed with tests: the subscription keeps its own line buffer
+      and hands over every complete line at each wake
 - [ ] Mac local: polling nine sessions every 2 s stays light (one `ps` per pid on macOS;
       one `ps -o pid=,rss= -p a,b,c` per refresh if it shows)
 - [ ] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
