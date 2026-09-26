@@ -736,7 +736,7 @@ server is never restarted.
       or the relevant files; check and report the commit and push state; clean up temporary
       processes and files; check that nothing that would hurt to lose is left; end with one
       line `<compact-focus>...</compact-focus>` for `/compact`; never run `/compact` itself
-- [ ] the README explains copying the skill for public users and recommends a
+- [x] the README explains copying the skill for public users and recommends a
       `Compact Instructions` section in `CLAUDE.md`
 
 ### integration (devcon-herdr)
