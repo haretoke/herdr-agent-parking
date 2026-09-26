@@ -6,7 +6,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
-from agent_parking import cli, state
+from agent_parking import cli, park, state
 from tests.fake_herdr import Error, FakeHerdr
 
 
@@ -107,6 +107,32 @@ class ListTest(CliTestCase):
         self.assertEqual((row["pane_id"], row["session_id"], row["status"]), ("w1:p2", UUID, "idle"))
         self.assertGreater(row["claude_rss_kb"], 0)
         self.assertEqual(row["claude_rss_kb"], row["rss_kb"])
+
+
+class ShellCommandTestCase(CliTestCase):
+    def run_cli(self, args, **extra):
+        environ = dict({"HOME": str(self.home), "HERDR_SOCKET_PATH": "/nonexistent.sock"}, **extra)
+        with unittest.mock.patch("sys.stdout", new_callable=io.StringIO) as out, \
+                unittest.mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            code = cli.main(args, environ)
+        return code, out.getvalue(), err.getvalue()
+
+
+class ParkCommandTest(ShellCommandTestCase):
+    def test_park_runs_the_park_flow_with_the_note_and_exits_1_when_it_does_not_park(self):
+        with unittest.mock.patch.object(park, "park", return_value=park.Outcome("parked", "", {})) as flow:
+            code, out, _ = self.run_cli(["park", "w1:p2", "--note", "wiki"])
+        self.assertEqual((code, out.strip()), (0, "parked w1:p2"))
+        self.assertEqual(flow.call_args[0][1:], ("w1:p2", "wiki"))
+        with unittest.mock.patch.object(park, "park", return_value=park.Outcome("refused", "Claude is working", None)):
+            code, _, err = self.run_cli(["park", "w1:p2"])
+        self.assertEqual(code, 1)
+        self.assertIn("refused w1:p2: Claude is working", err)
+
+    def test_outside_herdr_the_command_says_so(self):
+        code, _, err = self.run_cli(["park", "w1:p2"], HERDR_SOCKET_PATH="")
+        self.assertEqual(code, 1)
+        self.assertIn("not running inside Herdr", err)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """The plugin's commands: `dashboard` (the pane process), `open` and `open-tab` (the
-plugin actions that open it), `list` (the rows as JSON for scripts)."""
+plugin actions that open it), `list` (the rows as JSON for scripts), and `park`,
+`compact` and `resume`, the dashboard's procedures without the dashboard."""
 
 import argparse
 import dataclasses
@@ -8,7 +9,10 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import config, herdr_api, idle, inventory, logfile, runtime, state, system, terminal, transcript
+from . import (config, herdr_api, idle, inventory, logfile, park, records, runtime, state, system, terminal,
+               transcript)
+
+DONE = ("parked", "compacted", "resumed")
 
 
 def _now():
@@ -47,12 +51,31 @@ def main(args, environ):
     commands.add_parser("open", help="open the dashboard over the active pane (plugin action)")
     commands.add_parser("open-tab", help="open the dashboard in a new tab (plugin action)")
     commands.add_parser("list", help="print the rows as JSON")
+    parking = commands.add_parser("park", help="park the Claude in a pane")
+    parking.add_argument("pane_id")
+    parking.add_argument("--note", default=None)
     parsed = parser.parse_args(args)
     if parsed.command == "dashboard":
         return _dashboard(environ)
     if parsed.command in ("open", "open-tab"):
         return _open(environ, tab=parsed.command == "open-tab")
+    if parsed.command == "park":
+        return _procedure(environ, lambda rt: park.park(rt, parsed.pane_id, parsed.note), parsed.pane_id)
     return _list(environ)
+
+
+def _procedure(environ, run, subject):
+    """Run a flow and report its outcome: printed when it did what was asked, else on
+    stderr with exit 1."""
+    try:
+        outcome = run(make_runtime(environ))
+    except (herdr_api.HerdrError, records.Refused, OSError) as error:
+        return fail(error)
+    text = "%s %s" % (outcome.kind.replace("_", " "), subject) + (": " + outcome.message if outcome.message else "")
+    if outcome.kind not in DONE:
+        return fail(text)
+    print(text)
+    return 0
 
 
 def _dashboard(environ):
