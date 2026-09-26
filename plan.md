@@ -533,7 +533,8 @@ server is never restarted.
 ### herdr_api
 - [x] requests go to `HERDR_SOCKET_PATH` (one line out, one line back per connection); without
       it the call fails with a "not running inside Herdr" error
-- [ ] non-JSON output, an `error` reply and a non-zero exit are distinct exceptions
+- [x] a non-JSON reply, an `error` reply (its code kept), a closed connection and an unreachable
+      socket are `HerdrError`s with distinct codes
 - [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
 - [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
 - [ ] the subscription list is `pane.agent_detected` without a pane plus one

@@ -1,7 +1,7 @@
 import unittest
 
 from agent_parking import herdr_api
-from tests.fake_herdr import FakeHerdr
+from tests.fake_herdr import Error, FakeHerdr
 
 
 class CallTest(unittest.TestCase):
@@ -35,6 +35,45 @@ class CallTest(unittest.TestCase):
                 with self.assertRaisesRegex(herdr_api.HerdrError, "not running inside Herdr") as raised:
                     herdr_api.Herdr.from_environ(environ)
                 self.assertEqual(raised.exception.code, "not_in_herdr")
+
+
+class ErrorTest(unittest.TestCase):
+    def fake(self, script):
+        fake = FakeHerdr(script)
+        self.addCleanup(fake.close)
+        return fake
+
+    def raised(self, herdr, method="pane.get"):
+        with self.assertRaises(herdr_api.HerdrError) as raised:
+            herdr.call(method, {"pane_id": "w1:p1"})
+        return raised.exception
+
+    def test_an_error_reply_keeps_its_code_and_message(self):
+        fake = self.fake({"pane.get": Error("pane_not_found", "pane w1:p1 not found")})
+        error = self.raised(herdr_api.Herdr(fake.path))
+        self.assertEqual(error.code, "pane_not_found")
+        self.assertIn("pane w1:p1 not found", str(error))
+
+    def test_a_reply_that_is_not_json_is_its_own_error(self):
+        def garbage(fake, connection, reader, request):
+            connection.sendall(b"not json\n")
+
+        error = self.raised(herdr_api.Herdr(self.fake({"pane.get": garbage}).path))
+        self.assertEqual(error.code, "invalid_reply")
+
+    def test_a_connection_closed_without_a_reply_is_its_own_error(self):
+        def hang_up(fake, connection, reader, request):
+            pass
+
+        error = self.raised(herdr_api.Herdr(self.fake({"pane.get": hang_up}).path))
+        self.assertEqual(error.code, "closed")
+
+    def test_an_unreachable_socket_is_its_own_error(self):
+        fake = self.fake({})
+        path = fake.path
+        fake.close()
+        error = self.raised(herdr_api.Herdr(path))
+        self.assertEqual(error.code, "unreachable")
 
 
 if __name__ == "__main__":
