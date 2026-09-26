@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from agent_parking import display, inventory, transcript
+from agent_parking import display, inventory, records, transcript
 from agent_parking.herdr_api import Pane, ProcessInfo
 
 UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
@@ -170,6 +170,19 @@ class ReconcileTest(unittest.TestCase):
         panes = [pane("w1:p2", session_id=UUID, label="💤 work")]
         [decision] = inventory.reconcile([parked()], panes)
         self.assertEqual((decision.kind, decision.pane_id, decision.restore_label_on), ("resumed", "w1:p2", "w1:p2"))
+
+
+class ReconcileElsewhereTest(unittest.TestCase):
+    def test_the_session_running_in_another_pane_moves_the_record_there(self):
+        panes = [pane("w1:p2", agent=None, session_id=None, label="💤 work"), pane("w1:p7", session_id=UUID)]
+        [decision] = inventory.reconcile([parked(pane_id="w1:p2")], panes)
+        self.assertEqual((decision.kind, decision.pane_id, decision.restore_label_on), ("resumed", "w1:p7", "w1:p2"))
+        moved = records.with_pane(decision.record, decision.pane_id)
+        self.assertEqual((moved["pane_id"], moved["pane_id_history"]), ("w1:p7", ["w1:p2"]))
+
+    def test_no_label_to_restore_when_the_original_pane_is_gone(self):
+        [decision] = inventory.reconcile([parked(pane_id="w1:p2")], [pane("w1:p7", session_id=UUID)])
+        self.assertEqual((decision.pane_id, decision.restore_label_on), ("w1:p7", None))
 
 
 class RunningVersionTest(unittest.TestCase):

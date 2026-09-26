@@ -118,9 +118,11 @@ def reconcile(parked_records, panes):
 
     `resumed`: its session runs in a Claude pane (resumed by hand, maybe elsewhere)."""
     running = {p.session_id: p for p in panes if p.agent == "claude" and p.session_id}
+    existing = {p.pane_id for p in panes}
     decisions = []
     for record in parked_records:
+        own = record.get("pane_id") if record.get("pane_id") in existing else None
         host = running.get(record["session_id"])
         if host is not None:
-            decisions.append(Decision(record, "resumed", host.pane_id, record.get("pane_id")))
+            decisions.append(Decision(record, "resumed", host.pane_id, own))
     return decisions

@@ -584,7 +584,7 @@ server is never restarted.
 - [x] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript
 - [x] a record whose `pane_id` hosts a Claude with the same `agent_session.value` becomes
       `resumed` and its label is restored (resumed by hand)
-- [ ] a record whose UUID runs in another pane becomes `resumed`, `pane_id` moves, the old
+- [x] a record whose UUID runs in another pane becomes `resumed`, `pane_id` moves, the old
       ID goes to `pane_id_history`, and the original pane's label is restored
 - [ ] a different UUID in the record's pane shows "another session is running here" and keeps the record
 - [ ] a pane with a record is `parked`; a record without a pane is a "(no pane)" row
