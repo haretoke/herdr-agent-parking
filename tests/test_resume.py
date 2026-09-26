@@ -38,6 +38,22 @@ class StartTest(ResumeTestCase):
                                            "timeout_ms": 30000})
 
 
+class CwdTest(ResumeTestCase):
+    def test_a_different_cwd_is_entered_first(self):
+        self.park_record(cwd="/work/my repo")
+        resume.resume(self.resuming(), UUID)
+        inputs = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_input"]
+        self.assertIn({"pane_id": "w1:p2", "text": "cd '/work/my repo'", "keys": ["Enter"]}, inputs)
+        methods = self.fake.methods()
+        self.assertLess(methods.index("pane.send_input"), methods.index("agent.start"))
+
+    def test_the_same_cwd_sends_no_cd(self):
+        self.park_record(cwd="/repo")
+        resume.resume(self.resuming(), UUID)
+        texts = [r["params"]["text"] for r in self.fake.requests if r["method"] == "pane.send_input"]
+        self.assertFalse(any(t.startswith("cd ") for t in texts))
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re

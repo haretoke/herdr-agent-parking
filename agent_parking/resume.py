@@ -3,6 +3,7 @@
 Outcome kinds: refused, resumed, resume_pending, resume_failed.
 """
 
+import shlex
 from collections import namedtuple
 
 from . import argv, display, records, times
@@ -18,11 +19,19 @@ def agent_name(session_id):
 def resume(rt, session_id):
     record = records.read(rt.paths.records, session_id)
     pane_id = record["pane_id"]
+    pane = rt.herdr.pane(pane_id)
+    if record.get("cwd") and pane is not None and pane.cwd != record["cwd"]:
+        _type(rt, pane_id, "cd " + shlex.quote(record["cwd"]))
     flags = argv.resume_flags(record.get("argv") or ["claude"]).flags
     rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
                                   "args": ["--resume", session_id] + flags,
                                   "timeout_ms": int(rt.settings["start_timeout_ms"])})
     return Outcome("resumed", "", record)
+
+
+def _type(rt, pane_id, command):
+    """Run `command` in the pane's shell (there is no socket `pane.run`)."""
+    rt.herdr.call("pane.send_input", {"pane_id": pane_id, "text": command, "keys": ["Enter"]})
 
 
 def confirmation(record, now):
