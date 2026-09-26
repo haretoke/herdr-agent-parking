@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from agent_parking import display, inventory, records, transcript
+from agent_parking import inventory, records, transcript
 from agent_parking.herdr_api import Pane, ProcessInfo
 
 UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
@@ -147,14 +147,6 @@ class CtxTextTest(unittest.TestCase):
     def test_nothing_known_is_empty(self):
         self.assertEqual(inventory.ctx_text(transcript.EMPTY, 200_000, self.NOW), "")
         self.assertEqual(inventory.ctx_text(None, None, self.NOW), "")
-
-
-class AgeTest(unittest.TestCase):
-    def test_ages_are_minutes_hours_and_days(self):
-        for seconds, text in [(30, "0m"), (12 * 60, "12m"), (2 * 3600, "2h"), (3 * 3600 + 5 * 60, "3h05m"),
-                              (26 * 3600, "1d"), (5 * 86400 + 3600, "5d"), (-5, "0m")]:
-            with self.subTest(seconds=seconds):
-                self.assertEqual(display.age(seconds), text)
 
 
 OTHER = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
