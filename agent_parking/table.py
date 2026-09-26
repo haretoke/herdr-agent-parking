@@ -99,8 +99,8 @@ def _short_ctx(ctx):
     return ctx.split(" ")[0]
 
 
-def cells(row, idle):
-    """The text of every column for `row` (`idle` comes from the idle tracking)."""
+def cells(row):
+    """The text of every column for `row`."""
     ids = _ids(row)
     if row.record is not None:
         place = place_id = ids + " " + PARKED_MARK
@@ -108,6 +108,6 @@ def cells(row, idle):
         label = row.label or row.tab_label or row.workspace_label
         place, place_id = (ids + " " + label if label else ids), ids
     return {"place": place, "place_id": place_id, "name": row.name or "", "status": row.status or "",
-            "idle": idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
+            "idle": row.idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
             "rss": "—" if row.record is not None else _memory(row.rss_kb),
             "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else ""}

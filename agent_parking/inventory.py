@@ -29,6 +29,7 @@ class Row:
     version: Optional[str] = None
     old: bool = False
     ctx: str = ""
+    idle: str = ""
     record: Optional[dict] = None         # the park record, for parked sessions
 
 
