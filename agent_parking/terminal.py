@@ -5,6 +5,7 @@ import select
 import signal
 import sys
 import termios
+import time
 import tty
 
 from . import dashboard, idle, inventory
@@ -70,25 +71,37 @@ class Terminal:
         return data or None
 
 
-def run(board, terminal, poll_seconds):
-    """Draw and read keys until q, a stop signal, or the pane going away."""
-    stopping = []
-    signal.signal(signal.SIGWINCH, lambda *_: None)  # wakes the loop, which redraws at the new size
-    for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-        signal.signal(signum, lambda *_: stopping.append(True))
+def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=()):
+    """Read the list every `poll_seconds`, draw, and read keys until q, a stop signal (an
+    entry in `stopping`), or the pane going away."""
+    next_poll = clock()
     while not board.quit and not stopping:
+        now = clock()
+        if now >= next_poll:
+            board.refresh()
+            next_poll = now + poll_seconds
         terminal.draw(board.lines(*terminal.size()))
-        data = terminal.read(poll_seconds)
+        data = terminal.read(max(0, next_poll - clock()))
         if data is None:
             break
         if data:
             board.on_input(data)
 
 
+def stop_on_signals():
+    """A list that gets an entry when SIGTERM, SIGHUP or SIGINT arrives; SIGWINCH only
+    wakes the loop, which redraws at the new size."""
+    stopping = []
+    signal.signal(signal.SIGWINCH, lambda *_: None)
+    for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(signum, lambda *_: stopping.append(True))
+    return stopping
+
+
 def run_dashboard(rt, own_pane_id):
     tracker = idle.Tracker.load(rt.paths.observed, rt.clock)
     board = dashboard.Dashboard(refresh=lambda: inventory.build(rt, tracker, own_pane_id))
-    board.refresh()
+    stopping = stop_on_signals()
     with Terminal() as terminal:
-        run(board, terminal, rt.settings["poll_seconds"])
+        run(board, terminal, rt.settings["poll_seconds"], stopping=stopping)
     return 0
