@@ -24,12 +24,12 @@ def resume_flags(argv):
     i = 0
     while i < len(tokens):
         token = tokens[i]
-        arity = SESSION_FLAGS.get(token)
+        name, has_value, _ = token.partition("=")
+        arity = SESSION_FLAGS.get(name)
+        i += 1
         if arity is None:
             flags.append(token)
-            i += 1
-            continue
-        i += 1
-        if arity == "required" or (arity == "optional" and i < len(tokens) and not tokens[i].startswith("-")):
+        elif not has_value and (arity == "required" or (
+                arity == "optional" and i < len(tokens) and not tokens[i].startswith("-"))):
             i += 1
     return ResumeFlags(flags=flags, dropped=[])

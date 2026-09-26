@@ -514,7 +514,7 @@ server is never restarted.
 - [x] the executable and `--resume` / `-r` / `--continue` / `-c` / `--session-id` /
       `--name` / `-n` / `--fork-session` with their values are removed; other flags
       (`--effort medium`, `--model x`, `--permission-mode auto`) keep their order
-- [ ] both `--resume=<id>` and `-r <id>` are removed
+- [x] both `--resume=<id>` and `-r <id>` are removed
 - [ ] a value-taking flag at the end without its value does not crash
 
 ### herdr_api
