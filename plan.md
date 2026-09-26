@@ -195,10 +195,19 @@ command with `--session parking-spike`, and finish with
 `herdr session stop parking-spike` and `herdr session delete parking-spike`. The main
 server is never restarted.
 
-- [ ] in the throwaway session, `pane split` / `tab create --cwd` / `workspace create --cwd`,
+- [x] in the throwaway session, `pane split` / `tab create --cwd` / `workspace create --cwd`,
       then `herdr --session parking-spike server stop` and a restart: record how pane IDs,
       tab IDs, `pane rename` labels and cwd come back (if IDs change, matching relies on
       cwd + label)
+      (2026-09-27, Mac local, Herdr 0.9.1): workspace `w1` with a split (`w1:p1`,
+      `w1:p2`) and a second tab; in that tab `w1:p4` was split off and `w1:p3` closed to
+      leave a gap; `w1:p2` did `cd` to another directory. After `server stop` and a
+      restart, `workspace list` / `tab list` / `pane list` were identical: pane IDs
+      (gap included), tab IDs and labels, workspace label, pane labels (the `💤` one
+      included) and the cwd after the `cd`. The next split after the restart became
+      `w1:p5`, so closed IDs are not reused across a restart either. Records can
+      trust `pane_id` after a server restart; cwd + label matching stays a fallback for
+      closed panes only
 - [ ] start `claude` in a throwaway pane and `/exit`; after a restart, what the parked
       pane is (empty shell, label, `agent_session`)
 - [ ] from an overlay plugin pane, `agent prompt` / `agent start` / `pane rename` /
