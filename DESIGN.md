@@ -137,8 +137,8 @@ attaches one note to all (may be empty).
 - Free text, several lines allowed, stored in the record.
 - The list shows the first line.
 - Before a resume, the dashboard shows the full note in the confirmation. Right
-  before the resume it is also printed into the pane's scrollback (`pane run` with
-  `printf`). With Claude in full-screen TUI mode it disappears at once, so the
+  before the resume it is also printed into the pane's scrollback (`pane.send_input` of
+  a `printf` command). With Claude in full-screen TUI mode it disappears at once, so the
   confirmation is the primary display and the scrollback is secondary.
 - **Not sent as the first prompt after the resume (default).** The comparison:
 
@@ -275,7 +275,8 @@ be read before step 6.
    shell itself (measured as `-zsh` on one device and `zsh` on another, hence the pid
    check). Anything else running: refuse with a reason.
 4. Show the note in the confirmation; Enter continues.
-5. `pane run <P> "printf '%s\n' '💤 <note>'"` (secondary display; continue on failure).
+5. `pane.send_input <P>` of `printf '%s\n' '💤 <note>'` + Enter (secondary display;
+   continue on failure).
 6. `agent start <name> --kind claude --pane <P> --timeout <start_timeout_ms> -- --resume <UUID> <flags>`.
    `<flags>` is the record's `argv` minus the executable and minus `--resume` / `-r` /
    `--continue` / `-c` / `--session-id` / `--name` / `-n` / `--fork-session` /
@@ -298,8 +299,8 @@ be read before step 6.
     step 3 (when a matching Claude is already running, only steps 7 onwards).
 
 `claude --resume <UUID>` finds sessions of other directories too, but the resume
-starts in the record's `cwd`: when the pane's cwd differs, `pane run <P> "cd <cwd>"`
-first, quoted with `shlex.quote`.
+starts in the record's `cwd`: when the pane's cwd differs, `pane.send_input <P>` of
+`cd <cwd>` + Enter first, quoted with `shlex.quote`.
 
 ### The recreate procedure
 
@@ -362,8 +363,13 @@ does not handle it (the `claude --resume` picker is the way back). Candidates:
 
 - Python 3.9 or later, standard library only (tests run under `/usr/bin/python3` 3.9
   and `python3` 3.12). 3.9 has no TOML reader, so the config is JSON.
-- Herdr is called through `HERDR_BIN_PATH` (or `herdr` on `PATH`); only the event
-  subscription uses the raw socket at `HERDR_SOCKET_PATH`.
+- Every Herdr call goes over the socket at `HERDR_SOCKET_PATH` (one request per
+  connection, plus one long `events.subscribe` connection), like image-viewer. Socket
+  replies have the CLI's JSON shape (`result`, or `error {code, message}`). There is no
+  socket `pane.run`: a shell command is `pane.send_input {text, keys: ["Enter"]}`
+  (verified). `HERDR_SOCKET_PATH` is injected in plugin panes and in every pane shell,
+  so the shell subcommands (`park`, `resume`, `compact`) have it too; without it the
+  plugin says it is not running inside Herdr.
 - No user-specific paths or hostnames. Every default is configurable.
 - `platforms = ["linux", "macos"]`, `min_herdr_version = "0.9.1"`. Windows is out
   (`ps` and the named-pipe transport differ).
@@ -585,7 +591,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
   never shown in the list and `x` deletes the record. The README says so.
 - Notes are plain text; the README says not to put secrets in them.
 - Text sent into panes: `agent prompt "/exit"`, `agent prompt <prepare_command|prepare_prompt>`,
-  `agent prompt "/compact <focus>"`, `pane run "printf ..."`, `pane run "cd ..."` and,
+  `agent prompt "/compact <focus>"`, `pane.send_input` of `printf ...` and of `cd ...` and,
   when enabled, `agent prompt <note>`. Every argument goes through `shlex.quote`; the
   focus is reduced to one line.
 - `pane read` is used only to diagnose a failure (last lines) and to check the input

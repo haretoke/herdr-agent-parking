@@ -126,6 +126,12 @@ Verified on a real device (Mac local, 2026-09-26/27) and in the v0.9.1 documenta
   the manifest has no key field.
 - `[[startup]]` runs once after the API is ready and exits; `[[events]]` starts a
   command per event; there is no scheduler (docs).
+- The socket answers one JSON line per request with the CLI's shape: `{"id", "result"}`
+  or `{"id", "error": {"code", "message"}}` (e.g. `pane_not_found`, `agent_not_found`,
+  `agent_not_ready`, `agent_prompt_stalled`). There is no socket `pane.run`;
+  `pane.send_input {pane_id, text, keys: ["Enter"]}` runs a shell command (verified).
+  `agent.read` / `pane.read` take `format: "ansi"`, `agent.start` takes `args`, and
+  `agent.prompt` takes `wait {until, timeout_ms}` (API schema).
 - `events.subscribe` keeps the socket open and streams `pane.agent_status_changed`,
   `pane.closed`, `pane.exited` and others (docs; API schema EventKind).
   `pane.agent_status_changed` needs a `pane_id` per subscription; `pane.agent_detected`
@@ -160,10 +166,11 @@ Verified on a real device (Mac local, 2026-09-26/27) and in the v0.9.1 documenta
 - `config`: `config.json` with defaults; invalid values fall back to the default and
   are logged.
 - `state`: the state and config directories (the same rule as image-viewer's `state`).
-- `herdr_api`: one-shot commands through `HERDR_BIN_PATH` (`pane list/get/process-info/
-  layout/rename/run/read/split/close`, `agent list/get/read/prompt/start/wait`,
-  `tab list/create/focus`, `workspace list/create`), the socket `pane.focus`, and the
-  socket `events.subscribe`. Missing keys are handled here.
+- `herdr_api`: every call over the socket at `HERDR_SOCKET_PATH` (`pane.list/get/
+  process_info/layout/rename/read/split/close/swap/focus/send_input`, `agent.list/get/
+  read/prompt/start/wait/send_keys`, `tab.list/create`, `workspace.list/create`,
+  `layout.export/set_split_ratio`) and the long `events.subscribe` connection. Missing
+  keys are handled here.
 - `transcript`: locating a session's transcript by glob, tail reading with a cache,
   the context numbers, the compacted state and its age, the window size resolution,
   and the focus tag after a given prompt.
@@ -524,7 +531,8 @@ server is never restarted.
 - [x] `--from-pr [value]` and `--teleport [session]` pick a session too and are removed
 
 ### herdr_api
-- [ ] `HERDR_BIN_PATH` is used when set, otherwise `herdr` on `PATH`
+- [ ] requests go to `HERDR_SOCKET_PATH` (one line out, one line back per connection); without
+      it the call fails with a "not running inside Herdr" error
 - [ ] non-JSON output, an `error` reply and a non-zero exit are distinct exceptions
 - [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
 - [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
@@ -637,8 +645,8 @@ server is never restarted.
 - [ ] with the pane present and the shell alone in the foreground,
       `agent start <name> --kind claude --pane <P> --timeout <ms> -- --resume <UUID> <flags>` is called
 - [ ] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
-- [ ] a pane cwd different from the record's runs `pane run <P> "cd <quoted>"` first
-- [ ] the note is printed with `pane run <P> "printf ..."` before the resume; a failure does not stop it
+- [ ] a pane cwd different from the record's sends `pane.send_input` of `cd <quoted>` + Enter first
+- [ ] the note is printed with `pane.send_input` of `printf ...` + Enter before the resume; a failure does not stop it
 - [ ] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
 - [ ] a mismatch gives `resume_failed` with both IDs in `error`
 - [ ] `agent_not_ready` gives `resume_pending` and leaves the label
