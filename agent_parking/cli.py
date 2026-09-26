@@ -1,11 +1,13 @@
 """The plugin's commands: `dashboard` (the pane process), `open` and `open-tab` (the
-plugin actions that open it)."""
+plugin actions that open it), `list` (the rows as JSON for scripts)."""
 
+import dataclasses
+import json
 import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import config, herdr_api, logfile, runtime, state, system, terminal, transcript
+from . import config, herdr_api, idle, inventory, logfile, runtime, state, system, terminal, transcript
 
 
 def _now():
@@ -47,6 +49,8 @@ def main(args, environ):
             return 1
     if args in (["open"], ["open-tab"]):
         return _open(environ, tab=args == ["open-tab"])
+    if args == ["list"]:
+        return _list(environ)
     return 2
 
 
@@ -61,6 +65,17 @@ def _open(environ, tab):
         herdr_api.Herdr.from_environ(environ).call("plugin.pane.open", params)
     except herdr_api.HerdrError as error:
         return fail(error)
+    return 0
+
+
+def _list(environ):
+    """Every row, the pane it runs in included (a Claude may call this from its own pane)."""
+    try:
+        rt = make_runtime(environ)
+        found = inventory.build(rt, idle.Tracker.load(rt.paths.observed, rt.clock), None)
+    except herdr_api.HerdrError as error:
+        return fail(error)
+    print(json.dumps([dataclasses.asdict(row) for row in found.rows], ensure_ascii=False, indent=2))
     return 0
 
 

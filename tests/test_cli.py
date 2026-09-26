@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 import unittest.mock
@@ -84,6 +85,28 @@ class OpenTest(CliTestCase):
         with unittest.mock.patch("sys.stderr", new_callable=io.StringIO) as stderr:
             self.assertEqual(cli.main(["open"], self.environ(fake)), 1)
         self.assertIn("is disabled", stderr.getvalue())
+
+
+class ListTest(CliTestCase):
+    def test_list_prints_every_row_as_json_with_claudes_own_memory(self):
+        pane = {"pane_id": "w1:p2", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude", "agent_status": "idle",
+                "cwd": "/repo", "terminal_title_stripped": "work",
+                "agent_session": {"agent": "claude", "kind": "id", "value": UUID}}
+        process = {"shell_pid": 100, "foreground_process_group_id": os.getpid(),
+                   "foreground_processes": [{"pid": os.getpid(), "name": "python"}]}
+        fake = FakeHerdr({"pane.list": {"type": "pane_list", "panes": [pane]},
+                          "agent.list": {"type": "agent_list", "agents": []},
+                          "workspace.list": {"type": "workspace_list", "workspaces": []},
+                          "tab.list": {"type": "tab_list", "tabs": []},
+                          "pane.process_info": {"type": "process_info", "process_info": process}})
+        self.addCleanup(fake.close)
+        environ = {"HOME": str(self.home), "HERDR_SOCKET_PATH": fake.path, "HERDR_PANE_ID": "w1:p2", "PATH": "/usr/bin:/bin"}
+        with unittest.mock.patch("sys.stdout", new_callable=io.StringIO) as stdout:
+            self.assertEqual(cli.main(["list"], environ), 0)
+        [row] = json.loads(stdout.getvalue())
+        self.assertEqual((row["pane_id"], row["session_id"], row["status"]), ("w1:p2", UUID, "idle"))
+        self.assertGreater(row["claude_rss_kb"], 0)
+        self.assertEqual(row["claude_rss_kb"], row["rss_kb"])
 
 
 if __name__ == "__main__":
