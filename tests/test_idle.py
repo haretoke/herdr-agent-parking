@@ -36,5 +36,18 @@ class FirstSeenTest(unittest.TestCase):
                 self.assertEqual((entry.since, entry.lower_bound), (NOW, True))
 
 
+class ChangeTest(unittest.TestCase):
+    def test_a_new_state_change_seq_restarts_the_time_exactly(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock, summary_for=lambda pane_id: None)
+        tracker.poll("w1:p1", seq=18, status="idle")
+        clock.advance(minutes=5)
+        self.assertEqual(tracker.poll("w1:p1", seq=18, status="idle").since, NOW)
+        clock.advance(minutes=5)
+        entry = tracker.poll("w1:p1", seq=20, status="working")
+        self.assertEqual((entry.since, entry.lower_bound, entry.status, entry.seq),
+                         (NOW + timedelta(minutes=10), False, "working", 20))
+
+
 if __name__ == "__main__":
     unittest.main()

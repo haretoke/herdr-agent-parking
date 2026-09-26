@@ -595,7 +595,7 @@ server is never restarted.
 ### idle (injectable clock)
 - [x] a row seen for the first time takes `since` from its transcript's last conversation time;
       without one it gets `since = now` and `lower_bound = true`
-- [ ] a changed `state_change_seq` updates `since` and clears `lower_bound`
+- [x] a changed `state_change_seq` updates `since` and clears `lower_bound`
 - [ ] tracking of a vanished pane is dropped at the next save
 - [ ] `observed.json` is written by atomic rename and a broken file starts empty
 - [ ] idle times render as `12m`, `3h05m`, `2d`, with `≥` for lower bounds

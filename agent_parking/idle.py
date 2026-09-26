@@ -26,6 +26,8 @@ class Tracker:
         if entry is None:
             entry = self._first(seq, status, self.summary_for(pane_id))
             self.entries[pane_id] = entry
+        elif seq != entry.seq:
+            entry.seq, entry.status, entry.since, entry.lower_bound = seq, status, self.clock(), False
         return entry
 
     def _first(self, seq, status, summary):
