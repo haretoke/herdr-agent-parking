@@ -11,8 +11,22 @@ def live(pane_id="w8:p36", **fields):
     return Row(**base)
 
 
-def board(*rows, others=None):
-    shown = dashboard.Dashboard(refresh=lambda: Inventory(list(rows), others or {}))
+class FakeActions:
+    """Records what the dashboard asks for; answers with the outcomes given."""
+
+    def __init__(self, **outcomes):
+        self.calls = []
+        self.outcomes = outcomes
+
+    def __getattr__(self, name):
+        def action(*args):
+            self.calls.append((name,) + args)
+            return self.outcomes.get(name)
+        return action
+
+
+def board(*rows, others=None, actions=None):
+    shown = dashboard.Dashboard(refresh=lambda: Inventory(list(rows), others or {}), actions=actions)
     shown.refresh()
     return shown
 
@@ -97,6 +111,23 @@ class KeepSelectionTest(unittest.TestCase):
         self.assertEqual(shown.selected, 2)  # b moved to the parked block
         shown.refresh()
         self.assertEqual(shown.selected, 0)  # gone: the nearest row that is left
+
+
+class GoTest(unittest.TestCase):
+    def test_g_moves_to_the_selected_pane_and_closes_the_dashboard(self):
+        actions = FakeActions()
+        shown = board(live("w8:p1"), live("w8:p2"), actions=actions)
+        shown.on_input(b"jg")
+        self.assertEqual(actions.calls, [("focus", "w8:p2")])
+        self.assertTrue(shown.quit)
+
+    def test_g_on_a_row_without_a_pane_says_so_and_stays(self):
+        actions = FakeActions()
+        shown = board(Row(name="billing", status="parked", record={}), actions=actions)
+        shown.on_input(b"g")
+        self.assertEqual(actions.calls, [])
+        self.assertFalse(shown.quit)
+        self.assertIn("no pane", shown.lines(78, 20)[-2])
 
 
 if __name__ == "__main__":

@@ -14,8 +14,10 @@ def _key(row):
 
 
 class Dashboard:
-    def __init__(self, refresh, on_event=lambda event: None):
+    def __init__(self, refresh, actions=None, on_event=lambda event: None):
         self._refresh = refresh   # () -> inventory.Inventory
+        self.actions = actions    # what the keys do (actions.Actions)
+        self.message = ""
         self._on_event = on_event  # a Herdr event, before the list is read again
         self.rows = []
         self.others = {}
@@ -48,7 +50,8 @@ class Dashboard:
 
     def lines(self, width, height):
         rule = " " + "─" * (width - 2)
-        footer = [rule, " " + ("events: off · " if not self.events_on else "") + KEYS]
+        footer = ([rule] + ([" " + self.message] if self.message else []) +
+                  [" " + ("events: off · " if not self.events_on else "") + KEYS])
         top = [self.title(), rule, table.header(width)]
         body = self._visible_body(width, max(1, height - len(top) - len(footer)))
         return [display.cell(line, width) for line in top + body + footer]
@@ -73,12 +76,26 @@ class Dashboard:
 
     def on_input(self, data):
         for key in self.keys.feed(data):
+            self.message = ""
             if key == "q":
                 self.quit = True
             elif key == "i":
                 self.show_detail = not self.show_detail
             elif key in MOVES:
                 self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
+            elif key == "g":
+                self._go()
+
+    def _row(self):
+        return self.rows[self.selected] if self.rows else None
+
+    def _go(self):
+        row = self._row()
+        if row is None or not row.pane_id:
+            self.message = "no pane for this row"
+            return
+        self.actions.focus(row.pane_id)
+        self.quit = True
 
     def on_event(self, event):
         self._on_event(event)
