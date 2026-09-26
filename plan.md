@@ -720,7 +720,7 @@ server is never restarted.
 - [x] `open` sends `plugin.pane.open` (the socket form of `plugin pane open`) for the
       `dashboard` entrypoint with placement overlay; `open-tab` with placement tab in
       `HERDR_WORKSPACE_ID`; a refusal exits 1 with Herdr's reason
-- [ ] `list` prints the rows as JSON (with the Claude-only RSS)
+- [x] `list` prints the rows as JSON (with the Claude-only RSS)
 - [ ] `park <pane>`, `compact <pane>` and `resume <uuid>` run the same procedures without
       the dashboard; failures exit 1 with a message
 - [ ] the manifest declares the `dashboard` pane and the `open` / `open-tab` actions, and
