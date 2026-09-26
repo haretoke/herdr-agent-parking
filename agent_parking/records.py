@@ -87,14 +87,18 @@ def _record_files(directory):
 
 def list_records(directory):
     """Every record in `directory`, plus one `{"status": "broken"}` row per file that is
-    not a JSON object. Such files are moved to `broken/` once and listed from there."""
+    not a JSON object. Such files are moved to `broken/` once and listed from there. A file
+    that vanishes meanwhile (another dashboard settled it) is skipped."""
     listed = []
     for path in _record_files(directory):
-        loaded = _read(path)
-        if loaded is None:
-            storage.private_dir(directory / "broken")
-            os.replace(path, directory / "broken" / path.name)
-        elif _ours(loaded):
+        try:
+            loaded = _read(path)
+            if loaded is None:
+                storage.private_dir(directory / "broken")
+                os.replace(path, directory / "broken" / path.name)
+        except FileNotFoundError:
+            continue
+        if loaded is not None and _ours(loaded):
             listed.append(loaded)
     for path in _record_files(directory / "broken"):
         listed.append({"session_id": path.stem, "status": "broken"})

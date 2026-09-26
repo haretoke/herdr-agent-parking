@@ -100,6 +100,17 @@ class StartParkingTest(RecordsTestCase):
         self.assertEqual(saved["status"], "parked")
 
 
+class VanishingTest(RecordsTestCase):
+    def test_files_that_vanish_while_listing_are_skipped(self):
+        other = "5e0c1f2a-0000-4000-8000-000000000001"
+        records.write(self.dir, record())
+        gone = self.dir / (other + ".json")  # settled by another dashboard after the directory was read
+        real = records._record_files
+        with unittest.mock.patch.object(records, "_record_files",
+                                        side_effect=lambda d: real(d) + ([gone] if d == self.dir else [])):
+            self.assertEqual([r["session_id"] for r in records.list_records(self.dir)], [UUID])
+
+
 class ResumedTest(RecordsTestCase):
     NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
 
