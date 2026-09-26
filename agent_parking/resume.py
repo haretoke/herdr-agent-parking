@@ -34,6 +34,7 @@ def resume(rt, session_id, new_workspace=False):
             return Outcome("refused", placed.message, record)
         record = records.with_pane(record, placed.pane_id)
         records.write(rt.paths.records, record)
+        _wait_for_new_shell(rt, placed.pane_id)
     pane_id = record["pane_id"]
     pane = rt.herdr.pane(pane_id)
     if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
@@ -94,6 +95,19 @@ def _running_session(rt, pane_id):
         running = pane.session_id if pane is not None else None
         if running is not None or waited >= limit:
             return running
+        rt.sleep(SESSION_POLL_SECONDS)
+        waited += SESSION_POLL_SECONDS
+
+
+NEW_SHELL_SECONDS = 10
+
+
+def _wait_for_new_shell(rt, pane_id):
+    """A pane just created runs its shell's startup for a moment (seen on the Mac: the
+    foreground was not the shell yet); wait until the shell alone is there, at most
+    NEW_SHELL_SECONDS. The check that follows refuses when it never is."""
+    waited = 0.0
+    while waited < NEW_SHELL_SECONDS and not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
         rt.sleep(SESSION_POLL_SECONDS)
         waited += SESSION_POLL_SECONDS
 

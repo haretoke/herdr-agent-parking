@@ -267,6 +267,24 @@ class RecreateTest(ResumeTestCase):
         self.assertEqual(start["pane_id"], "w1:p12")
         self.assertEqual((outcome.record["pane_id"], outcome.record["pane_id_history"]), ("w1:p12", ["w1:p9"]))
 
+    def test_a_new_pane_whose_shell_is_still_starting_is_waited_for(self):
+        # Seen on the Mac: right after pane.split the shell's startup still held the foreground.
+        self.park_record(pane_id="w1:p9", parked_mode="close",
+                         layout_hint={"sibling_pane_id": "w1:p8", "position": "second", "direction": "right",
+                                      "ratio": 0.5, "path": []})
+        sibling = pane_reply(pane_id="w1:p8", agent=None, session_id=None)["pane"]
+        starting = {"type": "process_info", "process_info": {
+            "shell_pid": 100, "foreground_process_group_id": 300, "foreground_processes": [{"pid": 300, "name": "mise"}]}}
+        rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [sibling]},
+                              "pane.split": {"type": "pane_info", "pane": {"pane_id": "w1:p12"}},
+                              "layout.export": {"type": "layout_export", "root": None},
+                              "pane.process_info": [starting, starting, SHELL_PROCESS],
+                              "pane.get": [pane_reply(pane_id="w1:p12", agent=None, session_id=None),
+                                           pane_reply(pane_id="w1:p12")]})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertEqual(self.slept, [0.5, 0.5])
+
     def test_no_place_to_recreate_refuses_with_the_reason(self):
         self.park_record(pane_id="w1:p9", tab_id="w1:t1", workspace_id="w1")
         rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [
