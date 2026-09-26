@@ -5,22 +5,36 @@ CANCEL = ("cancel", None)
 
 
 class TextInput:
-    def __init__(self, lines, initial=""):
+    """One line, or with `multiline` several: Enter starts a new line, and a blank line or
+    Ctrl-D ends the text (a note; Enter at once means none)."""
+
+    def __init__(self, lines, initial="", multiline=False):
         self.prompt = list(lines)
-        self.text = initial
+        self.multiline = multiline
+        self.rows = (initial or "").split("\n") if multiline else [initial or ""]
 
     def lines(self):
-        return self.prompt + ["> " + self.text]
+        return self.prompt + ["> " + row for row in self.rows]
+
+    def _done(self):
+        return ("done", "\n".join(self.rows).rstrip("\n"))
 
     def on_key(self, key):
         if key in ("esc", "ctrl-c"):
             return CANCEL
+        if key == "ctrl-d" and self.multiline:
+            return self._done()
         if key == "enter":
-            return ("done", self.text)
-        if key == "backspace":
-            self.text = self.text[:-1]
+            if not self.multiline or self.rows[-1] == "":
+                return self._done()
+            self.rows.append("")
+        elif key == "backspace":
+            if self.rows[-1] or len(self.rows) == 1:
+                self.rows[-1] = self.rows[-1][:-1]
+            else:
+                self.rows.pop()
         elif key == "ctrl-u":
-            self.text = ""
+            self.rows[-1] = ""
         elif len(key) == 1:
-            self.text += key
+            self.rows[-1] += key
         return None
