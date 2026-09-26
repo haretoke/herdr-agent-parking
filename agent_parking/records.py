@@ -48,6 +48,14 @@ def start_parking(directory, record):
     return write(directory, record)
 
 
+def discard_parking(directory, session_id):
+    """Remove the `parking` record of `session_id` (a park that never sent `/exit`)."""
+    path = directory / (checked_uuid(session_id) + ".json")
+    current = _read(path) if path.exists() else None
+    if current is not None and _ours(current) and current.get("status") == "parking":
+        path.unlink()
+
+
 def _read(path):
     """The JSON object in `path`, or None when it is not one."""
     try:

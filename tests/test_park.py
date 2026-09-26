@@ -235,6 +235,17 @@ class TimeoutTest(FlowTestCase):
         self.assertEqual(sum(self.slept), 1.0)
 
 
+class BlockedTest(FlowTestCase):
+    def test_a_blocked_claude_refuses_the_exit_and_the_parking_record_goes(self):
+        from tests.fake_herdr import Error
+        rt = self.flow(**{"agent.prompt": Error("agent_blocked", "agent is waiting at a dialog")})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("dialog", outcome.message)
+        self.assertIsNone(self.saved())
+        self.assertNotIn("pane.rename", self.fake.methods())
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

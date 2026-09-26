@@ -625,7 +625,7 @@ server is never restarted.
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
       `"keep"` and a reason is returned
 - [x] a timeout gives `park_failed` and the pane is untouched
-- [ ] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
+- [x] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [ ] the note is stored; an empty note is `null`
 - [x] the context numbers at park time are stored in `context_at_park`
 - [ ] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,

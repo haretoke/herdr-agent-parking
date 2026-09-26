@@ -37,7 +37,13 @@ def park(rt, pane_id, note):
     }
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)
-    rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
+    try:
+        rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
+    except herdr_api.HerdrError as error:
+        records.discard_parking(rt.paths.records, pane.session_id)
+        if error.code == "agent_blocked":
+            return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
+        raise
     if not _wait_for_shell(rt, pane_id):
         record["status"] = "park_failed"
         records.write(rt.paths.records, record)
