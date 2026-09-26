@@ -18,6 +18,7 @@ class Dashboard:
         self.show_detail = True
         self.keys = keys.KeyParser()
         self.quit = False
+        self.events_on = True
 
     def refresh(self):
         inventory = self._refresh()
@@ -41,7 +42,8 @@ class Dashboard:
             if index == self.selected and self.show_detail:
                 note = (row.record or {}).get("note")
                 body.extend(line for line in [table.detail(cells, note, width)] if line)
-        screen = [self.title(), rule, table.header(width)] + body + [rule, " " + KEYS]
+        footer = ("events: off · " if not self.events_on else "") + KEYS
+        screen = [self.title(), rule, table.header(width)] + body + [rule, " " + footer]
         return [display.cell(line, width) for line in screen]
 
     def on_input(self, data):
@@ -52,3 +54,6 @@ class Dashboard:
                 self.show_detail = not self.show_detail
             elif key in MOVES:
                 self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
+
+    def on_event(self, event):
+        pass

@@ -8,7 +8,7 @@ import termios
 import time
 import tty
 
-from . import dashboard, idle, inventory
+from . import dashboard, herdr_api, idle, inventory
 
 
 class Terminal:
@@ -72,21 +72,69 @@ class Terminal:
         return data or None, [r for r in ready if r in others]
 
 
-def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=()):
+def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=(), subscribe=None):
     """Read the list every `poll_seconds`, draw, and read keys until q, a stop signal (an
-    entry in `stopping`), or the pane going away."""
+    entry in `stopping`), or the pane going away. `subscribe(pane_ids)` opens the event
+    stream for the listed Claude panes; when it drops, polling goes on without it."""
     next_poll = clock()
-    while not board.quit and not stopping:
-        now = clock()
-        if now >= next_poll:
-            board.refresh()
-            next_poll = now + poll_seconds
-        terminal.draw(board.lines(*terminal.size()))
-        data, _ = terminal.read(max(0, next_poll - clock()))
-        if data is None:
-            break
-        if data:
-            board.on_input(data)
+    events = Events(board, subscribe)
+    try:
+        while not board.quit and not stopping:
+            now = clock()
+            if now >= next_poll:
+                board.refresh()
+                next_poll = now + poll_seconds
+                events.follow()
+            terminal.draw(board.lines(*terminal.size()))
+            data, ready = terminal.read(max(0, next_poll - clock()), events.descriptors())
+            if data is None:
+                break
+            if ready:
+                events.read()
+            if data:
+                board.on_input(data)
+    finally:
+        events.close()
+
+
+class Events:
+    """The `events.subscribe` stream of the listed Claude panes, opened again when the
+    panes change; `board.events_on` says whether it runs."""
+
+    def __init__(self, board, subscribe):
+        self.board = board
+        self.subscribe = subscribe
+        self.stream = None
+        self.pane_ids = None
+
+    def descriptors(self):
+        return [self.stream] if self.stream is not None else []
+
+    def follow(self):
+        if self.subscribe is None:
+            return
+        pane_ids = [row.pane_id for row in self.board.rows if row.record is None and row.pane_id]
+        if pane_ids == self.pane_ids:
+            return
+        self.close()
+        self.pane_ids = pane_ids
+        try:
+            self.stream = self.subscribe(pane_ids)
+        except herdr_api.HerdrError:
+            self.stream = None
+        self.board.events_on = self.stream is not None
+
+    def read(self):
+        try:
+            self.board.on_event(next(self.stream))
+        except (StopIteration, ValueError, OSError):
+            self.close()
+            self.board.events_on = False
+
+    def close(self):
+        if self.stream is not None:
+            self.stream.close()
+            self.stream = None
 
 
 def stop_on_signals():
@@ -104,5 +152,6 @@ def run_dashboard(rt, own_pane_id):
     board = dashboard.Dashboard(refresh=lambda: inventory.build(rt, tracker, own_pane_id))
     stopping = stop_on_signals()
     with Terminal() as terminal:
-        run(board, terminal, rt.settings["poll_seconds"], stopping=stopping)
+        run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,
+            subscribe=lambda pane_ids: rt.herdr.subscribe(herdr_api.status_subscriptions(pane_ids)))
     return 0

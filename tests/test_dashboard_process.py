@@ -104,6 +104,7 @@ class StartTest(DashboardProcessTestCase):
         process, master = self.start(script(claude_pane()))
         self.wait_for(master, b"api gateway")
         self.assertIn(b"Agent parking", self.output)
+        self.wait_for(master, b"events: off")  # the fake Herdr refuses events.subscribe
         self.assertIn(b"\x1b[?1049h", self.output)  # alternate screen entered
 
         os.write(master, b"q")
