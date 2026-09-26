@@ -464,7 +464,6 @@ server is never restarted.
 - [ ] without the workspace, after confirmation, `workspace create --cwd <cwd> --label <label> --no-focus`
 - [ ] without the cwd, stop with a reason
 - [ ] the new pane ID is written and the old one goes to `pane_id_history`
-- [ ] an empty pane with a `💤` label in the same tab is proposed instead of a new pane
 
 ### dashboard (PTY, fake herdr, injectable clock)
 - [ ] the list is drawn at start and column widths fit the terminal width
@@ -524,8 +523,8 @@ server is never restarted.
       an Opus session with the window configured
 - [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
       Claudes, parks and resumes; records are in the container's state directory
-- [ ] after a Herdr server restart (throwaway session): parked panes and the "(no pane)"
-      matching behave as the spike recorded
+- [ ] after a Herdr server restart (throwaway session): a parked pane keeps its record
+      and label and `r` resumes it in the same pane ID (spike 0-1, 0-2)
 
 ## Open items
 

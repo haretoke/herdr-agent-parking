@@ -98,8 +98,8 @@ Every Claude pane on this server, with these columns:
 
 - The dashboard's own pane and non-Claude panes are not listed. The footer shows the
   count, the total Claude RSS, and the number of Codex panes ("codex: n, not managed").
-- A record whose pane is gone (closed, or the ID changed after a server restart) is
-  listed at the end as "(no pane)".
+- A record whose pane is gone (closed by hand, or lost with a rebuilt container) is
+  listed at the end as "(no pane)". A server restart alone keeps pane IDs (spike 0-1).
 - **Reconciliation**: every refresh matches records against panes. After `/exit`,
   Claude prints `Resume this session with: claude --resume ...` in the pane, so
   people resume by hand, and sometimes in another pane. The match runs against the
@@ -519,7 +519,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | The pane already has a label | Kept in `label_before`, overwritten while parked, restored on resume |
 | `on_park = close` and the pane is the last one of its tab | Not closed, treated as `keep` (`parked_mode = "keep"`); the tab is never closed |
 | `on_park = close` and something else is in the foreground after the shell is back | Not closed, treated as `keep`, with a reason |
-| Pane IDs changed after a server restart | The record's pane is not found → "(no pane)" → recreate. When an empty pane with a `💤` label sits in the same tab, it is proposed as the resume target (spike) |
+| The record's pane is gone | "(no pane)" → recreate. A server restart alone does not cause this: pane IDs survive it (spike 0-1) |
 | Two dashboards (overlay and tab) | `observed.json`: the last writer wins (atomic rename). Records are one file per UUID, so no collision. Parking the same row twice: the second `agent prompt` fails because Claude is gone, and a record in `parking` is never overwritten |
 | Control characters or newlines in the note | Stored as is (JSON); the display drops control characters; never put in a label |
 | Long values in `argv` such as `--settings '{...}'` | Stored as is (0600); not shown in the list |
@@ -573,14 +573,15 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 
 ## Herdr server restarts
 
-- Herdr restores only panes that have an `agent_session` with `claude --resume <id>`.
-  A parked pane has none, so after a restart it is an empty shell with its label (the
-  label persisting is verified; whether the pane ID persists is a spike).
+- Herdr restores only panes that have an `agent_session` with `claude --resume <id>`,
+  and without the original launch flags (spike 0-2). A parked pane has none, so after
+  a restart it is an empty shell with its label and cwd; its scrollback, including
+  Claude's `Resume this session with` line, is gone, so the record is the only trace.
+- Pane IDs, tab IDs, labels and cwd survive a server restart and closed IDs are not
+  reused (spike 0-1), so a record's `pane_id` stays valid across restarts.
 - No automatic resume (eating the memory again right after a restart defeats the
   purpose). `resume_on_startup` from `[[startup]]` is a future extension; in v1 a
   person presses `r`.
-- After a restart the record's pane ID may be stale, so the list proposes the empty
-  `💤`-labelled pane in the same tab as the target.
 
 ## Containers (devcon-herdr)
 
