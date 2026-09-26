@@ -63,5 +63,10 @@ class ProcessTest(BuildTestCase):
         self.assertEqual((row.rss_kb, row.claude_rss_kb, row.version, row.old), (210_000, 200_000, "2.1.283", True))
 
 
+    def test_a_pane_whose_processes_cannot_be_read_keeps_its_row(self):
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": Error("pane_not_found")})
+        self.assertEqual([(r.pane_id, r.rss_kb, r.version) for r in got.rows], [("w1:p2", None, None)])
+
+
 if __name__ == "__main__":
     unittest.main()

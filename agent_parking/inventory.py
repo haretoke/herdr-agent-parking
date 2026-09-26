@@ -181,8 +181,12 @@ def build(rt, tracker, own_pane_id):
 
 
 def _add_process(rt, found):
-    """Memory and version from the pane's foreground processes."""
-    info = rt.herdr.process_info(found.pane_id)
+    """Memory and version from the pane's foreground processes (none when the pane went
+    away since the list was read)."""
+    try:
+        info = rt.herdr.process_info(found.pane_id)
+    except herdr_api.HerdrError:
+        return
     found.rss_kb, found.claude_rss_kb = memory(info, rt.system)
     process = claude_process(info)
     if process is None:
