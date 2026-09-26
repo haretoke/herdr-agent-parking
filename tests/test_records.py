@@ -75,6 +75,18 @@ class ListTest(RecordsTestCase):
                                  sorted([OTHER + ".json", THIRD + ".json"]))
                 self.assertFalse((self.dir / (OTHER + ".json")).exists())
 
+    def test_a_record_with_an_unknown_schema_version_is_neither_listed_nor_touched(self):
+        records.write(self.dir, record())
+        future = self.dir / (OTHER + ".json")
+        text = json.dumps({"schema_version": 2, "session_id": OTHER, "status": "parked"})
+        future.write_text(text, encoding="utf-8")
+        (self.dir / (THIRD + ".json")).write_text(json.dumps({"session_id": THIRD}), encoding="utf-8")
+        self.assertEqual([r["session_id"] for r in records.list_records(self.dir)], [UUID])
+        with self.assertRaises(records.Refused):
+            records.write(self.dir, record(session_id=OTHER))
+        self.assertEqual(future.read_text(encoding="utf-8"), text)
+        self.assertFalse((self.dir / "broken").exists())
+
     def test_an_empty_or_missing_directory_lists_nothing(self):
         self.assertEqual(records.list_records(self.dir), [])
 

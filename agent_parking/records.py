@@ -5,6 +5,11 @@ import os
 import re
 
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+SCHEMA_VERSION = 1
+
+
+class Refused(Exception):
+    """A record operation that must not happen; the message says why."""
 
 
 def checked_uuid(value):
@@ -28,6 +33,8 @@ def write(directory, record):
     name = checked_uuid(record.get("session_id")) + ".json"
     _private_dir(directory)
     path = directory / name
+    if path.exists() and not _ours(_read(path)):
+        raise Refused("%s has a schema this version does not know" % path.name)
     tmp = directory / (".%s.%d.tmp" % (name, os.getpid()))
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
@@ -38,6 +45,20 @@ def write(directory, record):
         tmp.unlink(missing_ok=True)
         raise
     return path
+
+
+def _read(path):
+    """The JSON object in `path`, or None when it is not one."""
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    return loaded if isinstance(loaded, dict) else None
+
+
+def _ours(loaded):
+    """A readable record of the schema this version writes (broken files count as ours)."""
+    return loaded is None or loaded.get("schema_version") == SCHEMA_VERSION
 
 
 def _record_files(directory):
@@ -53,15 +74,12 @@ def list_records(directory):
     not a JSON object. Such files are moved to `broken/` once and listed from there."""
     listed = []
     for path in _record_files(directory):
-        try:
-            loaded = json.loads(path.read_text(encoding="utf-8"))
-        except ValueError:
-            loaded = None
-        if isinstance(loaded, dict):
-            listed.append(loaded)
-        else:
+        loaded = _read(path)
+        if loaded is None:
             _private_dir(directory / "broken")
             os.replace(path, directory / "broken" / path.name)
+        elif _ours(loaded):
+            listed.append(loaded)
     for path in _record_files(directory / "broken"):
         listed.append({"session_id": path.stem, "status": "broken"})
     return listed
