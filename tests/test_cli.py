@@ -6,7 +6,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
-from agent_parking import cli, park, state
+from agent_parking import cli, park, recreate, resume, state
 from tests.fake_herdr import Error, FakeHerdr
 
 
@@ -133,6 +133,23 @@ class ParkCommandTest(ShellCommandTestCase):
         code, _, err = self.run_cli(["park", "w1:p2"], HERDR_SOCKET_PATH="")
         self.assertEqual(code, 1)
         self.assertIn("not running inside Herdr", err)
+
+
+class ResumeCommandTest(ShellCommandTestCase):
+    def test_resume_runs_the_resume_flow_and_a_gone_workspace_needs_the_flag(self):
+        record = {"pane_id": "w1:p2"}
+        with unittest.mock.patch.object(resume, "resume", return_value=resume.Outcome("resumed", "", record)) as flow:
+            code, out, _ = self.run_cli(["resume", UUID])
+        self.assertEqual((code, out.strip()), (0, "resumed " + UUID))
+        self.assertEqual(flow.call_args[0][1:], (UUID,))
+        self.assertEqual(flow.call_args[1], {"new_workspace": False})
+        refused = resume.Outcome("refused", recreate.NEEDS_WORKSPACE, record)
+        with unittest.mock.patch.object(resume, "resume", return_value=refused) as flow:
+            code, _, err = self.run_cli(["resume", UUID])
+            self.assertIn("--new-workspace", err)
+            self.assertEqual(code, 1)
+            self.run_cli(["resume", UUID, "--new-workspace"])
+        self.assertEqual(flow.call_args[1], {"new_workspace": True})
 
 
 if __name__ == "__main__":

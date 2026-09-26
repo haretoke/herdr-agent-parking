@@ -9,8 +9,8 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import (config, display, herdr_api, idle, inventory, logfile, park, records, runtime, state, system, terminal,
-               transcript)
+from . import (config, display, herdr_api, idle, inventory, logfile, park, records, recreate, resume, runtime,
+               state, system, terminal, transcript)
 
 DONE = ("parked", "compacted", "resumed")
 
@@ -54,6 +54,10 @@ def main(args, environ):
     parking = commands.add_parser("park", help="park the Claude in a pane")
     parking.add_argument("pane_id")
     parking.add_argument("--note", default=None)
+    resuming = commands.add_parser("resume", help="resume a parked session by its UUID")
+    resuming.add_argument("session_id")
+    resuming.add_argument("--new-workspace", action="store_true",
+                          help="open a new workspace when the session's own is gone")
     parsed = parser.parse_args(args)
     if parsed.command == "dashboard":
         return _dashboard(environ)
@@ -61,6 +65,9 @@ def main(args, environ):
         return _open(environ, tab=parsed.command == "open-tab")
     if parsed.command == "park":
         return _procedure(environ, lambda rt: park.park(rt, parsed.pane_id, parsed.note), parsed.pane_id)
+    if parsed.command == "resume":
+        return _procedure(environ, lambda rt: resume.resume(rt, parsed.session_id, new_workspace=parsed.new_workspace),
+                          parsed.session_id)
     return _list(environ)
 
 
@@ -73,6 +80,8 @@ def _procedure(environ, run, subject):
         return fail(error)
     text = display.said(outcome, subject)
     if outcome.kind not in DONE:
+        if outcome.message == recreate.NEEDS_WORKSPACE:
+            text += " (run again with --new-workspace)"
         return fail(text)
     print(text)
     return 0
