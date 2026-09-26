@@ -713,7 +713,7 @@ server is never restarted.
 - [x] `?` lists every key with what it does; any key closes the list
 
 ### cli
-- [ ] `dashboard` starts the pane process
+- [x] `dashboard` starts the pane process
 - [ ] `config.json` is read from `HERDR_PLUGIN_CONFIG_DIR` only when `HERDR_PLUGIN_ID` is this
       plugin, otherwise from `${XDG_CONFIG_HOME:-~/.config}/herdr/plugins/config/<id>/`
       (what `herdr plugin config-dir <id>` prints), so the shell subcommands see the same file
