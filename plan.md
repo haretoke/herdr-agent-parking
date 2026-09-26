@@ -483,7 +483,9 @@ server is never restarted.
 - [x] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
       plugin, otherwise `${XDG_STATE_HOME:-$HOME/.local/state}/herdr/plugins/<id>`
       (a relative path is ignored)
-- [ ] a missing, empty, broken or mistyped `config.json` gives the defaults and a logged reason
+- [x] a missing `config.json` gives the defaults silently; an empty, broken or non-object one
+      gives the defaults and a logged reason; a mistyped value falls back to its own default
+      and an unknown key is ignored, each with a logged reason
 - [ ] `records_dir` moves only the records; `observed.json` and the log stay in the state directory
 - [ ] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR`, then `~/.claude`
 - [ ] `context_window_by_model` is a map of model id prefix to a positive integer; other
