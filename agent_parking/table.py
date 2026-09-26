@@ -48,6 +48,15 @@ def line(cells, width, selected):
     return display.cell(text.rstrip(), width)
 
 
+TITLES = {"place": "place", "place_id": "place", "name": "name", "status": "status", "idle": "idle",
+          "ctx": "ctx", "ctx_short": "ctx", "rss": "rss", "ver": "ver", "old": ""}
+
+
+def header(width):
+    """The column titles, aligned with `line`."""
+    return line(TITLES, width, selected=False)
+
+
 PARKED_MARK = "💤"
 
 

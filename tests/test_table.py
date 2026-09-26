@@ -89,5 +89,12 @@ class OldMarkTest(unittest.TestCase):
         self.assertNotIn("!", table.line(current, 60, selected=False))
 
 
+class HeaderTest(unittest.TestCase):
+    def test_the_titles_sit_above_their_columns(self):
+        self.assertEqual(table.header(78), "  place" + " " * 10 + "name" + " " * 11 + "status   idle   ctx" + " " * 10 +
+                         "rss   ver")
+        self.assertEqual(table.header(51), "  place" + " " * 8 + "name" + " " * 24 + "status")
+
+
 if __name__ == "__main__":
     unittest.main()
