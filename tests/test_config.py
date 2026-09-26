@@ -101,6 +101,26 @@ class LoadTest(unittest.TestCase):
         self.assertEqual(self.load()["context_window_by_model"], {})
         self.assertEqual(len(self.logged), 1)
 
+    def test_the_preparation_sends_the_skill_and_falls_back_to_the_built_in_text(self):
+        prep = config.preparation(self.load())
+        self.assertEqual(prep.first, "/prepare-compact")
+        self.assertEqual(prep.fallback, config.BUILT_IN_PREPARE_PROMPT)
+        self.assertIn("<compact-focus>", config.BUILT_IN_PREPARE_PROMPT)
+
+    def test_a_set_prepare_prompt_takes_precedence_and_has_no_fallback(self):
+        self.write('{"prepare_command": "/my-prep", "prepare_prompt": "Save state, then give a focus."}')
+        prep = config.preparation(self.load())
+        self.assertEqual(prep.first, "Save state, then give a focus.")
+        self.assertIsNone(prep.fallback)
+
+    def test_a_custom_prepare_command_keeps_the_built_in_fallback(self):
+        self.write('{"prepare_command": "/my-prep", "prepare_timeout_seconds": 900}')
+        loaded = self.load()
+        prep = config.preparation(loaded)
+        self.assertEqual(prep.first, "/my-prep")
+        self.assertEqual(prep.fallback, config.BUILT_IN_PREPARE_PROMPT)
+        self.assertEqual(loaded["prepare_timeout_seconds"], 900)
+
     def test_the_defaults_are_not_shared_between_loads(self):
         first = self.load()
         first["context_window_by_model"]["claude-x"] = 1

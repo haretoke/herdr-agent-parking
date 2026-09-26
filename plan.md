@@ -491,8 +491,10 @@ server is never restarted.
 - [x] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR` (absolute only), then `~/.claude`
 - [x] `context_window_by_model` is a map of model id prefix to a positive integer; other
       shapes are ignored with a logged reason (per entry; a non-object as a whole)
-- [ ] `prepare_command`, `prepare_prompt` and `prepare_timeout_seconds` are read with their
-      defaults; a set `prepare_prompt` takes precedence over `prepare_command`
+- [x] `prepare_command`, `prepare_prompt` and `prepare_timeout_seconds` are read with their
+      defaults; a set `prepare_prompt` takes precedence over `prepare_command` and has no
+      fallback; otherwise `prepare_command` is sent first and the built-in text is the
+      fallback for a missing skill
 
 ### records
 - [ ] a record is written under its UUID, directories 0700 and files 0600

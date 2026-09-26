@@ -512,7 +512,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | `claude_config_dir` | `$CLAUDE_CONFIG_DIR` or `~/.claude` | Where `projects/*/<uuid>.jsonl` transcripts are searched |
 | `context_window_by_model` | `{}` | Model id prefix → context window in tokens (`{"claude-haiku": 200000}`), used for the ctx percentage |
 | `prepare_command` | `"/prepare-compact"` | What `c` / `C` send first |
-| `prepare_prompt` | null | When set, this text is sent instead of `prepare_command` (for environments without the skill) |
+| `prepare_prompt` | null | When set, this text is sent instead of `prepare_command`, with no fallback. When unset, a missing skill (`Unknown command`) makes the flow send the built-in text instead |
 | `prepare_timeout_seconds` | 600 | How long to wait for the preparation to finish |
 | `compact_timeout_seconds` | 300 | How long to wait for the new `compact_boundary` line |
 

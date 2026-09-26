@@ -2,6 +2,7 @@
 
 import copy
 import json
+from collections import namedtuple
 
 DEFAULTS = {
     "poll_seconds": 2,
@@ -21,6 +22,27 @@ DEFAULTS = {
     "prepare_timeout_seconds": 600,
     "compact_timeout_seconds": 300,
 }
+
+
+BUILT_IN_PREPARE_PROMPT = (
+    "I am about to run /compact. Before that: save anything that lives only in this "
+    "conversation (decisions, identifiers, progress, next steps) to the project's notes "
+    "or your memory; report uncommitted and unpushed work without committing or pushing "
+    "unless I asked for it; stop background processes and delete temporary files you "
+    "started; list open items. Do not start new work. End with one line of at most 300 "
+    "characters, in my language, naming what the summary must keep, in exactly this "
+    "form: <compact-focus>...</compact-focus>"
+)
+
+# What `c` sends first, and what it sends when that turns out to be an unknown
+# command (the skill is missing). An explicit prepare_prompt has no fallback.
+Preparation = namedtuple("Preparation", "first fallback")
+
+
+def preparation(settings):
+    if settings["prepare_prompt"]:
+        return Preparation(first=settings["prepare_prompt"], fallback=None)
+    return Preparation(first=settings["prepare_command"], fallback=BUILT_IN_PREPARE_PROMPT)
 
 
 def _positive_number(value):
