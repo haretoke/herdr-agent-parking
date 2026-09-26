@@ -10,6 +10,21 @@ KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m
 
 MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
 
+HELP = ["keys (any key closes this):",
+        "  s   park: exit Claude after recording how to resume it (asks for a note)",
+        "  c   compact: Claude prepares, you confirm the focus, then /compact",
+        "  C   compact, then park (the note first)",
+        "  r   resume a parked session in its pane (recreated when gone)",
+        "  R   swap: park and resume at once, to restart on the current claude",
+        "  g   go to the pane and close the dashboard",
+        "  S   park every session idle for at least a threshold",
+        "  n   edit a parked session's note",
+        "  x   forget a parked session's record (the transcript stays)",
+        "  /   filter by name, cwd or label",
+        "  i   show or hide the detail line",
+        "  j k ↓ ↑   move",
+        "  q   close"]
+
 
 def _said(outcome, pane_id):
     """The message for a flow's outcome."""
@@ -146,6 +161,8 @@ class Dashboard:
             elif key == "S":
                 self._ask(dialogs.TextInput(["park every session idle for at least (minutes):"],
                                             initial=str(self.actions.bulk_minutes())), self._bulk_targets)
+            elif key == "?":
+                self._ask(dialogs.Confirm(HELP, {}, others_cancel=True), lambda _: None)
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)

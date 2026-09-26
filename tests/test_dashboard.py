@@ -443,5 +443,17 @@ class BulkParkTest(unittest.TestCase):
         self.assertIn("not a number", shown.message)
 
 
+class HelpTest(unittest.TestCase):
+    def test_question_mark_lists_every_key_and_any_key_closes_it(self):
+        shown = board(live(), actions=FakeActions())
+        shown.on_input(b"?")
+        text = "\n".join(shown.dialog.lines())
+        for key in ("s ", "c ", "C ", "r ", "R ", "g ", "S ", "n ", "x ", "/ ", "i ", "q "):
+            self.assertIn("\n  " + key, "\n" + text)
+        shown.on_input(b"j")
+        self.assertIsNone(shown.dialog)
+        self.assertEqual(shown.selected, 0)  # the key only closed the help
+
+
 if __name__ == "__main__":
     unittest.main()
