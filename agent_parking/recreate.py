@@ -25,4 +25,9 @@ def place(rt, record, panes):
         rt.herdr.call("layout.set_split_ratio", {"tab_id": sibling.tab_id, "path": hint["path"],
                                                  "ratio": hint["ratio"]})
         return Placed(new, "")
+    # The sibling was a subtree or is gone: right/down splits cannot rebuild the old
+    # position, so the pane goes beside any pane of its tab.
+    in_tab = [p for p in panes if p.tab_id == record.get("tab_id")]
+    if in_tab:
+        return Placed(_split(rt, in_tab[0].pane_id, "right", record["cwd"]), "")
     return Placed(None, "no place to put the pane back")

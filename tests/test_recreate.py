@@ -43,5 +43,20 @@ class SiblingFirstTest(FlowTestCase):
         ])
 
 
+class TabTest(FlowTestCase):
+    def test_without_a_sibling_pane_a_pane_of_the_same_tab_is_split_right(self):
+        hints = [{"sibling_pane_id": None, "position": "first", "direction": "right", "ratio": 0.3, "path": []},
+                 {"sibling_pane_id": "w1:p5", "position": "second", "direction": "down", "ratio": 0.5, "path": []},
+                 None]
+        for hint in hints:
+            with self.subTest(hint=hint):
+                rt = self.flow(**{"pane.split": SPLIT})
+                placed = recreate.place(rt, dict(RECORD, layout_hint=hint), [pane("w2:p1", "w2:t1"), pane("w1:p7")])
+                self.assertEqual(placed.pane_id, "w1:p12")
+                calls = [(r["method"], r["params"]) for r in self.fake.requests]
+                self.assertEqual(calls, [("pane.split", {"target_pane_id": "w1:p7", "direction": "right",
+                                                         "cwd": "/repo", "focus": False})])
+
+
 if __name__ == "__main__":
     unittest.main()
