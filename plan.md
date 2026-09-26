@@ -694,7 +694,7 @@ server is never restarted.
 - [x] an `old` session keeps a `!` beside its status when ver is dropped
 - [x] the selected row shows what was dropped, and the note, on one detail line; `i` toggles it
 - [x] j/k and the arrows move the selection and stop at the ends
-- [ ] `s` parks through the confirmation and the note input, and the list refreshes
+- [x] `s` parks through the confirmation and the note input, and the list refreshes
 - [x] `s` on a `working` row shows a reason and does nothing
 - [ ] `c` runs the compact flow with its confirmation; `C` asks for the note first
 - [ ] `r` shows the full note and the resume command, Enter resumes, Esc returns
