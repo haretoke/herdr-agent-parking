@@ -480,7 +480,7 @@ server is never restarted.
       retries once after 0.5 s only if the reply is missing
 
 ### state / config
-- [ ] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
+- [x] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
       plugin, otherwise `${XDG_STATE_HOME:-$HOME/.local/state}/herdr/plugins/<id>`
       (a relative path is ignored)
 - [ ] a missing, empty, broken or mistyped `config.json` gives the defaults and a logged reason
