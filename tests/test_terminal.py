@@ -99,5 +99,20 @@ class DroppedEventsTest(unittest.TestCase):
         self.assertEqual(len(fake.frames), 2)
 
 
+class EventTest(unittest.TestCase):
+    def test_an_event_is_handed_to_the_board_and_the_list_is_read_again_at_once(self):
+        clock = Clock()
+        refreshes, handled = [], []
+        event = {"event": "pane.agent_status_changed", "data": {"pane_id": "w1:p2", "agent_status": "working"}}
+        board = dashboard.Dashboard(refresh=lambda: refreshes.append(clock.now) or
+                                    Inventory([Row(pane_id="w1:p2", status="idle")], {}), on_event=handled.append)
+        subscription = FakeSubscription([event])
+        fake = FakeTerminal(clock, [(0.5, b"", [subscription]), (0, b"q", [])])
+        terminal.run(board, fake, poll_seconds=2, clock=clock, subscribe=lambda pane_ids: subscription)
+        self.assertEqual(handled, [event])
+        self.assertEqual(refreshes, [100.0, 100.5])
+        self.assertTrue(board.events_on)
+
+
 if __name__ == "__main__":
     unittest.main()

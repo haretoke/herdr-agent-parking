@@ -10,8 +10,9 @@ MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
 
 
 class Dashboard:
-    def __init__(self, refresh):
+    def __init__(self, refresh, on_event=lambda event: None):
         self._refresh = refresh   # () -> inventory.Inventory
+        self._on_event = on_event  # a Herdr event, before the list is read again
         self.rows = []
         self.others = {}
         self.selected = 0
@@ -56,4 +57,4 @@ class Dashboard:
                 self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
 
     def on_event(self, event):
-        pass
+        self._on_event(event)

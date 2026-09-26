@@ -89,8 +89,8 @@ def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=(), subscr
             data, ready = terminal.read(max(0, next_poll - clock()), events.descriptors())
             if data is None:
                 break
-            if ready:
-                events.read()
+            if ready and events.read():
+                next_poll = clock()  # something changed: read the list again at once
             if data:
                 board.on_input(data)
     finally:
@@ -125,11 +125,15 @@ class Events:
         self.board.events_on = self.stream is not None
 
     def read(self):
+        """Hand the next event to the board; False when the stream ended instead."""
         try:
-            self.board.on_event(next(self.stream))
+            event = next(self.stream)
         except (StopIteration, ValueError, OSError):
             self.close()
             self.board.events_on = False
+            return False
+        self.board.on_event(event)
+        return True
 
     def close(self):
         if self.stream is not None:
