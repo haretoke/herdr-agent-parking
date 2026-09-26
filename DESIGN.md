@@ -311,9 +311,11 @@ event has no time either. So the plugin tracks it:
 
 - While the dashboard runs, `observed.json` holds `{pane_id: {seq, status, since}}`.
   Every `poll_seconds` (default 2) it reads `agent list` and sets `since` to now for
-  rows whose `state_change_seq` changed. In parallel it subscribes to
-  `pane.agent_status_changed` through `events.subscribe` to catch changes between
-  polls (when the connection drops, polling alone continues).
+  rows whose `state_change_seq` changed. In parallel it holds one `events.subscribe`
+  connection with `pane.agent_detected` (no pane: every Claude arriving or leaving,
+  `released: true` on exit) and one `pane.agent_status_changed` per Claude pane (that
+  type requires a `pane_id`), and reopens it when the set of Claude panes changes
+  (spike 0-6). When the connection drops, polling alone continues.
 - A row seen for the first time gets `since = now` and `lower_bound = true`, shown as
   `≥ 3m`. From the next change on, the value is exact.
 - Nothing is tracked while the dashboard is closed. People who want continuous

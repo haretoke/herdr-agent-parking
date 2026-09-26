@@ -124,6 +124,8 @@ Verified on a real device (Mac local, 2026-09-26/27) and in the v0.9.1 documenta
   command per event; there is no scheduler (docs).
 - `events.subscribe` keeps the socket open and streams `pane.agent_status_changed`,
   `pane.closed`, `pane.exited` and others (docs; API schema EventKind).
+  `pane.agent_status_changed` needs a `pane_id` per subscription; `pane.agent_detected`
+  works without one and reports both arrival and release (`released: true`) (spike 0-6).
 - `herdr plugin config-dir <id>` is `~/.config/herdr/plugins/config/<id>` (device);
   state is `~/.local/state/herdr/plugins/<id>` (image-viewer spike). In containers
   neither is believed to be a bind mount: devcon-herdr's comments say only `~/.claude`
@@ -276,9 +278,29 @@ server is never restarted.
       was already gone in the hook (`pane_not_found`); no `pane.closed` was logged for
       it. So `pane.exited` means the pane's root process ended and the pane closed;
       the end of Claude is `agent_status_changed` to `unknown` without an `agent`
-- [ ] with the dashboard open as a tab, a status change of a Claude in another tab is
+- [x] with the dashboard open as a tab, a status change of a Claude in another tab is
       seen both through `events.subscribe` (`pane.agent_status_changed`) and through
       `state_change_seq` in `agent list`
+      (2026-09-27, Mac local, isolated throwaway session): a probe opened with
+      `--placement tab` subscribed on the raw socket and polled `agent list` every
+      second while Claude in another tab started, answered once and got `/exit`.
+      - `pane.agent_status_changed` cannot be subscribed for all panes: without
+        `pane_id` the request fails (`invalid request: missing field pane_id`). Every
+        other type tried (`pane.agent_detected`, `pane.created`, `pane.updated`,
+        `pane.closed`, `pane.exited`, `layout.updated`, `tab.created`) accepts no
+        `pane_id`. Several subscriptions share one request (`subscriptions` list).
+      - With `[{agent_status_changed, pane_id}, {agent_detected}]` the stream showed
+        `pane_agent_detected` (`agent: "claude"`) on start, then `idle`, `working`,
+        `idle`, and on `/exit` a second `pane_agent_detected` with
+        `released: true, final_status: "idle"` followed by `unknown`. So the global
+        `pane.agent_detected` reports every Claude arriving and leaving.
+      - Polling saw `state_change_seq` 18 → 20 → 21 with the statuses; a 1 s poll
+        skipped seq 19 (a short `idle`), and after `/exit` the row simply left
+        `agent list`. Polling is enough for idle time (seconds); the stream adds the
+        exact moments.
+      - The dashboard therefore subscribes to `pane.agent_detected` globally plus one
+        `pane.agent_status_changed` per Claude pane, and reopens the subscription when
+        the set of Claude panes changes; polling `agent list` stays the base
 - [ ] `agent start ... -- --resume <UUID> --effort medium` shows the extra flags as is in
       `process-info` (a swap round trip neither adds nor drops argv)
 - [x] right after Claude exits, whether `HERDR_PLUGIN_EVENT_JSON` of an
@@ -365,6 +387,9 @@ server is never restarted.
 - [ ] non-JSON output, an `error` reply and a non-zero exit are distinct exceptions
 - [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
 - [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
+- [ ] the subscription list is `pane.agent_detected` without a pane plus one
+      `pane.agent_status_changed` per given Claude pane
+- [ ] an `error` reply to the subscription is an exception, not an empty stream
 - [ ] every command has a timeout and a timeout is an exception
 - [ ] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)
