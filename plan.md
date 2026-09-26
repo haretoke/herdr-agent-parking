@@ -531,7 +531,7 @@ server is never restarted.
 - [x] `--from-pr [value]` and `--teleport [session]` pick a session too and are removed
 
 ### herdr_api
-- [ ] requests go to `HERDR_SOCKET_PATH` (one line out, one line back per connection); without
+- [x] requests go to `HERDR_SOCKET_PATH` (one line out, one line back per connection); without
       it the call fails with a "not running inside Herdr" error
 - [ ] non-JSON output, an `error` reply and a non-zero exit are distinct exceptions
 - [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
