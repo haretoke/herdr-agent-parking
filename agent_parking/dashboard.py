@@ -42,13 +42,21 @@ class Dashboard:
     def refresh(self):
         """Read the list again; the selection stays on its session (or pane) wherever the
         row moved, else on the nearest row left."""
-        chosen = _key(self.rows[self.selected]) if self.rows else None
+        chosen = self._row()
         inventory = self._refresh()
         self.rows, self.others = inventory.rows, inventory.others
-        keys = [_key(row) for row in self.rows]
+        self._keep(_key(chosen) if chosen else None)
+
+    def _keep(self, chosen):
+        """Select the row of `chosen` among the visible ones, else the nearest one left."""
+        keys = [_key(row) for row in self.visible()]
         if chosen in keys:
             self.selected = keys.index(chosen)
-        self.selected = max(0, min(self.selected, len(self.rows) - 1))
+        self.selected = max(0, min(self.selected, len(keys) - 1))
+
+    def visible(self):
+        """The rows shown and selectable."""
+        return self.rows
 
     def title(self):
         running = [row for row in self.rows if row.record is None]
@@ -79,7 +87,7 @@ class Dashboard:
         """The rows' lines that fit in `space`, scrolled only as far as needed to keep the
         selected row and its detail line in view."""
         body, first, last = [], 0, 0
-        for index, row in enumerate(self.rows):
+        for index, row in enumerate(self.visible()):
             cells = table.cells(row)
             if index == self.selected:
                 first = len(body)
@@ -104,7 +112,7 @@ class Dashboard:
             elif key == "i":
                 self.show_detail = not self.show_detail
             elif key in MOVES:
-                self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
+                self.selected = max(0, min(len(self.visible()) - 1, self.selected + MOVES[key]))
             elif key == "g":
                 self._go()
             elif key == "s":
@@ -115,7 +123,8 @@ class Dashboard:
                 self._edit_note()
 
     def _row(self):
-        return self.rows[self.selected] if self.rows else None
+        rows = self.visible()
+        return rows[self.selected] if rows else None
 
     def _refusal(self, row, action):
         """Why `action` cannot start on `row` (None when it can): the same statuses as the
