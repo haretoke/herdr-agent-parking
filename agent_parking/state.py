@@ -35,6 +35,19 @@ def state_dir(environ):
     return Path(base) / "herdr" / "plugins" / PLUGIN_ID
 
 
+def config_dir(environ):
+    """Where `config.json` lives: the directory Herdr gives this plugin, or the same path
+    outside it (what `herdr plugin config-dir <id>` prints), so the shell subcommands read
+    the file the dashboard reads."""
+    own = environ.get("HERDR_PLUGIN_CONFIG_DIR", "")
+    if environ.get("HERDR_PLUGIN_ID") == PLUGIN_ID and os.path.isabs(own):
+        return Path(own)
+    base = environ.get("XDG_CONFIG_HOME", "")
+    if not os.path.isabs(base):
+        base = os.path.join(home(environ), ".config")
+    return Path(base) / "herdr" / "plugins" / "config" / PLUGIN_ID
+
+
 def paths(environ, settings):
     """Where each file lives. `records_dir` moves the records (parked and resumed) only."""
     own = state_dir(environ)

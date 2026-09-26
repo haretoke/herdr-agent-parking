@@ -23,6 +23,25 @@ class StateDirTest(unittest.TestCase):
                 self.assertEqual(state.state_dir({"HOME": "/home/u", **extra}), expected)
 
 
+CONFIG = Path("/home/u/.config/herdr/plugins/config/haretoke.agent-parking")
+
+
+class ConfigDirTest(unittest.TestCase):
+    def test_the_plugin_config_dir_is_used_only_when_it_belongs_to_this_plugin(self):
+        cases = [
+            ({"HERDR_PLUGIN_ID": "haretoke.agent-parking", "HERDR_PLUGIN_CONFIG_DIR": "/c/mine"}, Path("/c/mine")),
+            ({"HERDR_PLUGIN_ID": "other.plugin", "HERDR_PLUGIN_CONFIG_DIR": "/c/other"}, CONFIG),
+            ({"HERDR_PLUGIN_CONFIG_DIR": "/c/unknown"}, CONFIG),
+            ({"HERDR_PLUGIN_ID": "haretoke.agent-parking", "HERDR_PLUGIN_CONFIG_DIR": "relative"}, CONFIG),
+            ({"XDG_CONFIG_HOME": "/xdg"}, Path("/xdg/herdr/plugins/config/haretoke.agent-parking")),
+            ({"XDG_CONFIG_HOME": "relative"}, CONFIG),
+            ({}, CONFIG),
+        ]
+        for extra, expected in cases:
+            with self.subTest(environ=extra):
+                self.assertEqual(state.config_dir({"HOME": "/home/u", **extra}), expected)
+
+
 class PathsTest(unittest.TestCase):
     ENV = {"HOME": "/home/u", "HERDR_PLUGIN_ID": "haretoke.agent-parking",
            "HERDR_PLUGIN_STATE_DIR": "/s"}
