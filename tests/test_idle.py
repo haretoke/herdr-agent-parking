@@ -1,5 +1,8 @@
+import stat
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from agent_parking import idle, transcript
 
@@ -47,6 +50,24 @@ class ChangeTest(unittest.TestCase):
         entry = tracker.poll("w1:p1", seq=20, status="working")
         self.assertEqual((entry.since, entry.lower_bound, entry.status, entry.seq),
                          (NOW + timedelta(minutes=10), False, "working", 20))
+
+
+class SaveTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "state" / "observed.json"
+
+    def test_a_vanished_pane_is_dropped_at_the_next_save_and_the_rest_reloads(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock, summary_for=lambda pane_id: None)
+        tracker.poll("w1:p1", seq=18, status="idle")
+        tracker.poll("w1:p2", seq=3, status="working")
+        tracker.save(self.path, live_pane_ids={"w1:p1"})
+        self.assertEqual(set(tracker.entries), {"w1:p1"})
+        reloaded = idle.Tracker.load(self.path, clock, summary_for=lambda pane_id: None)
+        self.assertEqual(reloaded.entries, tracker.entries)
+        self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
 
 
 if __name__ == "__main__":

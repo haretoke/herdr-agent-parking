@@ -1,9 +1,12 @@
 """How long each Claude pane has been in its status. Herdr gives no times (only
 `state_change_seq`), so the dashboard tracks them itself."""
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+
+from . import storage, times
 
 
 @dataclass
@@ -19,6 +22,22 @@ class Tracker:
         self.clock = clock
         self.summary_for = summary_for
         self.entries = {}
+
+    @classmethod
+    def load(cls, path, clock, summary_for):
+        """A tracker with the entries saved at `path`."""
+        tracker = cls(clock, summary_for)
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        for pane_id, raw in saved.items():
+            tracker.entries[pane_id] = Entry(raw["seq"], raw["status"], times.parse(raw["since"]),
+                                             raw["lower_bound"])
+        return tracker
+
+    def save(self, path, live_pane_ids):
+        """Drop the entries of panes that are gone, then write the rest to `path`."""
+        self.entries = {k: v for k, v in self.entries.items() if k in live_pane_ids}
+        storage.write_json(path, {k: {"seq": v.seq, "status": v.status, "since": times.iso(v.since),
+                                      "lower_bound": v.lower_bound} for k, v in self.entries.items()})
 
     def poll(self, pane_id, seq, status):
         """Record what `agent.list` says about `pane_id` now; returns its entry."""
