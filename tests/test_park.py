@@ -255,6 +255,24 @@ class NoteTest(FlowTestCase):
                 self.assertEqual(self.saved()["note"], stored)
 
 
+class LabelFormatTest(unittest.TestCase):
+    def label(self, fmt, title):
+        settings = dict(config.DEFAULTS, parked_label_format=fmt)
+        return park.label(settings, {"session_id": UUID, "title": title})
+
+    def test_the_format_is_configurable(self):
+        self.assertEqual(self.label("[parked] {title} ({short_id})", "work"), "[parked] work (2716af66)")
+        self.assertEqual(self.label("💤 {title}", "work"), "💤 work")
+
+    def test_control_characters_are_dropped_and_the_label_is_cut_at_80(self):
+        self.assertEqual(self.label("💤 {title}", "a\x1b[31mb\x07c"), "💤 a[31mbc")
+        long = self.label("💤 {title}", "x" * 200)
+        self.assertEqual(len(long), 80)
+
+    def test_a_broken_format_falls_back_to_the_default(self):
+        self.assertEqual(self.label("{nope} {title", "work"), "💤 work")
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

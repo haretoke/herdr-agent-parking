@@ -1,8 +1,9 @@
 """Parking: exit an idle Claude after recording how to bring it back."""
 
+import unicodedata
 from collections import namedtuple
 
-from . import herdr_api, inventory, layout, records, screen, times, transcript
+from . import config, herdr_api, inventory, layout, records, screen, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -55,7 +56,7 @@ def park(rt, pane_id, note):
     if mode == "close":
         rt.herdr.call("pane.close", {"pane_id": pane_id})
     else:
-        rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": _label(rt.settings, record)})
+        rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": label(rt.settings, record)})
     record.update(status="parked", parked_mode=mode)
     records.write(rt.paths.records, record)
     return Outcome("parked", reason, record)
@@ -82,10 +83,19 @@ def _tab_tree(rt, pane_id):
     return exported.get("layout", exported).get("root")
 
 
-def _label(settings, record):
-    """The parked pane's label from `parked_label_format`."""
-    return settings["parked_label_format"].format(title=record.get("title") or "",
-                                                  short_id=record["session_id"][:8])
+LABEL_LIMIT = 80
+
+
+def label(settings, record):
+    """The parked pane's label from `parked_label_format` (`{title}`, `{short_id}`), without
+    control characters and at most 80 characters; a broken format uses the default."""
+    fields = {"title": record.get("title") or "", "short_id": record["session_id"][:8]}
+    try:
+        text = settings["parked_label_format"].format(**fields)
+    except (KeyError, IndexError, ValueError):
+        text = config.DEFAULTS["parked_label_format"].format(**fields)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Cc")
+    return text[:LABEL_LIMIT]
 
 
 def _context(rt, session_id):

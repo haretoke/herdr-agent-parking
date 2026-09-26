@@ -630,7 +630,7 @@ server is never restarted.
 - [x] the context numbers at park time are stored in `context_at_park`
 - [ ] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
       continues after one failure, and reports the results
-- [ ] the label format is configurable, cut at 80 characters, and free of control characters
+- [x] the label format is configurable, cut at 80 characters, and free of control characters
 
 ### compact (fake herdr, fake transcript)
 - [ ] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
