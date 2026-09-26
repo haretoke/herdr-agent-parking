@@ -292,5 +292,34 @@ class ResumeNoteTest(unittest.TestCase):
         self.assertIn("Enter to resume", shown.lines(78, 30)[-1])
 
 
+class SwapTest(unittest.TestCase):
+    def test_R_on_an_old_session_parks_and_resumes_at_once(self):
+        parked = park.Outcome("parked", "", {"session_id": UUID})
+        actions = FakeActions(swap=(parked, resume.Outcome("resumed", "", {"pane_id": "w8:p36"})))
+        shown = board(live(version="2.1.281", current_version="2.1.283", old=True), actions=actions)
+        shown.on_input(b"R")
+        self.assertIn("swapping w8:p36", shown.lines(78, 24)[-2])
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("swap", "w8:p36")])
+        self.assertIn("resumed w8:p36", shown.message)
+
+    def test_R_on_a_session_already_on_the_current_version_asks_first(self):
+        actions = FakeActions(swap=(park.Outcome("refused", "Claude is typing", None), None))
+        shown = board(live(version="2.1.283", current_version="2.1.283"), actions=actions)
+        shown.on_input(b"R")
+        self.assertIn("already runs 2.1.283", " ".join(shown.lines(78, 24)[-2:]))
+        shown.on_input(b"n")
+        self.assertEqual((shown.pending, actions.calls), (None, []))
+        shown.on_input(b"Ry")
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("swap", "w8:p36")])
+        self.assertIn("refused w8:p36: Claude is typing", shown.message)
+
+    def test_R_on_a_working_row_is_refused(self):
+        shown = board(live(status="working"), actions=FakeActions())
+        shown.on_input(b"R")
+        self.assertIn("working", shown.message)
+
+
 if __name__ == "__main__":
     unittest.main()

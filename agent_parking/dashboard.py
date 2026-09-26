@@ -130,6 +130,8 @@ class Dashboard:
                 self._edit_note()
             elif key == "r":
                 self._resume()
+            elif key == "R":
+                self._swap()
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)
@@ -217,6 +219,26 @@ class Dashboard:
                       lambda _: self._start_resume(row, True))
             return ""
         return _said(outcome, (outcome.record or {}).get("pane_id") or row.pane_id or "(new pane)")
+
+    def _swap(self):
+        """`R`: park and resume at once, so the session restarts on the current `claude`;
+        asks first when that would not change the version (or it is unknown)."""
+        row = self._row()
+        self.message = self._refusal(row, "swap") or ""
+        if self.message:
+            return
+        start = lambda _=None: self._later("swapping %s (park, then resume)…" % row.pane_id,  # noqa: E731
+                                           lambda: self._swapped(row, *self.actions.swap(row.pane_id)))
+        question = resume.swap_question(row.version, row.current_version)
+        if question is None:
+            start()
+        else:
+            self._ask(dialogs.Confirm([question], {"y": "yes"}, others_cancel=True), start)
+
+    def _swapped(self, row, parked, resumed):
+        if resumed is None:
+            return _said(parked, row.pane_id)
+        return _said(resumed, (resumed.record or {}).get("pane_id") or row.pane_id)
 
     def _set_filter(self, text):
         chosen = self._row()
