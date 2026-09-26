@@ -19,8 +19,11 @@ def prepare(rt, pane_id):
     preparation = config.preparation(rt.settings)
     # The wait rides on the prompt request, so no status change can slip in between
     # (it may take minutes: the preparation can commit and push).
-    rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first, "wait": {
-        "until": ["idle", "done"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
+    result = rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first, "wait": {
+        "until": ["idle", "done", "blocked"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
+    if (result.get("agent") or {}).get("agent_status") == "blocked":
+        return Outcome("blocked", "Claude stopped at a dialog while preparing; go to the pane (g), "
+                                  "answer it, then press c again", None)
     reply = transcript.preparation_reply(rt.rows_for(pane.session_id), preparation.first)
     return Outcome("prepared", "", reply)
 

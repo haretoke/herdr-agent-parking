@@ -36,7 +36,7 @@ class WaitTest(FlowTestCase):
         self.settings["prepare_timeout_seconds"] = 900
         compact.prepare(self.flow(), "w1:p2")
         [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
-        self.assertEqual(prompt["params"]["wait"], {"until": ["idle", "done"], "timeout_ms": 900_000})
+        self.assertEqual(prompt["params"]["wait"], {"until": ["idle", "done", "blocked"], "timeout_ms": 900_000})
 
 
 def user(text):
@@ -88,6 +88,15 @@ class RunTest(FlowTestCase):
         outcome = compact.run(rt, "w1:p2", "keep")
         self.assertEqual(outcome.kind, "compact_failed")
         self.assertIn("300", outcome.message)
+
+
+class BlockedTest(FlowTestCase):
+    def test_a_preparation_stopped_at_a_dialog_ends_the_flow_there(self):
+        blocked = {"type": "agent_prompted", "agent": {"pane_id": "w1:p2", "agent_status": "blocked"}}
+        rt = self.flow(**{"agent.prompt": blocked})
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertEqual(outcome.kind, "blocked")
+        self.assertIn("go to the pane", outcome.message)
 
 
 class ConfirmationTest(unittest.TestCase):

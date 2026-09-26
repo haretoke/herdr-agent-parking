@@ -638,13 +638,13 @@ server is never restarted.
 - [x] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
       other states and a half-typed line are refused
 - [x] with `prepare_prompt` set, that text is sent instead of `prepare_command`
-- [x] the flow waits in the same `agent.prompt` request (`wait: {until: [idle, done], timeout_ms:
+- [x] the flow waits in the same `agent.prompt` request (`wait: {until: [idle, done, blocked], timeout_ms:
       prepare_timeout_seconds × 1000}`), so no status change slips in between
 - [x] the focus tag is taken from the assistant text after the sent prompt
 - [x] the confirmation shows the report summary and the focus, and the focus can be edited
 - [x] `/compact <focus>` is sent as one line (newlines become spaces); an empty focus sends `/compact`
 - [x] the flow completes when a new `compact_boundary` appears; the row turns `compacted`
-- [ ] a preparation that becomes `blocked` stops the flow with a message to go to the pane
+- [x] a preparation that becomes `blocked` stops the flow with a message to go to the pane
 - [ ] `c` again with a focus tag already present continues from the focus extraction
 - [x] no focus tag gives an empty focus in the confirmation
 - [x] a boundary that does not appear within `compact_timeout_seconds` gives `compact_failed`
