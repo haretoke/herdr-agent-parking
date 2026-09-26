@@ -3,7 +3,9 @@
 import json
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
+
+from .times import iso, parse as parse_time
 
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 SCHEMA_VERSION = 1
@@ -96,18 +98,6 @@ def list_records(directory):
     return listed
 
 
-def iso(moment):
-    """`moment` (an aware datetime) as the records' UTC text, `2026-09-27T12:00:00Z`."""
-    return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _parse_iso(text):
-    try:
-        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    except (TypeError, ValueError):
-        return None
-
-
 def mark_resumed(directory, resumed_directory, session_id, now):
     """Move the record of `session_id` to `resumed_directory` as `resumed` at `now`."""
     path = directory / (checked_uuid(session_id) + ".json")
@@ -127,7 +117,7 @@ def purge_resumed(resumed_directory, keep_days, now):
         current = _read(path)
         if current is None or not _ours(current):
             continue
-        resumed_at = _parse_iso(current.get("resumed_at"))
+        resumed_at = parse_time(current.get("resumed_at"))
         if resumed_at is not None and now - resumed_at > timedelta(days=keep_days):
             path.unlink()
             deleted.append(path.stem)

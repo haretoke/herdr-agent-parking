@@ -3,9 +3,8 @@
 import json
 import os
 from collections import namedtuple
-from datetime import datetime, timezone
-
 from . import records
+from .times import parse as parse_time
 
 TAIL_BYTES = 1024 * 1024
 
@@ -71,16 +70,6 @@ class Cache:
 
 
 Summary = namedtuple("Summary", "tokens model compacted compacted_at")
-
-
-def parse_time(text):
-    """A transcript timestamp (`2026-09-26T16:39:48.863Z`, fraction optional), or None."""
-    for layout in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
-        try:
-            return datetime.strptime(text, layout).replace(tzinfo=timezone.utc)
-        except (TypeError, ValueError):
-            continue
-    return None
 
 
 def _usage(row):
