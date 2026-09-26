@@ -65,5 +65,23 @@ class MoveTest(unittest.TestCase):
         board().on_input(b"j")
 
 
+class HeightTest(unittest.TestCase):
+    def test_the_list_fits_the_height_and_scrolls_to_keep_the_selection_in_view(self):
+        rows = [live("w8:p%d" % n, name="session %d" % n) for n in range(10)]
+        shown = board(*rows)
+        lines = shown.lines(78, 10)
+        self.assertEqual(len(lines), 10)
+        self.assertIn("session 0", lines[3])
+        self.assertTrue(lines[-1].startswith(" s park"))
+        for _ in range(9):
+            shown.on_input(b"j")
+        lines = shown.lines(78, 10)
+        self.assertEqual(len(lines), 10)
+        self.assertTrue(any("▶" in line and "session 9" in line for line in lines), lines)
+        shown.on_input(b"k")
+        self.assertTrue(any("▶" in line and "session 8" in line for line in shown.lines(78, 10)))
+        self.assertIn("session 9", "".join(shown.lines(78, 10)))  # no jump back to the top
+
+
 if __name__ == "__main__":
     unittest.main()

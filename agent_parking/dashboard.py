@@ -16,6 +16,7 @@ class Dashboard:
         self.rows = []
         self.others = {}
         self.selected = 0
+        self.top = 0  # the first body line in view
         self.show_detail = True
         self.keys = keys.KeyParser()
         self.quit = False
@@ -36,16 +37,28 @@ class Dashboard:
 
     def lines(self, width, height):
         rule = " " + "─" * (width - 2)
-        body = []
+        footer = [rule, " " + ("events: off · " if not self.events_on else "") + KEYS]
+        top = [self.title(), rule, table.header(width)]
+        body = self._visible_body(width, max(1, height - len(top) - len(footer)))
+        return [display.cell(line, width) for line in top + body + footer]
+
+    def _visible_body(self, width, space):
+        """The rows' lines that fit in `space`, scrolled only as far as needed to keep the
+        selected row and its detail line in view."""
+        body, first, last = [], 0, 0
         for index, row in enumerate(self.rows):
             cells = table.cells(row)
+            if index == self.selected:
+                first = len(body)
             body.append(table.line(cells, width, selected=index == self.selected))
             if index == self.selected and self.show_detail:
                 note = (row.record or {}).get("note")
                 body.extend(line for line in [table.detail(cells, note, width)] if line)
-        footer = ("events: off · " if not self.events_on else "") + KEYS
-        screen = [self.title(), rule, table.header(width)] + body + [rule, " " + footer]
-        return [display.cell(line, width) for line in screen]
+            if index == self.selected:
+                last = len(body) - 1
+        self.top = min(self.top, first)
+        self.top = max(self.top, last - space + 1, 0)
+        return body[self.top:self.top + space]
 
     def on_input(self, data):
         for key in self.keys.feed(data):
