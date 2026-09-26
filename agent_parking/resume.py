@@ -25,6 +25,8 @@ def resume(rt, session_id):
         return _finish(rt, record, decision.pane_id, decision.restore_label_on)
     pane_id = record["pane_id"]
     pane = rt.herdr.pane(pane_id)
+    if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
+        return Outcome("refused", "something else is running in %s; look at it with g" % pane_id, record)
     if record.get("cwd") and pane is not None and pane.cwd != record["cwd"]:
         _type(rt, pane_id, "cd " + shlex.quote(record["cwd"]))
     if record.get("note"):

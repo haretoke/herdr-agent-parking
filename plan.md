@@ -672,7 +672,7 @@ server is never restarted.
 - [x] a retry from `resume_pending` with a matching Claude already running only restores the
       label and moves the record
 - [x] a timeout gives `resume_failed` with the last 10 lines of `pane read` as the reason
-- [ ] a pane with another command in the foreground is refused
+- [x] a pane with another command in the foreground is refused
 - [ ] only with `send_note_as_prompt = true` is `agent prompt <P> <note>` sent after `agent wait --until idle`
 - [x] before `r`, a matching UUID running elsewhere makes the record `resumed` without starting a second process
 - [ ] swap parks then resumes in the same pane, and a refused park does not resume

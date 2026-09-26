@@ -158,6 +158,19 @@ class StartTimeoutTest(ResumeTestCase):
         self.assertIn("line 30", saved["error"])
 
 
+class BusyPaneTest(ResumeTestCase):
+    def test_a_pane_running_something_else_is_refused(self):
+        self.park_record()
+        busy = {"type": "process_info", "process_info": {"shell_pid": 100, "foreground_process_group_id": 300,
+                                                         "foreground_processes": [{"pid": 300, "name": "vim"}]}}
+        outcome = resume.resume(self.resuming(**{"pane.process_info": busy}), UUID)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("something else is running", outcome.message)
+        self.assertNotIn("agent.start", self.fake.methods())
+        self.assertNotIn("pane.send_input", self.fake.methods())
+        self.assertEqual(self.saved()["status"], "parked")
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re
