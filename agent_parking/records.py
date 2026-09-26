@@ -38,3 +38,30 @@ def write(directory, record):
         tmp.unlink(missing_ok=True)
         raise
     return path
+
+
+def _record_files(directory):
+    """`<uuid>.json` files in `directory`, sorted; temp files and other names are skipped."""
+    if not directory.is_dir():
+        return []
+    return sorted(p for p in directory.iterdir()
+                  if p.suffix == ".json" and UUID.fullmatch(p.stem) and p.is_file())
+
+
+def list_records(directory):
+    """Every record in `directory`, plus one `{"status": "broken"}` row per file that is
+    not a JSON object. Such files are moved to `broken/` once and listed from there."""
+    listed = []
+    for path in _record_files(directory):
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            loaded = None
+        if isinstance(loaded, dict):
+            listed.append(loaded)
+        else:
+            _private_dir(directory / "broken")
+            os.replace(path, directory / "broken" / path.name)
+    for path in _record_files(directory / "broken"):
+        listed.append({"session_id": path.stem, "status": "broken"})
+    return listed

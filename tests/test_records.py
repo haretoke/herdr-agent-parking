@@ -56,5 +56,28 @@ class WriteTest(RecordsTestCase):
         self.assertEqual(sorted(p.name for p in self.dir.iterdir()), [UUID + ".json"])
 
 
+OTHER = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
+THIRD = "a528d90c-d0d6-404a-a9ee-373de7435e3c"
+
+
+class ListTest(RecordsTestCase):
+    def test_broken_json_moves_to_broken_and_is_listed_as_a_broken_record(self):
+        records.write(self.dir, record())
+        (self.dir / (OTHER + ".json")).write_text("{not json", encoding="utf-8")
+        (self.dir / (THIRD + ".json")).write_text("[1, 2]", encoding="utf-8")
+        for attempt in (1, 2):
+            with self.subTest(listing=attempt):
+                listed = records.list_records(self.dir)
+                self.assertEqual([r["session_id"] for r in listed if r["status"] != "broken"], [UUID])
+                broken = sorted(r["session_id"] for r in listed if r["status"] == "broken")
+                self.assertEqual(broken, sorted([OTHER, THIRD]))
+                self.assertEqual(sorted(p.name for p in (self.dir / "broken").iterdir()),
+                                 sorted([OTHER + ".json", THIRD + ".json"]))
+                self.assertFalse((self.dir / (OTHER + ".json")).exists())
+
+    def test_an_empty_or_missing_directory_lists_nothing(self):
+        self.assertEqual(records.list_records(self.dir), [])
+
+
 if __name__ == "__main__":
     unittest.main()

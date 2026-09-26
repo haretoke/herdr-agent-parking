@@ -502,7 +502,7 @@ server is never restarted.
 - [x] a record is written under its UUID, directories 0700 and files 0600
 - [x] a non-UUID session_id is rejected (path separators, `..`, empty)
 - [x] writes are atomic renames; a crash midway keeps the old record
-- [ ] broken JSON is moved to `records/broken/` and reported as a broken record
+- [x] broken JSON is moved to `records/broken/` and reported as a broken record
 - [ ] an unknown `schema_version` is neither read, modified nor deleted
 - [ ] a record in `parking` is never overwritten (a second park of the same UUID)
 - [ ] resumed records move to `resumed/` and are deleted after the retention (boundary ±1 s)
