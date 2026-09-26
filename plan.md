@@ -720,6 +720,8 @@ server is never restarted.
 - [x] `open` sends `plugin.pane.open` (the socket form of `plugin pane open`) for the
       `dashboard` entrypoint with placement overlay; `open-tab` with placement tab in
       `HERDR_WORKSPACE_ID`; a refusal exits 1 with Herdr's reason
+      (2026-09-27, isolated session: `plugin action invoke` of each opened the dashboard,
+      `open` as an overlay split of the active pane, `open-tab` in a new tab `w1:t2`)
 - [x] `list` prints the rows as JSON (with the Claude-only RSS)
 - [x] `park <pane>`, `compact <pane>` and `resume <uuid>` run the same procedures without
       the dashboard; failures exit 1 with a message
