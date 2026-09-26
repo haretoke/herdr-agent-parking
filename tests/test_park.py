@@ -168,6 +168,25 @@ class LabelTest(FlowTestCase):
         self.assertEqual(self.saved()["label_before"], "api")
 
 
+class LayoutHintTest(FlowTestCase):
+    def test_the_layout_hint_comes_from_the_tab_tree_before_exit(self):
+        tree = {"type": "split", "direction": "right", "ratio": 0.3,
+                "first": {"type": "pane", "pane_id": "w1:p1"}, "second": {"type": "pane", "pane_id": "w1:p2"}}
+        rt = self.flow(**{"layout.export": {"type": "layout_export", "workspace_id": "w1", "tab_id": "w1:t1",
+                                            "root": tree}})
+        park.park(rt, "w1:p2", note=None)
+        [export] = [r for r in self.fake.requests if r["method"] == "layout.export"]
+        self.assertEqual(export["params"], {"pane_id": "w1:p2"})
+        self.assertLess(self.fake.methods().index("layout.export"), self.fake.methods().index("agent.prompt"))
+        self.assertEqual(self.saved()["layout_hint"], {"sibling_pane_id": "w1:p1", "position": "second",
+                                                       "direction": "right", "ratio": 0.3, "path": []})
+
+    def test_a_failing_export_leaves_no_hint_and_the_park_goes_on(self):
+        outcome = park.park(self.flow(), "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        self.assertIsNone(self.saved()["layout_hint"])
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

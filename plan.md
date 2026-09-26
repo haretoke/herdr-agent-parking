@@ -615,7 +615,7 @@ server is never restarted.
 - [x] `/exit` is sent with `agent prompt <P> "/exit"`
 - [x] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
       `label_before` keeps the previous label
-- [ ] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
+- [x] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
       ratio, boolean path) from `layout.export` is stored before the park, whatever
       `on_park` is
 - [ ] by default (`on_park` unset) the pane is not closed

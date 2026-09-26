@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 
-from . import inventory, records, screen, times, transcript
+from . import herdr_api, inventory, layout, records, screen, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -30,7 +30,7 @@ def park(rt, pane_id, note):
         "cwd": process.get("cwd") or pane.cwd,
         "argv": inventory.argv_of(process, rt.system) if process else [],
         "claude_version": inventory.running_version(process, rt.system) if process else None,
-        "label_before": pane.label, "layout_hint": None,
+        "label_before": pane.label, "layout_hint": _layout_hint(rt, pane_id),
         "context_at_park": _context(rt, pane.session_id),
         "parked_at": times.iso(rt.clock()),
     }
@@ -42,6 +42,15 @@ def park(rt, pane_id, note):
     record.update(status="parked", parked_mode="keep")
     records.write(rt.paths.records, record)
     return Outcome("parked", "", record)
+
+
+def _layout_hint(rt, pane_id):
+    """Where the pane sits in its tab, for a recreate; None when Herdr cannot say."""
+    try:
+        exported = rt.herdr.call("layout.export", {"pane_id": pane_id})
+    except herdr_api.HerdrError:
+        return None
+    return layout.hint(exported.get("layout", exported).get("root"), pane_id)
 
 
 def _label(settings, record):
