@@ -361,8 +361,12 @@ server is never restarted.
         `PATH`, else of `~/.local/bin/claude`; no badge when either side is unknown.
         npm global and Homebrew installs were not available to test; they fall to "no
         badge" unless a version appears in the executable path
-- [ ] `ps -o rss=` for the Claude pid alone versus the sum over `foreground_processes`
+- [x] `ps -o rss=` for the Claude pid alone versus the sum over `foreground_processes`
       (MCP servers, `caffeinate`; 4 processes measured in one group)
+      (2026-09-27, the 9 Claude panes of the Mac's live server, read-only): Claude alone
+      118–357 MB, the whole foreground group 131–374 MB, i.e. 13–24 MB more from 2–4
+      extra processes (the stdio MCP servers' `node`, and `caffeinate`). Parking frees
+      the group, so the column shows the sum; the Claude-only value is a JSON field
 - [ ] after `pane run <P> "printf ..."` shows the note, `agent start` does not return
       `agent_not_ready` (the shell stays in the foreground)
 - [ ] `agent prompt <P> "/exit"` with a half-typed line in Claude's input box (is
