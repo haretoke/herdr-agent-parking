@@ -511,7 +511,7 @@ server is never restarted.
 - [x] moving `pane_id` keeps the old ID in `pane_id_history`
 
 ### argv
-- [ ] the executable and `--resume` / `-r` / `--continue` / `-c` / `--session-id` /
+- [x] the executable and `--resume` / `-r` / `--continue` / `-c` / `--session-id` /
       `--name` / `-n` / `--fork-session` with their values are removed; other flags
       (`--effort medium`, `--model x`, `--permission-mode auto`) keep their order
 - [ ] both `--resume=<id>` and `-r <id>` are removed
