@@ -14,4 +14,7 @@ def park(rt, pane_id, note):
         return Outcome("refused", "no Claude in %s" % pane_id, None)
     if pane.agent_status not in PARKABLE:
         return Outcome("refused", "Claude is %s; only idle or done sessions park" % pane.agent_status, None)
+    if not pane.session_id:
+        return Outcome("refused", "Herdr does not know this Claude's session; run "
+                                  "`herdr integration install claude` and restart it", None)
     return Outcome("parked", "", None)

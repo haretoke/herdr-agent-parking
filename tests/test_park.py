@@ -47,5 +47,14 @@ class RefuseTest(ParkTestCase):
                 self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+class IntegrationTest(ParkTestCase):
+    def test_a_claude_pane_without_a_session_needs_the_herdr_integration(self):
+        rt = self.runtime({"pane.get": pane_reply(session_id=None)})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("herdr integration install claude", outcome.message)
+        self.assertEqual(self.fake.methods(), ["pane.get"])
+
+
 if __name__ == "__main__":
     unittest.main()
