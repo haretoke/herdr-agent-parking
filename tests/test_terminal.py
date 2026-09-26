@@ -20,13 +20,13 @@ class FakeTerminal:
     def draw(self, lines):
         self.frames.append(lines)
 
-    def read(self, timeout):
+    def read(self, timeout, others=()):
         self.timeouts.append(timeout)
         if self.idle_reads:
             self.idle_reads -= 1
             self.clock.now += timeout
-            return b""
-        return self.keys
+            return b"", []
+        return self.keys, []
 
 
 class Clock:

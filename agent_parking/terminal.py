@@ -57,18 +57,19 @@ class Terminal:
         """The whole screen: each line cleared to its end, then everything below."""
         self.write("\x1b[H" + "\r\n".join(line + "\x1b[K" for line in lines) + "\x1b[J")
 
-    def read(self, timeout):
-        """Input bytes, b"" when there is none, or None once the pane is gone."""
+    def read(self, timeout, others=()):
+        """(input bytes, the ones of `others` ready to read): b"" when there is no input,
+        None once the pane is gone."""
         try:
-            ready = select.select([self.stdin, self.wake[0]], [], [], timeout)[0]
+            ready = select.select([self.stdin, self.wake[0]] + list(others), [], [], timeout)[0]
             if self.wake[0] in ready:
                 os.read(self.wake[0], 1024)
             if self.stdin not in ready:
-                return b""
+                return b"", [r for r in ready if r in others]
             data = os.read(self.stdin.fileno(), 1024)
         except OSError:
-            return None
-        return data or None
+            return None, []
+        return data or None, [r for r in ready if r in others]
 
 
 def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=()):
@@ -81,7 +82,7 @@ def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=()):
             board.refresh()
             next_poll = now + poll_seconds
         terminal.draw(board.lines(*terminal.size()))
-        data = terminal.read(max(0, next_poll - clock()))
+        data, _ = terminal.read(max(0, next_poll - clock()))
         if data is None:
             break
         if data:
