@@ -732,7 +732,7 @@ server is never restarted.
       commands compute; the user's own registry did not gain the plugin
 
 ### skill
-- [ ] `skills/prepare-compact/SKILL.md` exists (English): save state worth keeping to memory
+- [x] `skills/prepare-compact/SKILL.md` exists (English): save state worth keeping to memory
       or the relevant files; check and report the commit and push state; clean up temporary
       processes and files; check that nothing that would hurt to lose is left; end with one
       line `<compact-focus>...</compact-focus>` for `/compact`; never run `/compact` itself
