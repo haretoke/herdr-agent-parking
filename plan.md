@@ -505,7 +505,7 @@ server is never restarted.
 - [x] broken JSON is moved to `records/broken/` and reported as a broken record
 - [x] an unknown `schema_version` is neither read, modified nor deleted (listing and writing here; the
       retention test covers deletion)
-- [ ] a record in `parking` is never overwritten (a second park of the same UUID)
+- [x] a record in `parking` is never overwritten (a second park of the same UUID)
 - [ ] resumed records move to `resumed/` and are deleted after the retention (boundary ±1 s)
 - [ ] a note with newlines and control characters round-trips unchanged
 - [ ] moving `pane_id` keeps the old ID in `pane_id_history`

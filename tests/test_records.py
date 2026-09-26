@@ -56,6 +56,29 @@ class WriteTest(RecordsTestCase):
         self.assertEqual(sorted(p.name for p in self.dir.iterdir()), [UUID + ".json"])
 
 
+class StartParkingTest(RecordsTestCase):
+    def test_a_second_park_of_a_session_in_parking_is_refused_and_keeps_the_first(self):
+        records.start_parking(self.dir, record(status="parking", note="first"))
+        with self.assertRaises(records.Refused):
+            records.start_parking(self.dir, record(status="parking", note="second"))
+        saved = json.loads((self.dir / (UUID + ".json")).read_text(encoding="utf-8"))
+        self.assertEqual(saved["note"], "first")
+
+    def test_a_park_may_replace_a_record_that_is_not_in_parking(self):
+        for status in ("parked", "park_failed", "resume_failed", "resume_pending"):
+            with self.subTest(status=status):
+                records.write(self.dir, record(status=status))
+                records.start_parking(self.dir, record(status="parking", note=status))
+                saved = json.loads((self.dir / (UUID + ".json")).read_text(encoding="utf-8"))
+                self.assertEqual((saved["status"], saved["note"]), ("parking", status))
+
+    def test_the_flow_itself_may_move_its_record_from_parking_to_parked(self):
+        records.start_parking(self.dir, record(status="parking"))
+        records.write(self.dir, record(status="parked"))
+        saved = json.loads((self.dir / (UUID + ".json")).read_text(encoding="utf-8"))
+        self.assertEqual(saved["status"], "parked")
+
+
 OTHER = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
 THIRD = "a528d90c-d0d6-404a-a9ee-373de7435e3c"
 

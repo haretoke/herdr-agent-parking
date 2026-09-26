@@ -47,6 +47,16 @@ def write(directory, record):
     return path
 
 
+def start_parking(directory, record):
+    """Write the `parking` record that opens a park, refusing while another park of the
+    same session is still in `parking` (two dashboards, or a double key press)."""
+    path = directory / (checked_uuid(record.get("session_id")) + ".json")
+    current = _read(path) if path.exists() else None
+    if current is not None and current.get("status") == "parking":
+        raise Refused("session %s is already being parked" % record["session_id"])
+    return write(directory, record)
+
+
 def _read(path):
     """The JSON object in `path`, or None when it is not one."""
     try:
