@@ -142,15 +142,19 @@ class Events:
         self.board.events_on = self.stream is not None
 
     def read(self):
-        """Hand the next event to the board; False when the stream ended instead."""
+        """Hand every event that arrived to the board; False when none did or the stream
+        ended instead."""
         try:
-            event = next(self.stream)
-        except (StopIteration, ValueError, OSError):
+            events = self.stream.read_events()
+        except (ValueError, OSError):
+            events = None
+        if events is None:
             self.close()
             self.board.events_on = False
             return False
-        self.board.on_event(event)
-        return True
+        for event in events:
+            self.board.on_event(event)
+        return bool(events)
 
     def close(self):
         if self.stream is not None:

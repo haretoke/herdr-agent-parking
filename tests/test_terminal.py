@@ -36,10 +36,10 @@ class FakeSubscription:
         self.events = list(events)
         self.closed = False
 
-    def __next__(self):
-        if not self.events:
-            raise StopIteration
-        return self.events.pop(0)
+    def read_events(self):
+        """All the events at once, then the end of the stream."""
+        events, self.events = self.events, None
+        return events or None
 
     def close(self):
         self.closed = True

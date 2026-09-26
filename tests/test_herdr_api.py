@@ -1,3 +1,5 @@
+import json
+import select
 import time
 import unittest
 
@@ -105,6 +107,53 @@ class SubscribeTest(unittest.TestCase):
         self.assertEqual(list(subscription), events)
         self.assertTrue(subscription.closed)
         self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
+
+
+class PacketTest(unittest.TestCase):
+    """Seen on the Mac: events that arrive together must all be read when select wakes."""
+
+    EVENTS = [{"event": "pane.agent_status_changed", "data": {"pane_id": "w1:p5", "agent_status": "working"}},
+              {"event": "pane.agent_status_changed", "data": {"pane_id": "w1:p5", "agent_status": "idle"}}]
+
+    def subscribed(self, stream):
+        fake = FakeHerdr({"events.subscribe": stream})
+        self.addCleanup(fake.close)
+        subscription = herdr_api.Herdr(fake.path).subscribe([{"type": "pane.agent_detected"}])
+        self.addCleanup(subscription.close)
+        return subscription
+
+    def lines(self, *bodies):
+        return b"".join(json.dumps(body).encode() + b"\n" for body in bodies)
+
+    def test_two_events_in_one_packet_are_both_read_at_one_wake(self):
+        def stream(fake, connection, reader, request):
+            fake.reply(connection, request, result={"type": "subscription_started"})
+            time.sleep(0.1)
+            connection.sendall(self.lines(*self.EVENTS))
+            time.sleep(0.5)
+
+        subscription = self.subscribed(stream)
+        self.assertTrue(select.select([subscription], [], [], 2)[0])
+        time.sleep(0.1)
+        self.assertEqual(subscription.read_events(), self.EVENTS)
+
+    def test_events_sent_with_the_acknowledgement_still_wake_select(self):
+        def stream(fake, connection, reader, request):
+            connection.sendall(self.lines({"id": request["id"], "result": {"type": "subscription_started"}},
+                                          *self.EVENTS))
+            time.sleep(0.5)
+
+        subscription = self.subscribed(stream)
+        self.assertTrue(select.select([subscription], [], [], 2)[0])
+        time.sleep(0.1)
+        self.assertEqual(subscription.read_events(), self.EVENTS)
+
+    def test_the_end_of_the_stream_reads_as_none(self):
+        subscription = self.subscribed(lambda fake, connection, reader, request: fake.reply(
+            connection, request, result={"type": "subscription_started"}))
+        self.assertTrue(select.select([subscription], [], [], 2)[0])
+        self.assertIsNone(subscription.read_events())
+        self.assertTrue(subscription.closed)
 
 
 class ShellOnlyTest(unittest.TestCase):

@@ -77,18 +77,20 @@ class Herdr:
         return parse_reply(method, line)
 
     def subscribe(self, subscriptions):
-        """Open an `events.subscribe` connection; returns once Herdr acknowledged it."""
+        """Open an `events.subscribe` connection; returns once Herdr acknowledged it. The
+        acknowledgement is read byte by byte, so events sent with it stay in the socket and
+        wake `select`."""
         client, reader = self._send("events.subscribe", {"subscriptions": subscriptions})
+        reader.close()
         try:
-            parse_reply("events.subscribe", reader.readline(MAX_LINE_BYTES + 1))
+            parse_reply("events.subscribe", _read_line(client))
         except (OSError, HerdrError) as error:
-            reader.close()
             client.close()
             if isinstance(error, HerdrError):
                 raise
             raise _transport_error("events.subscribe", error) from error
         client.settimeout(None)
-        return Subscription(client, reader)
+        return Subscription(client)
 
     def panes(self):
         """Every pane of this Herdr server."""
@@ -129,31 +131,57 @@ def parse_reply(method, line):
     return reply.get("result", {})
 
 
+def _read_line(client):
+    """One line from `client`, read byte by byte so nothing after it leaves the socket."""
+    data = bytearray()
+    while len(data) <= MAX_LINE_BYTES:
+        byte = client.recv(1)
+        if not byte:
+            break
+        data += byte
+        if byte == b"\n":
+            break
+    return bytes(data)
+
+
 class Subscription:
     """The event lines of an `events.subscribe` connection, until Herdr closes it."""
 
-    def __init__(self, client, reader):
+    def __init__(self, client):
         self.client = client
-        self.reader = reader
+        self.buffer = b""
+        self.queue = []
         self.closed = False
 
     def fileno(self):
         return self.client.fileno()
 
+    def read_events(self):
+        """Every complete event line that has arrived, when `select` says the stream is
+        readable: events that come together are all read at once (seen on the Mac, the
+        second of two stayed unread in a buffered reader). None once Herdr closed it."""
+        data = b"" if self.closed else self.client.recv(65536)
+        if not data:
+            self.close()
+            return None
+        self.buffer += data
+        *lines, self.buffer = self.buffer.split(b"\n")
+        return [json.loads(line) for line in lines if line.strip()]
+
     def __iter__(self):
         return self
 
     def __next__(self):
-        line = b"" if self.closed else self.reader.readline(MAX_LINE_BYTES + 1)
-        if not line:
-            self.close()
-            raise StopIteration
-        return json.loads(line)
+        while not self.queue:
+            events = self.read_events()
+            if events is None:
+                raise StopIteration
+            self.queue.extend(events)
+        return self.queue.pop(0)
 
     def close(self):
         if not self.closed:
             self.closed = True
-            self.reader.close()
             self.client.close()
 
 
