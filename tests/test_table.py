@@ -96,5 +96,17 @@ class HeaderTest(unittest.TestCase):
         self.assertEqual(table.header(51), "  place" + " " * 8 + "name" + " " * 24 + "status")
 
 
+class DetailTest(unittest.TestCase):
+    def test_the_detail_line_shows_what_was_dropped_and_the_note(self):
+        old = table.cells(live(version="2.1.281", old=True), "≥1h12m")
+        self.assertEqual(table.detail(old, None, 78), "")
+        self.assertEqual(table.detail(old, None, 70), "    ↳ 205M · 2.1.281 old")
+        self.assertEqual(table.detail(old, None, 60), "    ↳ web · 37k 18% · 205M · 2.1.281 old")
+        self.assertEqual(table.detail(old, None, 51), "    ↳ web · idle ≥1h12m · 37k 18% · 205M · 2.1.281…")
+        parked = table.cells(live(status="parked", rss_kb=None, version=None, record={}), "2d")
+        self.assertEqual(table.detail(parked, "stopped before the wiki\nthen push", 100),
+                         '    ↳ "stopped before the wiki"')
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -57,6 +57,22 @@ def header(width):
     return line(TITLES, width, selected=False)
 
 
+def detail(cells, note, width):
+    """The line under the selected row: what the columns at `width` leave out, and the
+    note's first line; empty when there is nothing to add."""
+    cols = columns(width)
+    label = cells["place"][len(cells["place_id"]):].strip()
+    parts = []
+    if "place" not in cols and label:
+        parts.append(label)
+    if "idle" not in cols and cells["idle"]:
+        parts.append("idle " + cells["idle"])
+    parts.extend(cells[c] for c in ("ctx", "rss", "ver") if c not in cols and cells[c] not in ("", "—"))
+    if note:
+        parts.append('"%s"' % note.splitlines()[0])
+    return display.cell("    ↳ " + " · ".join(parts), width) if parts else ""
+
+
 PARKED_MARK = "💤"
 
 
