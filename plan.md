@@ -541,6 +541,8 @@ server is never restarted.
       `pane.agent_status_changed` per given Claude pane
 - [x] an `error` reply to the subscription is an exception, not an empty stream
 - [x] every command has a timeout and a timeout is an exception
+- [ ] a call can be given a longer timeout than the default (for requests that wait inside
+      Herdr: `agent.start`, `agent.prompt` with `wait`)
 - [x] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)
 - [x] `pane.list` comes back as `Pane` shapes (for the check before a resume)
@@ -628,6 +630,8 @@ server is never restarted.
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
       `"keep"` and a reason is returned
 - [x] a timeout gives `park_failed` and the pane is untouched
+- [ ] requests that wait inside Herdr (`agent.start`, the preparation and `/compact` prompts)
+      use a socket timeout longer than their Herdr-side wait
 - [x] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [x] the note is stored; an empty note is `null`
 - [x] the context numbers at park time are stored in `context_at_park`
