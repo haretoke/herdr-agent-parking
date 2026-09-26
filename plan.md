@@ -656,7 +656,7 @@ server is never restarted.
       compact does not park
 
 ### resume (fake herdr)
-- [ ] with the pane present and the shell alone in the foreground,
+- [x] with the pane present and the shell alone in the foreground,
       `agent start <name> --kind claude --pane <P> --timeout <ms> -- --resume <UUID> <flags>` is called
 - [ ] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
 - [ ] the confirmation text lists the tokens `resume_flags` left out (`dropped`)
