@@ -1,6 +1,7 @@
 import unittest
 
-from agent_parking import compact
+from agent_parking import compact, config
+from tests.fake_herdr import Error
 from tests.flows import FlowTestCase, pane_reply, screen_reply
 
 
@@ -97,6 +98,32 @@ class BlockedTest(FlowTestCase):
         outcome = compact.prepare(rt, "w1:p2")
         self.assertEqual(outcome.kind, "blocked")
         self.assertIn("go to the pane", outcome.message)
+
+
+class SkillMissingTest(FlowTestCase):
+    def unknown_screen(self):
+        reply = screen_reply("❯")
+        reply["read"]["text"] = "⏺ Unknown command: /prepare-compact\r\n" + reply["read"]["text"]
+        return reply
+
+    def test_an_unknown_command_falls_back_to_the_built_in_text(self):
+        stalled = Error("agent_prompt_stalled", "no working or blocked state within 5000 ms")
+        rt = self.flow(**{"agent.prompt": [stalled, {"type": "agent_prompted"}],
+                          "agent.read": [screen_reply("❯"), self.unknown_screen()]})
+        outcome = compact.prepare(rt, "w1:p2")
+        texts = [r["params"]["text"] for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(texts, ["/prepare-compact", config.BUILT_IN_PREPARE_PROMPT])
+        self.assertEqual(outcome.kind, "prepared")
+        self.assertIn("built-in", outcome.message)
+
+    def test_without_a_fallback_it_fails(self):
+        self.settings["prepare_prompt"] = "/my-own-prep"
+        stalled = Error("agent_prompt_stalled", "no working or blocked state within 5000 ms")
+        rt = self.flow(**{"agent.prompt": stalled,
+                          "agent.read": [screen_reply("❯"), self.unknown_screen()]})
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertEqual(outcome.kind, "prepare_failed")
+        self.assertIn("Unknown command", outcome.message)
 
 
 class ConfirmationTest(unittest.TestCase):

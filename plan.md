@@ -645,6 +645,9 @@ server is never restarted.
 - [x] `/compact <focus>` is sent as one line (newlines become spaces); an empty focus sends `/compact`
 - [x] the flow completes when a new `compact_boundary` appears; the row turns `compacted`
 - [x] a preparation that becomes `blocked` stops the flow with a message to go to the pane
+- [x] `agent_prompt_stalled` with `Unknown command:` on screen (the skill is missing) sends the
+      built-in text instead and says so; without a fallback (`prepare_prompt` set) it is
+      `prepare_failed`
 - [ ] `c` again with a focus tag already present continues from the focus extraction
 - [x] no focus tag gives an empty focus in the confirmation
 - [x] a boundary that does not appear within `compact_timeout_seconds` gives `compact_failed`

@@ -6,26 +6,45 @@ Outcome kinds: refused, blocked, prepared, prepare_failed, compacted, compact_fa
 
 from collections import namedtuple
 
-from . import config, ready, transcript
+from . import config, herdr_api, ready, transcript
 
 Outcome = namedtuple("Outcome", "kind message reply")
 
 
 def prepare(rt, pane_id):
-    """Send the preparation (`prepare_command`, or `prepare_prompt` when set)."""
+    """Send the preparation (`prepare_command`, or `prepare_prompt` when set), wait for it,
+    and read Claude's reply and proposed focus from the transcript."""
     pane, refusal = ready.check(rt, pane_id, "compact")
     if refusal:
         return Outcome("refused", refusal, None)
     preparation = config.preparation(rt.settings)
-    # The wait rides on the prompt request, so no status change can slip in between
-    # (it may take minutes: the preparation can commit and push).
-    result = rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first, "wait": {
-        "until": ["idle", "done", "blocked"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
+    sent, note = preparation.first, ""
+    try:
+        result = _send_and_wait(rt, pane_id, sent)
+    except herdr_api.HerdrError as error:
+        # A missing skill is answered locally with "Unknown command" and never starts a
+        # turn, so the prompt stalls (spike 0-18).
+        if error.code != "agent_prompt_stalled" or UNKNOWN_COMMAND not in rt.herdr.screen(pane_id):
+            raise
+        if preparation.fallback is None:
+            return Outcome("prepare_failed", "Claude answered %s %s" % (UNKNOWN_COMMAND, sent), None)
+        sent, note = preparation.fallback, "%s is not installed; sent the built-in request" % sent
+        result = _send_and_wait(rt, pane_id, sent)
     if (result.get("agent") or {}).get("agent_status") == "blocked":
         return Outcome("blocked", "Claude stopped at a dialog while preparing; go to the pane (g), "
                                   "answer it, then press c again", None)
-    reply = transcript.preparation_reply(rt.rows_for(pane.session_id), preparation.first)
-    return Outcome("prepared", "", reply)
+    reply = transcript.preparation_reply(rt.rows_for(pane.session_id), sent)
+    return Outcome("prepared", note, reply)
+
+
+UNKNOWN_COMMAND = "Unknown command:"
+
+
+def _send_and_wait(rt, pane_id, text):
+    # The wait rides on the prompt request, so no status change can slip in between
+    # (it may take minutes: the preparation can commit and push).
+    return rt.herdr.call("agent.prompt", {"target": pane_id, "text": text, "wait": {
+        "until": ["idle", "done", "blocked"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
 
 
 REPORT_LINES = 8
