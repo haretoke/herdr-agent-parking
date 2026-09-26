@@ -1,8 +1,12 @@
 """The dashboard's rows: every Claude pane of this Herdr server with what the plugin
 knows about it (process, memory, version, context, park record)."""
 
+import os
+import re
 from dataclasses import dataclass
 from typing import Optional
+
+VERSION = re.compile(r"\d+\.\d+\.\d+")
 
 
 @dataclass
@@ -45,3 +49,15 @@ def argv_of(process, system):
     """The Claude process's argv: from Herdr (macOS), else `/proc/<pid>/cmdline` (Herdr 0.9.1
     gives none on Linux; spike 0-10), else empty."""
     return process.get("argv") or system.cmdline(process.get("pid")) or []
+
+
+def running_version(process, system):
+    """The version the Claude process runs: on Linux the name of the executable
+    `/proc/<pid>/exe` points to, on macOS Herdr's process `name`; None unless it looks
+    like a version (`versions/<v>` of the native installer; spike 0-10)."""
+    if system.has_proc():
+        exe = system.exe(process.get("pid"))
+        candidate = os.path.basename(exe) if exe else None
+    else:
+        candidate = process.get("name")
+    return candidate if candidate and VERSION.fullmatch(candidate) else None

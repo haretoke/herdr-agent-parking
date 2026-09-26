@@ -30,5 +30,18 @@ class CmdlineTest(ProcTestCase):
         self.assertIsNone(self.system.cmdline(8))
 
 
+class ExeTest(ProcTestCase):
+    def test_exe_is_the_link_target_or_none(self):
+        (self.proc / "42").mkdir(parents=True)
+        (self.proc / "42" / "exe").symlink_to("/home/node/.local/share/claude/versions/2.1.281")
+        self.assertEqual(self.system.exe(42), "/home/node/.local/share/claude/versions/2.1.281")
+        self.assertIsNone(self.system.exe(7))
+
+    def test_proc_is_there_only_when_its_root_is_a_directory(self):
+        self.assertFalse(self.system.has_proc())
+        self.proc.mkdir()
+        self.assertTrue(self.system.has_proc())
+
+
 if __name__ == "__main__":
     unittest.main()

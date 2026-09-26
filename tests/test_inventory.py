@@ -50,11 +50,37 @@ class ClaudeProcessTest(unittest.TestCase):
 
 
 class FakeSystem:
-    def __init__(self, cmdlines=None):
+    def __init__(self, cmdlines=None, exes=None, proc=True):
         self.cmdlines = cmdlines or {}
+        self.exes = exes or {}
+        self.proc = proc
 
     def cmdline(self, pid):
         return self.cmdlines.get(pid)
+
+    def exe(self, pid):
+        return self.exes.get(pid)
+
+    def has_proc(self):
+        return self.proc
+
+
+class RunningVersionTest(unittest.TestCase):
+    def test_linux_reads_the_exe_link_and_macos_the_process_name(self):
+        linux = FakeSystem(exes={7: "/home/node/.local/share/claude/versions/2.1.281"})
+        self.assertEqual(inventory.running_version({"pid": 7, "name": "claude"}, linux), "2.1.281")
+        mac = FakeSystem(proc=False)
+        self.assertEqual(inventory.running_version({"pid": 7, "name": "2.1.283"}, mac), "2.1.283")
+
+    def test_anything_that_does_not_look_like_a_version_is_unknown(self):
+        cases = [
+            ({"pid": 7, "name": "claude"}, FakeSystem(proc=False)),
+            ({"pid": 7, "name": "node"}, FakeSystem(exes={7: "/usr/bin/node"})),
+            ({"pid": 7, "name": "2.1.283"}, FakeSystem(exes={})),
+        ]
+        for process, fake in cases:
+            with self.subTest(process=process):
+                self.assertIsNone(inventory.running_version(process, fake))
 
 
 class ArgvTest(unittest.TestCase):

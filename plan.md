@@ -573,7 +573,7 @@ server is never restarted.
 - [x] the Claude process is the foreground group leader (`pid == foreground_process_group_id`)
 - [x] its argv comes from `process-info`, else from `/proc/<pid>/cmdline` (NUL-separated),
       else is empty
-- [ ] its running version is the basename of `readlink /proc/<pid>/exe` when `/proc`
+- [x] its running version is the basename of `readlink /proc/<pid>/exe` when `/proc`
       exists, else `process-info`'s `name` when it looks like a version, else unknown
 - [ ] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
       from `ps -o rss=`, and the row survives when both fail

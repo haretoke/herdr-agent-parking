@@ -1,5 +1,6 @@
 """What the plugin reads about processes outside Herdr: `/proc` on Linux, `ps` elsewhere."""
 
+import os
 from pathlib import Path
 
 
@@ -19,3 +20,13 @@ class System:
         if not data:
             return None
         return [part.decode("utf-8", "replace") for part in data.rstrip(b"\0").split(b"\0")]
+
+    def has_proc(self):
+        return self.proc_root.is_dir()
+
+    def exe(self, pid):
+        """Where `/proc/<pid>/exe` points (the running executable), or None."""
+        try:
+            return os.readlink(self.proc_root / str(pid) / "exe")
+        except OSError:
+            return None
