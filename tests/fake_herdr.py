@@ -3,8 +3,9 @@
 Every connection is read one request line at a time and answered by the script
 entry for its method: a dict (the result), an `Error`, or a callable
 `(fake, connection, reader, request)` that answers itself (streams, delays). A
-method without an entry gets an `fake_unexpected` error so a test fails loudly
-instead of hanging.
+list gives one of those per call in order and repeats its last one, for replies
+that change (a pane whose Claude has exited). A method without an entry gets a
+`fake_unexpected` error so a test fails loudly instead of hanging.
 """
 
 import json
@@ -55,6 +56,8 @@ class FakeHerdr:
             request = json.loads(line)
             self.requests.append(request)
             entry = self.script.get(request["method"])
+            if isinstance(entry, list):
+                entry = entry.pop(0) if len(entry) > 1 else entry[0]
             if callable(entry):
                 entry(self, connection, reader, request)
             elif isinstance(entry, Error):
