@@ -1,4 +1,5 @@
 import copy
+import json
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -6,6 +7,7 @@ from pathlib import Path
 
 from agent_parking import config, herdr_api, park, runtime, state
 from tests.fake_herdr import FakeHerdr
+from tests.fakes import FakeSystem
 
 UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
 NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
@@ -76,6 +78,48 @@ class DraftTest(ParkTestCase):
         read = [r for r in self.fake.requests if r["method"] == "agent.read"][0]
         self.assertEqual(read["params"], {"target": "w1:p2", "source": "visible", "format": "ansi",
                                           "strip_ansi": False})
+
+
+SHELL = pane_reply(status="unknown", agent=None, session_id=None)
+PROCESS = {"type": "process_info", "process_info": {
+    "shell_pid": 100, "foreground_process_group_id": 200,
+    "foreground_processes": [{"pid": 200, "name": "2.1.283", "cwd": "/repo",
+                              "argv": ["/home/u/.local/bin/claude", "--model", "haiku"]},
+                             {"pid": 201, "name": "node"}]}}
+SHELL_PROCESS = {"type": "process_info", "process_info": {
+    "shell_pid": 100, "foreground_process_group_id": 100,
+    "foreground_processes": [{"pid": 100, "name": "zsh"}]}}
+
+
+class FlowTestCase(ParkTestCase):
+    def flow(self, **overrides):
+        script = {"pane.get": [pane_reply(), SHELL], "agent.read": screen_reply("❯"),
+                  "pane.process_info": [PROCESS, SHELL_PROCESS], "agent.prompt": {"type": "ok"},
+                  "pane.rename": {"type": "pane_info"}}
+        script.update(overrides)
+        rt = self.runtime(script)
+        rt.system = FakeSystem(proc=False)
+        return rt
+
+    def saved(self):
+        path = Path(self.environ["HERDR_PLUGIN_STATE_DIR"]) / "records" / (UUID + ".json")
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+class OrderTest(FlowTestCase):
+    def test_the_record_is_on_disk_before_exit_is_sent(self):
+        seen = {}
+
+        def exit_prompt(fake, connection, reader, request):
+            seen["record"] = self.saved()
+            fake.reply(connection, request)
+
+        rt = self.flow(**{"agent.prompt": exit_prompt})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        self.assertEqual(seen["record"]["status"], "parking")
+        self.assertEqual(seen["record"]["session_id"], UUID)
+        self.assertLess(self.fake.methods().index("pane.process_info"), self.fake.methods().index("agent.prompt"))
 
 
 class ConfirmationTest(unittest.TestCase):

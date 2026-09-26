@@ -609,7 +609,7 @@ server is never restarted.
       by dim (`ESC[2m`) placeholder text are empty; any other text is a draft; no `❯` line
       between rules is "unknown" and refused
 - [x] the park confirmation always carries the warning about lost background tasks
-- [ ] the record is written before `/exit` is sent (order of the fake herdr calls)
+- [x] the record is written before `/exit` is sent (order of the fake herdr calls)
 - [ ] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
       `label_before`, all read before `/exit`, and `parked_mode` after
 - [ ] `/exit` is sent with `agent prompt <P> "/exit"`

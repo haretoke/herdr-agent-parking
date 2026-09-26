@@ -2,12 +2,13 @@
 
 from collections import namedtuple
 
-from . import screen
+from . import inventory, records, screen
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
 
 PARKABLE = ("idle", "done")
+POLL_SECONDS = 0.5
 
 
 def park(rt, pane_id, note):
@@ -21,7 +22,27 @@ def park(rt, pane_id, note):
                                   "`herdr integration install claude` and restart it", None)
     if screen.input_box(rt.herdr.screen(pane_id)) != "empty":
         return Outcome("refused", "a draft is in Claude's input box; clear it first (g, then Ctrl+C)", None)
-    return Outcome("parked", "", None)
+    record = {"schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
+              "status": "parking", "pane_id": pane_id}
+    process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
+    record["argv"] = inventory.argv_of(process, rt.system) if process else []
+    # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
+    records.start_parking(rt.paths.records, record)
+    rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
+    _wait_for_shell(rt, pane_id)
+    record["status"] = "parked"
+    records.write(rt.paths.records, record)
+    return Outcome("parked", "", record)
+
+
+def _wait_for_shell(rt, pane_id):
+    """Poll until Claude has left `pane_id` (about 4 s in spike 0-2)."""
+    for _ in range(int(rt.settings["exit_timeout_seconds"] / POLL_SECONDS) + 1):
+        pane = rt.herdr.pane(pane_id)
+        if pane is None or pane.agent is None:
+            return True
+        rt.sleep(POLL_SECONDS)
+    return False
 
 
 LOST_WORK = ("Parking ends the process: background tasks, running subagents and MCP server "
