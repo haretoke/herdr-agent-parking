@@ -69,5 +69,30 @@ class WorkspaceTest(FlowTestCase):
                                                  "focus": False})])
 
 
+class NewWorkspaceTest(FlowTestCase):
+    def test_without_the_workspace_a_new_one_needs_a_yes_first(self):
+        created = {"type": "workspace_created", "workspace": {"workspace_id": "w5"},
+                   "tab": {"tab_id": "w5:t1"}, "root_pane": {"pane_id": "w5:p1"}}
+        rt = self.flow(**{"workspace.create": created})
+        asked = recreate.place(rt, dict(RECORD, layout_hint=None), [pane("w2:p1", "w2:t1")])
+        self.assertIsNone(asked.pane_id)
+        self.assertEqual(asked.message, recreate.NEEDS_WORKSPACE)
+        self.assertEqual(self.fake.requests, [])
+        placed = recreate.place(rt, dict(RECORD, layout_hint=None), [pane("w2:p1", "w2:t1")], new_workspace=True)
+        self.assertEqual(placed.pane_id, "w5:p1")
+        [(method, params)] = [(r["method"], r["params"]) for r in self.fake.requests]
+        self.assertEqual((method, params), ("workspace.create", {"cwd": "/repo", "label": "zf-api", "focus": False}))
+
+
+class NoCwdTest(FlowTestCase):
+    def test_without_a_cwd_nothing_is_created(self):
+        for cwd in (None, ""):
+            with self.subTest(cwd=cwd):
+                placed = recreate.place(self.flow(), dict(RECORD, cwd=cwd), [pane("w1:p7")], new_workspace=True)
+                self.assertIsNone(placed.pane_id)
+                self.assertIn("cwd", placed.message)
+                self.assertEqual(self.fake.requests, [])
+
+
 if __name__ == "__main__":
     unittest.main()

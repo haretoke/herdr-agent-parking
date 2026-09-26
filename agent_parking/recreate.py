@@ -4,6 +4,7 @@ from collections import namedtuple
 
 # pane_id is the new pane, or None with the reason in message
 Placed = namedtuple("Placed", "pane_id message")
+NEEDS_WORKSPACE = "its workspace is gone too; create a new workspace for it?"
 
 
 def _split(rt, target, direction, cwd):
@@ -12,8 +13,12 @@ def _split(rt, target, direction, cwd):
     return result["pane"]["pane_id"]
 
 
-def place(rt, record, panes):
-    """A new pane for `record` as close to where it was as the tab allows (spike 0-15)."""
+def place(rt, record, panes, new_workspace=False):
+    """A new pane for `record` as close to where it was as the tab allows (spike 0-15).
+    A new workspace is only created with `new_workspace` (asked first, NEEDS_WORKSPACE)."""
+    if not record.get("cwd"):
+        return Placed(None, "the record has no cwd to open the pane in; resume it by hand with "
+                            "`claude --resume %s` where it belongs" % record["session_id"])
     hint = record.get("layout_hint") or {}
     existing = {p.pane_id: p for p in panes}
     sibling = existing.get(hint.get("sibling_pane_id"))
@@ -34,4 +39,8 @@ def place(rt, record, panes):
         result = rt.herdr.call("tab.create", {"workspace_id": record["workspace_id"], "cwd": record["cwd"],
                                               "label": record.get("tab_label"), "focus": False})
         return Placed(result["root_pane"]["pane_id"], "")
-    return Placed(None, "no place to put the pane back")
+    if not new_workspace:
+        return Placed(None, NEEDS_WORKSPACE)
+    result = rt.herdr.call("workspace.create", {"cwd": record["cwd"], "label": record.get("workspace_label"),
+                                                "focus": False})
+    return Placed(result["root_pane"]["pane_id"], "")
