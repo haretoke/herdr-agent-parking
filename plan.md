@@ -704,7 +704,7 @@ server is never restarted.
 - [ ] `n` rewrites the note
 - [ ] `x` deletes the record after confirmation and never touches the transcript
 - [ ] `/` filters by name, cwd and label
-- [ ] polling updates status, RSS and ctx, and idle time advances
+- [x] polling updates status, RSS and ctx, and idle time advances
 - [ ] a dropped event subscription keeps polling and shows "events: off" in the footer
 - [x] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
 - [x] SIGWINCH redraws
