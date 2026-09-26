@@ -3,6 +3,7 @@
 import fcntl
 import os
 import select
+import signal
 import struct
 import subprocess
 import sys
@@ -55,8 +56,14 @@ class DashboardProcessTestCase(unittest.TestCase):
                                    stdout=slave, stderr=slave, cwd=REPOSITORY, env=env, start_new_session=True)
         os.close(slave)
         self.addCleanup(self.kill, process)
-        self.addCleanup(os.close, master)
+        self.addCleanup(self.close, master)
         return process, master
+
+    def close(self, master):
+        try:
+            os.close(master)
+        except OSError:
+            pass
 
     def kill(self, process):
         if process.poll() is None:
@@ -104,6 +111,31 @@ class StartTest(DashboardProcessTestCase):
         self.assertEqual(self.wait_exit(process, master), 0)
         self.assertIn(b"\x1b[?1049l", self.output)  # and left
         self.assertIn(b"\x1b[?25h", self.output)  # cursor shown again
+
+
+class StopTest(DashboardProcessTestCase):
+    def test_sigterm_and_sighup_exit_and_restore_the_terminal(self):
+        for signum in (signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(signal=signum.name):
+                self.output = b""
+                process, master = self.start(script(claude_pane()))
+                self.wait_for(master, b"api gateway")
+
+                process.send_signal(signum)
+
+                self.assertEqual(self.wait_exit(process, master), 0)
+                self.assertIn(b"\x1b[?1049l", self.output)
+
+    def test_the_pane_going_away_ends_the_dashboard(self):
+        process, master = self.start(script(claude_pane()))
+        self.wait_for(master, b"api gateway")
+
+        os.close(master)  # EOF / EIO on the dashboard's terminal
+
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.fail("the dashboard did not exit")
 
 
 if __name__ == "__main__":
