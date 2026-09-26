@@ -185,6 +185,26 @@ class ReconcileElsewhereTest(unittest.TestCase):
         self.assertEqual((decision.pane_id, decision.restore_label_on), ("w1:p7", None))
 
 
+class ReconcileConflictTest(unittest.TestCase):
+    def test_another_session_in_the_records_pane_is_a_conflict_and_the_record_stays(self):
+        [decision] = inventory.reconcile([parked(pane_id="w1:p2")], [pane("w1:p2", session_id=OTHER)])
+        self.assertEqual((decision.kind, decision.pane_id, decision.restore_label_on), ("conflict", "w1:p2", None))
+
+
+class ReconcileParkedTest(unittest.TestCase):
+    def test_a_record_with_its_pane_is_parked_and_without_it_has_no_pane(self):
+        panes = [pane("w1:p2", agent=None, session_id=None, label="💤 work")]
+        decisions = inventory.reconcile([parked(pane_id="w1:p2"), parked(OTHER, pane_id="w1:p9")], panes)
+        self.assertEqual([(d.kind, d.pane_id) for d in decisions], [("parked", "w1:p2"), ("no_pane", None)])
+
+    def test_every_record_gets_exactly_one_decision_in_order(self):
+        panes = [pane("w1:p2", session_id=UUID), pane("w1:p3", session_id=OTHER)]
+        third = "a528d90c-d0d6-404a-a9ee-373de7435e3c"
+        decisions = inventory.reconcile([parked(pane_id="w1:p2"), parked(third, pane_id="w1:p3"),
+                                         parked(OTHER, pane_id="w1:p9")], panes)
+        self.assertEqual([d.kind for d in decisions], ["resumed", "conflict", "resumed"])
+
+
 class RunningVersionTest(unittest.TestCase):
     def test_linux_reads_the_exe_link_and_macos_the_process_name(self):
         linux = FakeSystem(exes={7: "/home/node/.local/share/claude/versions/2.1.281"})

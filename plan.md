@@ -586,8 +586,8 @@ server is never restarted.
       `resumed` and its label is restored (resumed by hand)
 - [x] a record whose UUID runs in another pane becomes `resumed`, `pane_id` moves, the old
       ID goes to `pane_id_history`, and the original pane's label is restored
-- [ ] a different UUID in the record's pane shows "another session is running here" and keeps the record
-- [ ] a pane with a record is `parked`; a record without a pane is a "(no pane)" row
+- [x] a different UUID in the record's pane shows "another session is running here" and keeps the record
+- [x] a pane with a record is `parked`; a record without a pane is a "(no pane)" row
 - [ ] Codex and other agents are counted for the footer
 - [ ] control characters in `terminal_title_stripped` are dropped and the name is cut to
       the column (CJK counts double width)

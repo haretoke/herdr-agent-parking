@@ -116,13 +116,22 @@ Decision = namedtuple("Decision", "record kind pane_id restore_label_on")
 def reconcile(parked_records, panes):
     """What each park record means now, given the live panes (pure; the caller acts).
 
-    `resumed`: its session runs in a Claude pane (resumed by hand, maybe elsewhere)."""
+    `resumed`: its session runs in a Claude pane (resumed by hand, maybe elsewhere).
+    `conflict`: another Claude session occupies its pane; the record stays.
+    `parked`: its pane is there without Claude. `no_pane`: its pane is gone."""
     running = {p.session_id: p for p in panes if p.agent == "claude" and p.session_id}
-    existing = {p.pane_id for p in panes}
+    by_id = {p.pane_id: p for p in panes}
     decisions = []
     for record in parked_records:
-        own = record.get("pane_id") if record.get("pane_id") in existing else None
+        own = by_id.get(record.get("pane_id"))
         host = running.get(record["session_id"])
         if host is not None:
-            decisions.append(Decision(record, "resumed", host.pane_id, own))
+            decision = Decision(record, "resumed", host.pane_id, own.pane_id if own else None)
+        elif own is None:
+            decision = Decision(record, "no_pane", None, None)
+        elif own.agent == "claude":
+            decision = Decision(record, "conflict", own.pane_id, None)
+        else:
+            decision = Decision(record, "parked", own.pane_id, None)
+        decisions.append(decision)
     return decisions
