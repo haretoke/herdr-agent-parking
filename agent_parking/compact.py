@@ -36,3 +36,20 @@ def confirmation(reply):
     focus = reply.focus or "(none, /compact alone)"
     return (["preparation report (end):"] + ["  " + line for line in report[-REPORT_LINES:]] +
             ["focus: " + focus, "Enter to compact, e to edit the focus, Esc to cancel"])
+
+
+def run(rt, pane_id, focus):
+    """Send `/compact <focus>` (one line; `/compact` alone without a focus) and wait for it.
+    It is done when a compact boundary newer than the request is in the transcript
+    (spike 0-21); otherwise `compact_failed`."""
+    pane, refusal = ready.check(rt, pane_id, "compact")
+    if refusal:
+        return Outcome("refused", refusal, None)
+    line = " ".join((focus or "").split())
+    sent_at = rt.clock()
+    timeout = rt.settings["compact_timeout_seconds"]
+    rt.herdr.call("agent.prompt", {"target": pane_id, "text": ("/compact " + line).strip(), "wait": {
+        "until": ["idle", "done"], "timeout_ms": int(timeout * 1000)}})
+    if transcript.compacted_since(rt.rows_for(pane.session_id), sent_at):
+        return Outcome("compacted", "", None)
+    return Outcome("compact_failed", "no new compaction in the transcript within %s s" % timeout, None)

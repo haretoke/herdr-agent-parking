@@ -60,6 +60,36 @@ class FocusTest(FlowTestCase):
         self.assertIn("Saved.", outcome.reply.text)
 
 
+def boundary(ts):
+    return {"type": "system", "subtype": "compact_boundary", "timestamp": ts,
+            "compactMetadata": {"trigger": "manual"}}
+
+
+class RunTest(FlowTestCase):
+    def test_the_focus_goes_out_as_one_line_and_an_empty_one_as_compact_alone(self):
+        for focus, text in [("keep the plan\nand the ids", "/compact keep the plan and the ids"),
+                            ("", "/compact"), ("  ", "/compact")]:
+            with self.subTest(focus=focus):
+                rt = self.flow()
+                rt.rows_for = lambda session_id: [boundary("2026-09-27T12:00:05Z")]
+                compact.run(rt, "w1:p2", focus)
+                [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
+                self.assertEqual(prompt["params"]["text"], text)
+                self.assertEqual(prompt["params"]["wait"], {"until": ["idle", "done"], "timeout_ms": 300_000})
+
+    def test_it_is_done_when_a_boundary_newer_than_the_request_is_there(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: [boundary("2026-09-27T11:00:00Z"), boundary("2026-09-27T12:00:05Z")]
+        self.assertEqual(compact.run(rt, "w1:p2", "keep").kind, "compacted")
+
+    def test_no_new_boundary_is_compact_failed(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: [boundary("2026-09-27T11:00:00Z")]
+        outcome = compact.run(rt, "w1:p2", "keep")
+        self.assertEqual(outcome.kind, "compact_failed")
+        self.assertIn("300", outcome.message)
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_box_shows_the_end_of_the_report_and_the_editable_focus(self):
         report = "\n".join(["line %d" % i for i in range(1, 11)] +
