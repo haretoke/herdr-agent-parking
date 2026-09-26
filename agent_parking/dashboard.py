@@ -111,6 +111,8 @@ class Dashboard:
                 self._park()
             elif key == "x":
                 self._forget()
+            elif key == "n":
+                self._edit_note()
 
     def _row(self):
         return self.rows[self.selected] if self.rows else None
@@ -152,6 +154,15 @@ class Dashboard:
         self._ask(dialogs.Confirm([question], {"y": "yes"}, others_cancel=True),
                   lambda _: self._later("forgetting…", lambda: self.actions.forget(row.session_id) or
                                         "forgot the record of %s" % row.session_id[:8]))
+
+    def _edit_note(self):
+        row = self._parked_row()
+        if row is None:
+            return
+        prompt = ['note for %s "%s" (a blank line or Ctrl-D ends it):' % (row.pane_id or "(no pane)", row.name or "")]
+        self._ask(dialogs.TextInput(prompt, initial=row.record.get("note") or "", multiline=True),
+                  lambda note: self._later("saving the note…", lambda: self.actions.set_note(row.session_id, note)
+                                           or "note saved"))
 
     def _ask(self, dialog, on_done):
         self.dialog, self.on_done = dialog, on_done

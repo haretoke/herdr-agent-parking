@@ -195,5 +195,22 @@ class ForgetTest(unittest.TestCase):
         self.assertIn("no record", shown.message)
 
 
+class NoteTest(unittest.TestCase):
+    def test_n_edits_the_note_starting_from_the_current_one(self):
+        parked = live(session_id="s1", status="parked", record={"session_id": "s1", "note": "wiki"})
+        actions = FakeActions()
+        shown = board(parked, actions=actions)
+        shown.on_input(b"n")
+        self.assertEqual(shown.lines(78, 24)[-1], " > wiki")
+        shown.on_input(b" table\r\r")
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("set_note", "s1", "wiki table")])
+
+    def test_n_on_a_live_row_has_no_record(self):
+        shown = board(live(), actions=FakeActions())
+        shown.on_input(b"n")
+        self.assertIsNone(shown.dialog)
+
+
 if __name__ == "__main__":
     unittest.main()
