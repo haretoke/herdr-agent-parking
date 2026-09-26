@@ -27,6 +27,7 @@ class Row:
     rss_kb: Optional[int] = None          # the whole foreground group
     claude_rss_kb: Optional[int] = None   # Claude alone (the JSON output)
     version: Optional[str] = None
+    current_version: Optional[str] = None  # what a new `claude` would start
     old: bool = False
     ctx: str = ""
     idle: str = ""
@@ -261,7 +262,8 @@ def _add_process(rt, found):
         return
     found.version = running_version(process, rt.system)
     argv0 = (argv_of(process, rt.system) or [None])[0]
-    found.old = is_old(found.version, current_version(argv0, rt.settings, rt.system, rt.environ))
+    found.current_version = current_version(argv0, rt.settings, rt.system, rt.environ)
+    found.old = is_old(found.version, found.current_version)
 
 
 def _ctx(rt, summary, session_id, now):

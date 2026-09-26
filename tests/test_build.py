@@ -71,6 +71,7 @@ class ProcessTest(BuildTestCase):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": PROCESS}, system=system)
         [row] = got.rows
         self.assertEqual((row.rss_kb, row.claude_rss_kb, row.version, row.old), (210_000, 200_000, "2.1.283", True))
+        self.assertEqual(row.current_version, "2.1.290")
 
 
     def test_a_pane_whose_processes_cannot_be_read_keeps_its_row(self):
