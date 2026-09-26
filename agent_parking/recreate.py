@@ -2,6 +2,8 @@
 
 from collections import namedtuple
 
+from . import herdr_api, layout
+
 # pane_id is the new pane, or None with the reason in message
 Placed = namedtuple("Placed", "pane_id message")
 NEEDS_WORKSPACE = "its workspace is gone too; create a new workspace for it?"
@@ -11,6 +13,19 @@ def _split(rt, target, direction, cwd):
     result = rt.herdr.call("pane.split", {"target_pane_id": target, "direction": direction, "cwd": cwd,
                                           "focus": False})
     return result["pane"]["pane_id"]
+
+
+def _set_ratio(rt, pane_id, tab_id, ratio):
+    """Give the split that holds `pane_id` now the recorded ratio. Its path comes from the
+    live layout, not the record: the dashboard's overlay adds a split of its own while it
+    is open (seen on the Mac). The pane is in place either way, so a failure is left be."""
+    try:
+        exported = rt.herdr.call("layout.export", {"pane_id": pane_id})
+        found = layout.hint(exported.get("layout", exported).get("root"), pane_id)
+        if found is not None:
+            rt.herdr.call("layout.set_split_ratio", {"tab_id": tab_id, "path": found["path"], "ratio": ratio})
+    except herdr_api.HerdrError:
+        pass
 
 
 def place(rt, record, panes, new_workspace=False):
@@ -27,8 +42,7 @@ def place(rt, record, panes, new_workspace=False):
         if hint["position"] == "first":
             # Splits only go right or down; the swap puts the new pane on the left or top.
             rt.herdr.call("pane.swap", {"source_pane_id": new, "target_pane_id": sibling.pane_id})
-        rt.herdr.call("layout.set_split_ratio", {"tab_id": sibling.tab_id, "path": hint["path"],
-                                                 "ratio": hint["ratio"]})
+        _set_ratio(rt, new, sibling.tab_id, hint["ratio"])
         return Placed(new, "")
     # The sibling was a subtree or is gone: right/down splits cannot rebuild the old
     # position, so the pane goes beside any pane of its tab.
