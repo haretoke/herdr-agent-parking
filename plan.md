@@ -605,7 +605,7 @@ server is never restarted.
 - [x] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
 - [x] a Claude pane without `agent_session` is refused with "integration required"
 - [x] a pane with a half-typed line is refused and no `/exit` is sent
-- [ ] the input box is read from `agent read --format ansi`: `❯` alone and `❯` followed only
+- [x] the input box is read from `agent read --format ansi`: `❯` alone and `❯` followed only
       by dim (`ESC[2m`) placeholder text are empty; any other text is a draft; no `❯` line
       between rules is "unknown" and refused
 - [ ] the park confirmation always carries the warning about lost background tasks
