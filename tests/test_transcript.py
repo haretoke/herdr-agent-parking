@@ -107,5 +107,41 @@ class CacheTest(TranscriptTestCase):
         self.assertIsNone(cache.get(None))
 
 
+def assistant(inp=0, create=0, read=0, out=0, model="claude-haiku-4-5-20251001", ts="2026-09-26T16:39:00Z"):
+    return {"type": "assistant", "timestamp": ts, "message": {"model": model, "usage": {
+        "input_tokens": inp, "cache_creation_input_tokens": create,
+        "cache_read_input_tokens": read, "output_tokens": out}}}
+
+
+def user(text="hi", ts="2026-09-26T16:38:00Z", **flags):
+    row = {"type": "user", "timestamp": ts, "message": {"role": "user", "content": text}}
+    row.update(flags)
+    return row
+
+
+def boundary(ts="2026-09-26T16:39:48Z"):
+    return {"type": "system", "subtype": "compact_boundary", "timestamp": ts,
+            "compactMetadata": {"trigger": "manual", "preTokens": 36956, "postTokens": 4257}}
+
+
+class ContextTokensTest(unittest.TestCase):
+    def test_the_tokens_are_the_three_input_counts_of_the_last_assistant_usage(self):
+        rows = [user(), assistant(10, 7555, 29325, out=65), user("again"),
+                assistant(1, 2, 3, out=999, model="claude-opus-5-5"), {"type": "cost-state"}]
+        summary = transcript.summarize(rows)
+        self.assertEqual(summary.tokens, 6)
+        self.assertEqual(summary.model, "claude-opus-5-5")
+
+    def test_usage_before_the_last_boundary_does_not_count(self):
+        rows = [assistant(10, 7555, 29325), boundary(), user("summary", isCompactSummary=True)]
+        self.assertIsNone(transcript.summarize(rows).tokens)
+        rows.append(assistant(4000, 200, 0))
+        self.assertEqual(transcript.summarize(rows).tokens, 4200)
+
+    def test_rows_without_usage_give_no_tokens(self):
+        self.assertIsNone(transcript.summarize([user(), {"type": "assistant", "message": {}}]).tokens)
+        self.assertIsNone(transcript.summarize([]).tokens)
+
+
 if __name__ == "__main__":
     unittest.main()
