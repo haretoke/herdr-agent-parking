@@ -3,8 +3,23 @@
 import json
 import socket
 import uuid
+from collections import namedtuple
 
 MAX_LINE_BYTES = 4 * 1024 * 1024
+
+
+Pane = namedtuple("Pane", "pane_id tab_id workspace_id agent agent_status cwd label title session_id")
+ProcessInfo = namedtuple("ProcessInfo", "shell_pid group_id processes")
+
+
+def pane_from(raw):
+    """A pane reply in a fixed shape; absent keys are None."""
+    session = raw.get("agent_session")
+    return Pane(pane_id=raw.get("pane_id"), tab_id=raw.get("tab_id"),
+                workspace_id=raw.get("workspace_id"), agent=raw.get("agent"),
+                agent_status=raw.get("agent_status"), cwd=raw.get("cwd"), label=raw.get("label"),
+                title=raw.get("terminal_title_stripped"),
+                session_id=session.get("value") if isinstance(session, dict) else None)
 
 
 class HerdrError(Exception):
@@ -41,6 +56,15 @@ class Herdr:
         except OSError as error:
             raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
         return parse_reply(method, line)
+
+    def pane(self, pane_id):
+        raw = self.call("pane.get", {"pane_id": pane_id}).get("pane")
+        return pane_from(raw) if isinstance(raw, dict) else None
+
+    def process_info(self, pane_id):
+        raw = self.call("pane.process_info", {"pane_id": pane_id}).get("process_info") or {}
+        return ProcessInfo(shell_pid=raw.get("shell_pid"), group_id=raw.get("foreground_process_group_id"),
+                           processes=list(raw.get("foreground_processes") or []))
 
 
 def parse_reply(method, line):

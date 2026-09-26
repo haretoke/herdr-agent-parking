@@ -535,7 +535,7 @@ server is never restarted.
       it the call fails with a "not running inside Herdr" error
 - [x] a non-JSON reply, an `error` reply (its code kept), a closed connection and an unreachable
       socket are `HerdrError`s with distinct codes
-- [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
+- [x] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
 - [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
 - [ ] the subscription list is `pane.agent_detected` without a pane plus one
       `pane.agent_status_changed` per given Claude pane

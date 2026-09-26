@@ -37,6 +37,41 @@ class CallTest(unittest.TestCase):
                 self.assertEqual(raised.exception.code, "not_in_herdr")
 
 
+class ShapeTest(unittest.TestCase):
+    def herdr(self, script):
+        fake = FakeHerdr(script)
+        self.addCleanup(fake.close)
+        return herdr_api.Herdr(fake.path)
+
+    def test_a_pane_is_read_into_a_fixed_shape(self):
+        pane = {"pane_id": "w1:p1", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude",
+                "agent_status": "idle", "cwd": "/w", "label": "L", "terminal_title_stripped": "T",
+                "agent_session": {"agent": "claude", "kind": "id", "value": "2716af66-e4d8-4950-8185-97da891f78a9"}}
+        got = self.herdr({"pane.get": {"type": "pane_info", "pane": pane}}).pane("w1:p1")
+        self.assertEqual(got, herdr_api.Pane(pane_id="w1:p1", tab_id="w1:t1", workspace_id="w1",
+                                             agent="claude", agent_status="idle", cwd="/w", label="L",
+                                             title="T", session_id="2716af66-e4d8-4950-8185-97da891f78a9"))
+
+    def test_missing_keys_come_back_as_none(self):
+        for pane in ({"pane_id": "w1:p1"},
+                     {"pane_id": "w1:p1", "agent_session": None},
+                     {"pane_id": "w1:p1", "agent_session": {"kind": "id"}}):
+            with self.subTest(pane=pane):
+                got = self.herdr({"pane.get": {"pane": pane}}).pane("w1:p1")
+                self.assertEqual((got.pane_id, got.agent, got.session_id, got.label), ("w1:p1", None, None, None))
+        self.assertIsNone(self.herdr({"pane.get": {"type": "pane_info"}}).pane("w1:p1"))
+
+    def test_process_info_without_its_keys_is_empty(self):
+        info = self.herdr({"pane.process_info": {"process_info": {}}}).process_info("w1:p1")
+        self.assertEqual(info, herdr_api.ProcessInfo(shell_pid=None, group_id=None, processes=[]))
+        full = {"process_info": {"shell_pid": 5, "foreground_process_group_id": 7,
+                                 "foreground_processes": [{"pid": 7, "name": "2.1.283", "argv": ["claude"]},
+                                                          {"pid": 9}]}}
+        info = self.herdr({"pane.process_info": full}).process_info("w1:p1")
+        self.assertEqual((info.shell_pid, info.group_id), (5, 7))
+        self.assertEqual(info.processes, [{"pid": 7, "name": "2.1.283", "argv": ["claude"]}, {"pid": 9}])
+
+
 class ErrorTest(unittest.TestCase):
     def fake(self, script):
         fake = FakeHerdr(script)
