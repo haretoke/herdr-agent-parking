@@ -155,3 +155,18 @@ def other_agents(panes):
         if p.agent and p.agent != "claude":
             counts[p.agent] = counts.get(p.agent, 0) + 1
     return counts
+
+
+def _labels(rt, method, key, id_key):
+    """`{id: label}` from `workspace.list` or `tab.list`."""
+    result = rt.herdr.call(method, {})
+    return {item.get(id_key): item.get("label") for item in result.get(key) or []}
+
+
+def build(rt, tracker, own_pane_id):
+    """The dashboard's rows now: every Claude pane but the dashboard's own."""
+    panes = rt.herdr.panes()
+    workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
+    tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
+    rows = [row(p, workspace_labels, tab_labels) for p in claude_panes(panes, own_pane_id)]
+    return Inventory(rows, other_agents(panes))
