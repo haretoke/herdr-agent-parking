@@ -88,9 +88,13 @@ Verified on a real device (Mac local, 2026-09-26/27) and in the v0.9.1 documenta
 - `pane process-info --pane <P>` returns
   `foreground_processes[] {pid, argv, argv0, cmdline, cwd, name}` and `shell_pid`. At a
   shell prompt the list holds the shell itself (`-zsh` on one device, `zsh` on
-  another), so "shell only" is `pid == shell_pid`. Claude's `name` is the executable's
-  basename, measured `"2.1.283"` (`~/.local/bin/claude` → `~/.local/share/claude/versions/2.1.283`).
-  No RSS → `ps -o rss= -p`. MCP servers and `caffeinate` share the foreground group.
+  another), so "shell only" is `pid == shell_pid`. On macOS Claude's `name` is the
+  executable's basename, measured `"2.1.283"` (`~/.local/bin/claude` →
+  `~/.local/share/claude/versions/2.1.283`). On Linux the Claude entry has no `argv` /
+  `argv0` / `cmdline` and `name` is `"claude"`; `/proc/<pid>/cmdline` and
+  `/proc/<pid>/exe` have what is missing (spike 0-10). Claude is the foreground group
+  leader. No RSS → `/proc/<pid>/status` or `ps -o rss= -p` (KiB, spike 0-9). MCP
+  servers and `caffeinate` share the foreground group.
 - `agent prompt <P> "/exit"` ends Claude; the shell is back in about 4 s (device).
   `blocked` returns `agent_blocked` without sending (docs).
 - `agent start <name> --kind claude --pane <P> [--timeout MS] -- <args>` starts in a pane
