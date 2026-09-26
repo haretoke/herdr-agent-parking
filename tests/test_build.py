@@ -212,6 +212,14 @@ class SaveObservedTest(BuildTestCase):
         self.assertEqual(list(saved), ["w1:p2"])
         self.assertEqual(saved["w1:p2"]["status"], "idle")
 
+    def test_each_refresh_reads_the_statusline_windows_again(self):
+        self.build({})
+        refresh = terminal.refresher(self.rt, self.tracker, "w1:p9")
+        self.rt.paths.windows.parent.mkdir(parents=True, exist_ok=True)
+        self.rt.paths.windows.write_text(json.dumps({UUID: 200000}))
+        refresh()
+        self.assertEqual(self.rt.statusline_windows, {UUID: 200000})
+
 
 if __name__ == "__main__":
     unittest.main()

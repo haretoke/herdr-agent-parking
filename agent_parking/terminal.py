@@ -8,7 +8,7 @@ import termios
 import time
 import tty
 
-from . import actions, dashboard, herdr_api, idle, inventory
+from . import actions, dashboard, herdr_api, idle, inventory, transcript
 
 
 class Terminal:
@@ -169,9 +169,11 @@ def stop_on_signals():
 
 
 def refresher(rt, tracker, own_pane_id):
-    """The dashboard's refresh: build the list, then save the idle tracking of the live
-    panes to `observed.json` (atomically, so a second dashboard never reads half a file)."""
+    """The dashboard's refresh: read the statusline's windows again, build the list, then
+    save the idle tracking of the live panes to `observed.json` (atomically, so a second
+    dashboard never reads half a file)."""
     def refresh():
+        rt.statusline_windows = transcript.statusline_windows(rt.paths.windows)
         found = inventory.build(rt, tracker, own_pane_id)
         tracker.save(rt.paths.observed, {row.pane_id for row in found.rows if row.record is None})
         return found
