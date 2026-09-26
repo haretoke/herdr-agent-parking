@@ -306,6 +306,26 @@ class BulkTest(unittest.TestCase):
         self.assertIn("gone", results[1][1].message)
 
 
+class ReparkLabelTest(FlowTestCase):
+    def test_a_second_park_keeps_the_label_from_before_the_first(self):
+        from agent_parking import records
+        earlier = {"schema_version": 1, "session_id": UUID, "status": "parked", "pane_id": "w1:p2",
+                   "title": "work", "label_before": "api", "pane_id_history": []}
+        records.write(Path(self.environ["HERDR_PLUGIN_STATE_DIR"]) / "records", earlier)
+        rt = self.flow(**{"pane.get": [pane_reply(label="💤 work"), SHELL]})
+        park.park(rt, "w1:p2", note=None)
+        self.assertEqual(self.saved()["label_before"], "api")
+
+    def test_a_label_the_person_changed_since_is_taken_as_is(self):
+        from agent_parking import records
+        earlier = {"schema_version": 1, "session_id": UUID, "status": "parked", "pane_id": "w1:p2",
+                   "title": "work", "label_before": "api", "pane_id_history": []}
+        records.write(Path(self.environ["HERDR_PLUGIN_STATE_DIR"]) / "records", earlier)
+        rt = self.flow(**{"pane.get": [pane_reply(label="new name"), SHELL]})
+        park.park(rt, "w1:p2", note=None)
+        self.assertEqual(self.saved()["label_before"], "new name")
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

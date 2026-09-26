@@ -32,7 +32,7 @@ def park(rt, pane_id, note):
         "cwd": process.get("cwd") or pane.cwd,
         "argv": inventory.argv_of(process, rt.system) if process else [],
         "claude_version": inventory.running_version(process, rt.system) if process else None,
-        "label_before": pane.label, "layout_hint": layout.hint(tree, pane_id),
+        "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),
         "context_at_park": _context(rt, pane.session_id),
         "parked_at": times.iso(rt.clock()),
         "note": note if note and note.strip() else None,
@@ -72,6 +72,16 @@ def _close_or_keep(rt, pane_id, tree):
     if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
         return "keep", "kept: something other than the shell is running there"
     return "close", ""
+
+
+def _label_before(rt, pane):
+    """The pane's own label. When an earlier record of this session is still there and the
+    pane still shows the label that park gave it (the session was resumed by hand), the
+    earlier `label_before` is the real one."""
+    earlier = records.read(rt.paths.records, pane.session_id)
+    if earlier is not None and pane.label and pane.label == label(rt.settings, earlier):
+        return earlier.get("label_before")
+    return pane.label
 
 
 def _tab_tree(rt, pane_id):
