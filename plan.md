@@ -575,7 +575,7 @@ server is never restarted.
       else is empty
 - [x] its running version is the basename of `readlink /proc/<pid>/exe` when `/proc`
       exists, else `process-info`'s `name` when it looks like a version, else unknown
-- [ ] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
+- [x] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
       from `ps -o rss=`, and the row survives when both fail
 - [ ] RSS is the sum over every foreground pid, with the Claude-only value kept
 - [ ] the current version is the basename of the `realpath` of `argv[0]` when it is a path,

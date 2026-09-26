@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,6 +42,38 @@ class ExeTest(ProcTestCase):
         self.assertFalse(self.system.has_proc())
         self.proc.mkdir()
         self.assertTrue(self.system.has_proc())
+
+
+class RssTest(ProcTestCase):
+    def test_linux_reads_vmrss_in_kib(self):
+        self.put(42, "status", b"Name:\tclaude\nVmPeak:\t 500000 kB\nVmRSS:\t  209920 kB\nThreads:\t12\n")
+        self.assertEqual(self.system.rss_kb(42), 209920)
+
+    def test_without_proc_ps_is_asked(self):
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append(args)
+            return subprocess.CompletedProcess(args, 0, stdout="  197632\n", stderr="")
+
+        self.assertEqual(system.System(proc_root=self.proc, run=run).rss_kb(42), 197632)
+        self.assertEqual(calls, [["ps", "-o", "rss=", "-p", "42"]])
+
+    def test_every_failure_is_none(self):
+        self.proc.mkdir()
+        self.put(43, "status", b"Name:\tzombie\n")
+        self.assertIsNone(self.system.rss_kb(42))
+        self.assertIsNone(self.system.rss_kb(43))
+
+        def gone(args, **kwargs):
+            return subprocess.CompletedProcess(args, 1, stdout="", stderr="")
+
+        def missing(args, **kwargs):
+            raise FileNotFoundError("ps")
+
+        for run in (gone, missing):
+            with self.subTest(run=run.__name__):
+                self.assertIsNone(system.System(proc_root=self.tmp.name + "/none", run=run).rss_kb(42))
 
 
 if __name__ == "__main__":
