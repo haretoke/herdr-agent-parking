@@ -598,7 +598,7 @@ server is never restarted.
 - [x] a changed `state_change_seq` updates `since` and clears `lower_bound`
 - [x] tracking of a vanished pane is dropped at the next save
 - [x] `observed.json` is written by atomic rename and a broken file starts empty
-- [ ] idle times render as `12m`, `3h05m`, `2d`, with `≥` for lower bounds
+- [x] idle times render as `12m`, `3h05m`, `2d`, with `≥` for lower bounds
 - [ ] a change delivered by an event and by polling does not count twice on one row
 
 ### park (fake herdr)

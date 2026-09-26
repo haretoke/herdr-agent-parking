@@ -71,6 +71,22 @@ class SaveTest(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
 
 
+class TextTest(unittest.TestCase):
+    def test_idle_time_text_with_a_lower_bound_mark_and_none_while_working(self):
+        entry = idle.Entry
+        cases = [
+            (entry(1, "idle", NOW - timedelta(minutes=12), False), "12m"),
+            (entry(1, "done", NOW - timedelta(hours=3, minutes=5), False), "3h05m"),
+            (entry(1, "idle", NOW - timedelta(days=2, hours=1), True), "≥2d"),
+            (entry(1, "blocked", NOW - timedelta(minutes=12), False), "12m"),
+            (entry(1, "working", NOW - timedelta(minutes=12), False), "—"),
+        ]
+        for given, text in cases:
+            with self.subTest(entry=given):
+                self.assertEqual(idle.text(given, NOW), text)
+        self.assertEqual(idle.text(None, NOW), "")
+
+
 class BrokenFileTest(SaveTest):
     def test_a_missing_or_broken_file_starts_empty(self):
         clock = Clock()

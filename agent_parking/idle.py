@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from . import storage, times
+from . import display, storage, times
 
 
 @dataclass
@@ -62,3 +62,14 @@ class Tracker:
         if last is not None:
             return Entry(seq, status, last, False)
         return Entry(seq, status, self.clock(), True)
+
+
+def text(entry, now):
+    """The idle column: `12m`, `3h05m`, `2d`, with `≥` when only a lower bound is known;
+    `—` while Claude works."""
+    if entry is None:
+        return ""
+    if entry.status == "working":
+        return "—"
+    age = display.age((now - entry.since).total_seconds())
+    return "≥" + age if entry.lower_bound else age
