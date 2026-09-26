@@ -703,7 +703,7 @@ server is never restarted.
 - [ ] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
 - [x] `n` rewrites the note
 - [x] `x` deletes the record after confirmation and never touches the transcript
-- [ ] `/` filters by name, cwd and label
+- [x] `/` filters by name, cwd and label
 - [x] polling updates status, RSS and ctx, and idle time advances
 - [x] a dropped event subscription keeps polling and shows "events: off" in the footer
 - [x] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
