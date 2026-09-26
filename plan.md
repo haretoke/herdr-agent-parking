@@ -602,7 +602,7 @@ server is never restarted.
 - [x] a change delivered by an event and by polling does not count twice on one row
 
 ### park (fake herdr)
-- [ ] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
+- [x] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
 - [ ] a Claude pane without `agent_session` is refused with "integration required"
 - [ ] a pane with a half-typed line is refused and no `/exit` is sent
 - [ ] the input box is read from `agent read --format ansi`: `❯` alone and `❯` followed only
