@@ -45,3 +45,13 @@ class Actions:
 
     def compact_then_park(self, pane_id, focus, note):
         return compact.compact_then_park(self.rt, pane_id, focus, note)
+
+    def bulk_minutes(self):
+        return self.rt.settings["bulk_idle_minutes"]
+
+    def idle_entries(self):
+        return self.tracker.entries
+
+    def bulk_park(self, pane_ids, note):
+        """`S`: park each pane in turn with the one note; a failure does not stop the rest."""
+        return park.bulk_park(pane_ids, lambda pane_id: park.park(self.rt, pane_id, note))

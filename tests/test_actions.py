@@ -85,5 +85,17 @@ class CompactTest(ActionsTestCase):
         both.assert_called_once_with(acting.rt, "w1:p2", "port map", "wiki")
 
 
+class BulkTest(ActionsTestCase):
+    def test_bulk_parks_each_pane_with_the_one_note_and_reads_the_threshold_and_tracking(self):
+        acting = self.actions()
+        acting.tracker.poll("w1:p2", seq=1, status="idle")
+        self.settings["bulk_idle_minutes"] = 45
+        with unittest.mock.patch.object(park, "park", side_effect=lambda rt, pane_id, note: (pane_id, note)):
+            results = acting.bulk_park(["w1:p2", "w1:p3"], "wiki")
+        self.assertEqual(results, [("w1:p2", ("w1:p2", "wiki")), ("w1:p3", ("w1:p3", "wiki"))])
+        self.assertEqual(acting.bulk_minutes(), 45)
+        self.assertEqual(list(acting.idle_entries()), ["w1:p2"])
+
+
 if __name__ == "__main__":
     unittest.main()
