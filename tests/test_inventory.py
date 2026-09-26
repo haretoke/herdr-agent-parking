@@ -1,7 +1,7 @@
 import unittest
 
 from agent_parking import inventory
-from agent_parking.herdr_api import Pane
+from agent_parking.herdr_api import Pane, ProcessInfo
 
 UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
 
@@ -34,6 +34,19 @@ class RowTest(unittest.TestCase):
     def test_unknown_labels_stay_empty(self):
         row = inventory.row(pane("w1:p1"), workspace_labels={}, tab_labels={})
         self.assertEqual((row.workspace_label, row.tab_label), (None, None))
+
+
+class ClaudeProcessTest(unittest.TestCase):
+    def test_the_claude_process_is_the_foreground_group_leader(self):
+        info = ProcessInfo(shell_pid=5, group_id=63115, processes=[
+            {"pid": 97556, "name": "node", "argv0": "chrome-devtools-mcp"},
+            {"pid": 63115, "name": "2.1.283", "argv": ["/home/u/.local/bin/claude"]},
+            {"pid": 97490, "name": "node"}])
+        self.assertEqual(inventory.claude_process(info)["pid"], 63115)
+
+    def test_no_leader_among_the_processes_gives_none(self):
+        self.assertIsNone(inventory.claude_process(ProcessInfo(5, None, [{"pid": 7}])))
+        self.assertIsNone(inventory.claude_process(ProcessInfo(5, 9, [{"pid": 7}])))
 
 
 if __name__ == "__main__":

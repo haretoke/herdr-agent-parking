@@ -30,3 +30,12 @@ def row(pane, workspace_labels, tab_labels):
                workspace_label=workspace_labels.get(pane.workspace_id),
                tab_label=tab_labels.get(pane.tab_id), label=pane.label, name=pane.title,
                cwd=pane.cwd, status=pane.agent_status, session_id=pane.session_id)
+
+
+def claude_process(info):
+    """Claude's own entry among the pane's foreground processes: the group leader (MCP
+    servers and `caffeinate` share its group; spike 0-10)."""
+    for process in info.processes:
+        if info.group_id is not None and process.get("pid") == info.group_id:
+            return process
+    return None
