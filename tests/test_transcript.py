@@ -237,6 +237,17 @@ class FocusTest(unittest.TestCase):
         self.assertEqual((missing.found, missing.focus), (False, ""))
 
 
+    def test_without_a_tag_the_last_compact_command_line_gives_the_focus(self):
+        # Seen on the Mac: haiku ended its report with the command in a code block and no tag.
+        text = "Nothing to persist.\n\n```\n/compact Ready to begin work; no prior context.\n```"
+        reply = transcript.preparation_reply([user("/prepare-compact"), said(text)], "/prepare-compact")
+        self.assertEqual(reply.focus, "Ready to begin work; no prior context.")
+        for bare in ("`/compact`", "/compact", "Run /compact when ready."):
+            with self.subTest(text=bare):
+                reply = transcript.preparation_reply([user("/prepare-compact"), said(bare)], "/prepare-compact")
+                self.assertEqual(reply.focus, "")
+
+
 class CompactedSinceTest(unittest.TestCase):
     def test_a_boundary_at_or_after_the_given_time_is_detected(self):
         sent = datetime(2026, 9, 26, 16, 39, 33, tzinfo=timezone.utc)

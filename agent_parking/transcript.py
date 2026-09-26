@@ -153,6 +153,8 @@ def percent(tokens, window):
 
 Reply = namedtuple("Reply", "found text focus")
 FOCUS = re.compile(r"<compact-focus>(.*?)</compact-focus>", re.S)
+# A line that is the ready-to-type command, with or without backticks: `/compact <focus>`.
+COMMAND = re.compile(r"^\s*`?/compact[ \t]+(\S.*?)`?\s*$", re.M)
 
 
 def _text(row):
@@ -178,14 +180,15 @@ def _is_prompt(row, prompt):
 
 def preparation_reply(rows, prompt):
     """The assistant's reply to the last `prompt` in `rows`, and the one-line focus of its
-    last `<compact-focus>` tag ("" without one)."""
+    last `<compact-focus>` tag, else of its last `/compact <focus>` line (seen on the Mac:
+    haiku gave the command and no tag), else ""."""
     starts = [i for i, row in enumerate(rows) if _is_prompt(row, prompt)]
     if not starts:
         return Reply(found=False, text="", focus="")
     texts = [_text(row) for row in rows[starts[-1] + 1:] if row.get("type") == "assistant"]
     text = "\n".join(t for t in texts if t)
-    tags = FOCUS.findall(text)
-    focus = " ".join(tags[-1].split()) if tags else ""
+    found = FOCUS.findall(text) or COMMAND.findall(text)
+    focus = " ".join(found[-1].split()) if found else ""
     return Reply(found=True, text=text, focus=focus)
 
 
