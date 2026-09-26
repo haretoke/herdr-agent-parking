@@ -618,10 +618,10 @@ server is never restarted.
 - [x] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
       ratio, boolean path) from `layout.export` is stored before the park, whatever
       `on_park` is
-- [ ] by default (`on_park` unset) the pane is not closed
-- [ ] with `on_park = close`, `pane close <P>` is called after the shell is back and
+- [x] by default (`on_park` unset) the pane is not closed
+- [x] with `on_park = close`, `pane close <P>` is called after the shell is back and
       `parked_mode` is `"close"`
-- [ ] with `on_park = close`, the last pane of a tab and a pane with something other than
+- [x] with `on_park = close`, the last pane of a tab and a pane with something other than
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
       `"keep"` and a reason is returned
 - [ ] a timeout gives `park_failed` and the pane is untouched

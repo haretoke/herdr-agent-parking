@@ -187,6 +187,42 @@ class LayoutHintTest(FlowTestCase):
         self.assertIsNone(self.saved()["layout_hint"])
 
 
+TWO_PANES = {"type": "layout_export", "tab_id": "w1:t1", "root": {
+    "type": "split", "direction": "right", "ratio": 0.5,
+    "first": {"type": "pane", "pane_id": "w1:p1"}, "second": {"type": "pane", "pane_id": "w1:p2"}}}
+ONE_PANE = {"type": "layout_export", "tab_id": "w1:t1", "root": {"type": "pane", "pane_id": "w1:p2"}}
+
+
+class OnParkTest(FlowTestCase):
+    def test_by_default_the_pane_stays(self):
+        outcome = park.park(self.flow(**{"layout.export": TWO_PANES}), "w1:p2", note=None)
+        self.assertNotIn("pane.close", self.fake.methods())
+        self.assertEqual(outcome.record["parked_mode"], "keep")
+
+    def test_close_closes_the_pane_once_the_shell_alone_is_back(self):
+        self.settings["on_park"] = "close"
+        outcome = park.park(self.flow(**{"layout.export": TWO_PANES, "pane.close": {"type": "ok"}}),
+                            "w1:p2", note=None)
+        [close] = [r for r in self.fake.requests if r["method"] == "pane.close"]
+        self.assertEqual(close["params"], {"pane_id": "w1:p2"})
+        self.assertNotIn("pane.rename", self.fake.methods())
+        self.assertEqual((outcome.kind, outcome.record["parked_mode"]), ("parked", "close"))
+        self.assertEqual(self.saved()["parked_mode"], "close")
+
+    def test_close_keeps_the_last_pane_of_a_tab_and_a_busy_pane(self):
+        self.settings["on_park"] = "close"
+        busy = {"type": "process_info", "process_info": {"shell_pid": 100, "foreground_process_group_id": 300,
+                                                         "foreground_processes": [{"pid": 300, "name": "vim"}]}}
+        for overrides, reason in [({"layout.export": ONE_PANE}, "last pane"),
+                                  ({"layout.export": TWO_PANES, "pane.process_info": [PROCESS, busy]}, "shell")]:
+            with self.subTest(reason=reason):
+                outcome = park.park(self.flow(**overrides), "w1:p2", note=None)
+                self.assertNotIn("pane.close", self.fake.methods())
+                self.assertIn("pane.rename", self.fake.methods())
+                self.assertEqual(outcome.record["parked_mode"], "keep")
+                self.assertIn(reason, outcome.message)
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

@@ -23,6 +23,7 @@ def park(rt, pane_id, note):
     if screen.input_box(rt.herdr.screen(pane_id)) != "empty":
         return Outcome("refused", "a draft is in Claude's input box; clear it first (g, then Ctrl+C)", None)
     process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
+    tree = _tab_tree(rt, pane_id)
     record = {
         "schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
         "status": "parking", "pane_id": pane_id, "pane_id_history": [],
@@ -30,7 +31,7 @@ def park(rt, pane_id, note):
         "cwd": process.get("cwd") or pane.cwd,
         "argv": inventory.argv_of(process, rt.system) if process else [],
         "claude_version": inventory.running_version(process, rt.system) if process else None,
-        "label_before": pane.label, "layout_hint": _layout_hint(rt, pane_id),
+        "label_before": pane.label, "layout_hint": layout.hint(tree, pane_id),
         "context_at_park": _context(rt, pane.session_id),
         "parked_at": times.iso(rt.clock()),
     }
@@ -38,19 +39,35 @@ def park(rt, pane_id, note):
     records.start_parking(rt.paths.records, record)
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
     _wait_for_shell(rt, pane_id)
-    rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": _label(rt.settings, record)})
-    record.update(status="parked", parked_mode="keep")
+    mode, reason = _close_or_keep(rt, pane_id, tree)
+    if mode == "close":
+        rt.herdr.call("pane.close", {"pane_id": pane_id})
+    else:
+        rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": _label(rt.settings, record)})
+    record.update(status="parked", parked_mode=mode)
     records.write(rt.paths.records, record)
-    return Outcome("parked", "", record)
+    return Outcome("parked", reason, record)
 
 
-def _layout_hint(rt, pane_id):
-    """Where the pane sits in its tab, for a recreate; None when Herdr cannot say."""
+def _close_or_keep(rt, pane_id, tree):
+    """`on_park = close` closes the pane, except the last one of its tab (that would close
+    the tab; spike 0-16) or one where something else than the shell took the foreground."""
+    if rt.settings["on_park"] != "close":
+        return "keep", ""
+    if not isinstance(tree, dict) or tree.get("type") != "split":
+        return "keep", "kept: the last pane of its tab is never closed"
+    if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
+        return "keep", "kept: something other than the shell is running there"
+    return "close", ""
+
+
+def _tab_tree(rt, pane_id):
+    """The split tree of the pane's tab (`layout.export`), or None when Herdr cannot say."""
     try:
         exported = rt.herdr.call("layout.export", {"pane_id": pane_id})
     except herdr_api.HerdrError:
         return None
-    return layout.hint(exported.get("layout", exported).get("root"), pane_id)
+    return exported.get("layout", exported).get("root")
 
 
 def _label(settings, record):
