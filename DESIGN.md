@@ -225,9 +225,10 @@ again resumes from step 3 when a focus tag is already there.
 2. `pane process-info --pane <P>`: the Claude process is the foreground group leader
    (`pid == foreground_process_group_id`); take its `pid` and `cwd`, its `argv` (from
    `/proc/<pid>/cmdline` when Herdr gives none, as on Linux) and its version (see the
-   `ver` column). Also `pane layout --pane <P>`
-   to store the neighbour pane, the split direction and ratio in the record's
-   `layout_hint` (used by recreate; stored regardless of `on_park`).
+   `ver` column). Also `layout.export` of the tab to store, in the record's
+   `layout_hint`, the pane's sibling in the split tree (a pane id, or `null` when the
+   sibling is a subtree), whether the pane was the `first` or `second` child, the
+   split direction and ratio (used by recreate; stored regardless of `on_park`).
 3. RSS from `/proc/<pid>/status` or `ps -o rss= -p` (display only; continue on failure).
 4. Ask for the note.
 5. **Before `/exit`**, write the record (atomic rename, 0600), `status = "parking"`.
@@ -293,12 +294,16 @@ first, quoted with `shlex.quote`.
 
 ### The recreate procedure
 
-1. If the neighbour pane in `layout_hint` still exists in the same tab, split it with
-   the recorded direction and ratio:
-   `pane split <neighbour> --direction <dir> --ratio <r> --cwd <cwd> --no-focus`
-   (an approximation of the old position; how close it gets is a spike). Without the
-   neighbour but with an existing `tab_id`, split any pane of that tab:
-   `pane split <pane> --direction right --cwd <cwd> --no-focus`.
+1. If `layout_hint` names a sibling pane that still exists in the same tab, split it
+   in the recorded direction: `pane split <sibling> --direction <dir> --cwd <cwd>
+   --no-focus`. When the parked pane was the `first` child, swap the new pane into the
+   first place (`pane.swap {source_pane_id: <new>, target_pane_id: <sibling>}`). Then
+   set the recorded ratio on that split (`layout.set_split_ratio`, `path` = booleans,
+   `true` for `second`). This restores the exact position and size (spike 0-15:
+   identical rects). When the sibling was a subtree (`null`), or is gone, the position
+   cannot be restored with right/down splits: split any pane of the tab to the right
+   (`pane split <pane> --direction right --cwd <cwd> --no-focus`), an approximation.
+   `layout.apply` is not used: it rebuilds the whole tab and kills its live panes.
 2. Without the tab but with an existing `workspace_id`:
    `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`.
 3. Without the workspace, after confirmation:
@@ -462,7 +467,7 @@ Record (schema_version 1):
   "workspace_id": "wD",
   "workspace_label": "project",
   "label_before": null,
-  "layout_hint": {"neighbor_pane_id": "wD:p2S", "direction": "right", "ratio": 0.5},
+  "layout_hint": {"sibling_pane_id": "wD:p2S", "position": "second", "direction": "right", "ratio": 0.5, "path": []},
   "status": "parked",
   "parked_mode": "keep",
   "status_at_park": "idle",
@@ -624,8 +629,6 @@ Everything below is unverified and appears as a spike in `plan.md`:
 - `agent prompt "/exit"` with a half-typed line; how to tell an empty input box from
   `agent read`; the `send-keys` alternative.
 - `claude --resume <UUID>` while the same UUID runs elsewhere.
-- `layout_hint` from `pane layout`; `pane split` directions and ratio; closing the last
-  pane of a tab.
 - Headless `/compact` (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the
   documented list of `-p` slash commands).
 - What happens when `/prepare-compact` is sent where the skill is not installed.

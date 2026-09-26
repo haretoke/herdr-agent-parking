@@ -404,11 +404,31 @@ server is never restarted.
       write one transcript while each keeps its own context. The dashboard must check
       every Claude pane for the UUID right before `r` and never start a second one
       (already in the reconcile design)
-- [ ] for `on_park = close`: whether `pane layout` yields the neighbour and the split
+- [x] for `on_park = close`: whether `pane layout` yields the neighbour and the split
       direction and ratio; whether `pane split` has left / up; whether `--ratio` restores
       the size; how close a recreate gets in nested splits (3 or more panes)
-- [ ] whether `pane close` on the last pane of a tab closes the tab (the reason to keep
+      (2026-09-27, isolated throwaway session, 120x40 tab):
+      - `pane layout` gives pane rects and a flat `splits` list (`direction`, `ratio`);
+        `layout.export` gives the BSP tree (`split` nodes with `direction`, `ratio`,
+        `first`, `second`; `pane` nodes with `pane_id`, `cwd`), which is what
+        `layout_hint` needs: the sibling, first/second, direction, ratio.
+      - `pane split` has only `right` / `down` (no left / up). `layout.set_split_ratio`
+        takes `path` as booleans (`[true]` = the second child), not strings.
+      - Sibling is a single pane, parked pane second (`A | (B / C)`, park C): split B
+        `down --ratio 0.7` gave rects identical to the original.
+      - Sibling is a single pane, parked pane first (`A | B` at 0.3, park A): split B
+        `right`, `pane.swap {source_pane_id: new, target_pane_id: B}`, then
+        `set_split_ratio path [] 0.3` gave identical rects. (`pane.swap` needs
+        `source_pane_id`; `pane_id` alone is rejected.)
+      - Sibling is a subtree (`A | (B / C)` park A, or `(A / B) | C` park C): closing
+        collapses the split and a right/down split of one pane cannot recreate a
+        position beside the whole subtree; the best available result has a different
+        structure. So recreate is exact only when the sibling is a single pane.
+      - `layout.apply` rebuilds a whole tab and drops live PTYs, so it cannot be used
+- [x] whether `pane close` on the last pane of a tab closes the tab (the reason to keep
       that pane even with `on_park = close`)
+      (2026-09-27): yes. Closing the only pane of a new tab removed the tab from
+      `tab list`. `on_park = close` keeps such a pane, as designed
 - [ ] whether a parked session can be compacted headless
       (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the documented list of
       slash commands available with `-p`). If it works, parked sessions can be compacted
@@ -531,8 +551,9 @@ server is never restarted.
 - [ ] `/exit` is sent with `agent prompt <P> "/exit"`
 - [ ] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
       `label_before` keeps the previous label
-- [ ] `layout_hint` (neighbour, direction, ratio) from `pane layout` is stored before the
-      park, whatever `on_park` is
+- [ ] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
+      ratio, boolean path) from `layout.export` is stored before the park, whatever
+      `on_park` is
 - [ ] by default (`on_park` unset) the pane is not closed
 - [ ] with `on_park = close`, `pane close <P>` is called after the shell is back and
       `parked_mode` is `"close"`
@@ -582,8 +603,9 @@ server is never restarted.
 - [ ] swap asks for confirmation when the running version equals the current one
 
 ### recreate (fake herdr)
-- [ ] with the `layout_hint` neighbour present, `pane split <neighbour> --direction <dir> --ratio <r> --cwd <cwd> --no-focus`
-- [ ] without the neighbour but with the tab, `pane split --direction right --cwd <cwd> --no-focus` on a pane of that tab
+- [ ] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio
+- [ ] with a `first`-position hint, the same split followed by `pane.swap {source_pane_id: <new>, target_pane_id: <sibling>}` before the ratio is set
+- [ ] with a subtree sibling (`null`) or a missing sibling but the tab present, `pane split --direction right --cwd <cwd> --no-focus` on a pane of that tab
 - [ ] without the tab but with the workspace, `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`
 - [ ] without the workspace, after confirmation, `workspace create --cwd <cwd> --label <label> --no-focus`
 - [ ] without the cwd, stop with a reason
