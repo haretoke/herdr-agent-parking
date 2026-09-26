@@ -132,3 +132,12 @@ def purge_resumed(resumed_directory, keep_days, now):
             path.unlink()
             deleted.append(path.stem)
     return deleted
+
+
+def with_pane(record, pane_id):
+    """`record` moved to `pane_id`, the previous pane kept in `pane_id_history`."""
+    history = list(record.get("pane_id_history") or [])
+    previous = record.get("pane_id")
+    if previous and previous != pane_id:
+        history.append(previous)
+    return dict(record, pane_id=pane_id, pane_id_history=history)

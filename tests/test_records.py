@@ -64,6 +64,19 @@ class NoteTest(RecordsTestCase):
         self.assertEqual(records.list_records(self.dir)[0]["note"], note)
 
 
+class WithPaneTest(unittest.TestCase):
+    def test_moving_pane_id_keeps_the_old_one_in_the_history(self):
+        before = record(pane_id="wD:p2T", pane_id_history=["wD:p1"])
+        after = records.with_pane(before, "wD:p3A")
+        self.assertEqual(after["pane_id"], "wD:p3A")
+        self.assertEqual(after["pane_id_history"], ["wD:p1", "wD:p2T"])
+        self.assertEqual(before["pane_id_history"], ["wD:p1"])
+
+    def test_the_same_pane_or_a_first_pane_adds_no_history(self):
+        self.assertEqual(records.with_pane(record(pane_id="wD:p2T", pane_id_history=[]), "wD:p2T")["pane_id_history"], [])
+        self.assertEqual(records.with_pane(record(pane_id=None), "wD:p2T")["pane_id_history"], [])
+
+
 class StartParkingTest(RecordsTestCase):
     def test_a_second_park_of_a_session_in_parking_is_refused_and_keeps_the_first(self):
         records.start_parking(self.dir, record(status="parking", note="first"))
