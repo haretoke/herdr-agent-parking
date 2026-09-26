@@ -9,7 +9,7 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import (config, herdr_api, idle, inventory, logfile, park, records, runtime, state, system, terminal,
+from . import (config, display, herdr_api, idle, inventory, logfile, park, records, runtime, state, system, terminal,
                transcript)
 
 DONE = ("parked", "compacted", "resumed")
@@ -71,7 +71,7 @@ def _procedure(environ, run, subject):
         outcome = run(make_runtime(environ))
     except (herdr_api.HerdrError, records.Refused, OSError) as error:
         return fail(error)
-    text = "%s %s" % (outcome.kind.replace("_", " "), subject) + (": " + outcome.message if outcome.message else "")
+    text = display.said(outcome, subject)
     if outcome.kind not in DONE:
         return fail(text)
     print(text)

@@ -40,3 +40,9 @@ def cell(text, columns):
         out.append(ch)
         used += _char_width(ch)
     return "".join(out) + "…"
+
+
+def said(outcome, subject):
+    """What a flow's outcome says about `subject`: `parked w1:p2`, `refused w1:p2: why`."""
+    text = "%s %s" % (outcome.kind.replace("_", " "), subject)
+    return text + (": " + outcome.message if outcome.message else "")

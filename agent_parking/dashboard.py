@@ -26,12 +26,6 @@ HELP = ["keys (any key closes this):",
         "  q   close"]
 
 
-def _said(outcome, pane_id):
-    """The message for a flow's outcome."""
-    text = "%s %s" % (outcome.kind.replace("_", " "), pane_id)
-    return text + (": " + outcome.message if outcome.message else "")
-
-
 def _bulk_said(results):
     parked = [pane_id for pane_id, outcome in results if outcome.kind == "parked"]
     failed = ["%s: %s" % (pane_id, outcome.message or outcome.kind)
@@ -189,7 +183,7 @@ class Dashboard:
             return
         self._ask(dialogs.TextInput(park.confirmation(row), multiline=True),
                   lambda note: self._later("parking %s…" % row.pane_id,
-                                           lambda: _said(self.actions.park(row.pane_id, note), row.pane_id)))
+                                           lambda: display.said(self.actions.park(row.pane_id, note), row.pane_id)))
 
     def _parked_row(self):
         """The selected row when it has a park record; else None and a message."""
@@ -249,7 +243,7 @@ class Dashboard:
             self._ask(dialogs.Confirm([outcome.message + " (y/N)"], {"y": "yes"}, others_cancel=True),
                       lambda _: self._start_resume(row, True))
             return ""
-        return _said(outcome, (outcome.record or {}).get("pane_id") or row.pane_id or "(new pane)")
+        return display.said(outcome, (outcome.record or {}).get("pane_id") or row.pane_id or "(new pane)")
 
     def _swap(self):
         """`R`: park and resume at once, so the session restarts on the current `claude`;
@@ -271,8 +265,8 @@ class Dashboard:
 
     def _swapped(self, row, parked, resumed):
         if resumed is None:
-            return _said(parked, row.pane_id)
-        return _said(resumed, (resumed.record or {}).get("pane_id") or row.pane_id)
+            return display.said(parked, row.pane_id)
+        return display.said(resumed, (resumed.record or {}).get("pane_id") or row.pane_id)
 
     def _compact(self):
         """`c`: Claude prepares (saves its state and proposes a focus), the report and the
@@ -281,7 +275,7 @@ class Dashboard:
         self.message = self._refusal(row, "compact") or ""
         if self.message:
             return
-        self._prepare(row, lambda focus: _said(self.actions.compact(row.pane_id, focus), row.pane_id))
+        self._prepare(row, lambda focus: display.said(self.actions.compact(row.pane_id, focus), row.pane_id))
 
     def _compact_then_park(self):
         """`C`: the note first (nothing waits on the person later), then `c`'s steps, then park."""
@@ -295,7 +289,7 @@ class Dashboard:
 
     def _compacted_then_parked(self, row, focus, note):
         compacted, parked = self.actions.compact_then_park(row.pane_id, focus, note)
-        return _said(parked if parked is not None else compacted, row.pane_id)
+        return display.said(parked if parked is not None else compacted, row.pane_id)
 
     def _prepare(self, row, finish):
         """Prepare, confirm, then `finish(focus)` (compact, or compact and park) gives the message."""
@@ -304,7 +298,7 @@ class Dashboard:
 
     def _prepared(self, row, outcome, finish):
         if outcome.kind != "prepared":
-            return _said(outcome, row.pane_id)
+            return display.said(outcome, row.pane_id)
         self._confirm_compact(row, outcome.reply, outcome.message, finish)
         return ""
 
