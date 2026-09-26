@@ -499,7 +499,7 @@ server is never restarted.
       fallback for a missing skill
 
 ### records
-- [ ] a record is written under its UUID, directories 0700 and files 0600
+- [x] a record is written under its UUID, directories 0700 and files 0600
 - [ ] a non-UUID session_id is rejected (path separators, `..`, empty)
 - [ ] writes are atomic renames; a crash midway keeps the old record
 - [ ] broken JSON is moved to `records/broken/` and reported as a broken record
