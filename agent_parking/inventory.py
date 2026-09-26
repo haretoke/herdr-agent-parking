@@ -135,3 +135,12 @@ def reconcile(parked_records, panes):
             decision = Decision(record, "parked", own.pane_id, None)
         decisions.append(decision)
     return decisions
+
+
+def other_agents(panes):
+    """How many panes run each agent other than Claude (the footer's "codex: n")."""
+    counts = {}
+    for p in panes:
+        if p.agent and p.agent != "claude":
+            counts[p.agent] = counts.get(p.agent, 0) + 1
+    return counts

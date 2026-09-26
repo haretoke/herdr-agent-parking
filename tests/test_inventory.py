@@ -205,6 +205,13 @@ class ReconcileParkedTest(unittest.TestCase):
         self.assertEqual([d.kind for d in decisions], ["resumed", "conflict", "resumed"])
 
 
+class OtherAgentsTest(unittest.TestCase):
+    def test_agents_other_than_claude_are_counted_for_the_footer(self):
+        panes = [pane("w1:p1"), pane("w1:p2", agent="codex"), pane("w1:p3", agent="codex"),
+                 pane("w1:p4", agent="opencode"), pane("w1:p5", agent=None)]
+        self.assertEqual(inventory.other_agents(panes), {"codex": 2, "opencode": 1})
+
+
 class RunningVersionTest(unittest.TestCase):
     def test_linux_reads_the_exe_link_and_macos_the_process_name(self):
         linux = FakeSystem(exes={7: "/home/node/.local/share/claude/versions/2.1.281"})
