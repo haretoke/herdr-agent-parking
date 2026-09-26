@@ -770,7 +770,15 @@ server is never restarted.
       right, 0.6, path []`; the pane closed; `r` split p4, swapped, and set 0.6 on the
       split found in the live layout (`[dashboard | (p7 | p4)]`); after the dashboard
       closed the tab was `[p7 | p4]` at 0.6, as before the park, with the same UUID
-- [ ] Mac local: `R` brings an old Claude up on the new version and `old` disappears
+- [x] Mac local: `R` brings an old Claude up on the new version and `old` disappears
+      (2026-09-27, same session): a haiku started through a link to `versions/2.1.282`,
+      the link then moved to 2.1.283 (what the auto-updater does); the row showed `idle!`
+      and `2.1.282 old` in the detail line; `R` (no question, a newer claude was there)
+      answered `resumed w1:pB` with the same UUID, the process name became `2.1.283` and
+      the mark went away. The first run, with `on_park = close` left in the config, found
+      two defects, both fixed with tests: the swap closed the pane and recreated it next
+      door (a swap now always keeps its pane), and the recreated pane's shell was still
+      starting, so the resume refused (a new pane now gets up to 10 s for its shell)
 - [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
 - [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
 - [ ] Mac local: `c` prepares, shows the focus, compacts, and the row turns `compacted`
