@@ -102,13 +102,18 @@ def list_records(directory):
 
 
 def mark_resumed(directory, resumed_directory, session_id, now):
-    """Move the record of `session_id` to `resumed_directory` as `resumed` at `now`."""
+    """Move the record of `session_id` to `resumed_directory` as `resumed` at `now`. False
+    when it is already gone (another dashboard moved it first)."""
     path = directory / (checked_uuid(session_id) + ".json")
-    current = _read(path)
+    try:
+        current = _read(path)
+    except FileNotFoundError:
+        return False
     if current is None or not _ours(current):
         raise Refused("%s is not a record this version can move" % path.name)
     write(resumed_directory, dict(current, status="resumed", resumed_at=iso(now)))
-    path.unlink()
+    path.unlink(missing_ok=True)
+    return True
 
 
 def purge_resumed(resumed_directory, keep_days, now):

@@ -1,5 +1,6 @@
 import json
 import unittest
+import unittest.mock
 from datetime import timedelta
 
 from agent_parking import idle, inventory, records, state, terminal, times, transcript
@@ -130,6 +131,18 @@ class ResumedByHandTest(BuildTestCase):
         paths = state.paths(self.environ, self.settings)
         self.assertIsNone(records.read(paths.records, OTHER))
         self.assertEqual(records.read(paths.resumed, OTHER)["pane_id"], "w1:p6")
+
+
+class SettledElsewhereTest(BuildTestCase):
+    def test_a_record_another_dashboard_settled_since_the_listing_is_left_alone(self):
+        self.park(OTHER, "w1:p5", "color notes", 2)
+        directory = state.paths(self.environ, self.settings).records
+        listed = records.list_records(directory)
+        (directory / (OTHER + ".json")).unlink()  # the other dashboard moved it meanwhile
+        with unittest.mock.patch.object(records, "list_records", return_value=listed):
+            got = self.build({"pane.list": pane_list(raw_pane("w1:p5", session_id=OTHER)),
+                              "pane.rename": {"type": "pane_info"}})
+        self.assertEqual([(r.pane_id, r.status) for r in got.rows], [("w1:p5", "idle")])
 
 
 class ConflictTest(BuildTestCase):

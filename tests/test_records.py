@@ -109,11 +109,15 @@ class ResumedTest(RecordsTestCase):
 
     def test_a_resumed_record_moves_to_resumed_with_its_time(self):
         records.write(self.dir, record(status="parked"))
-        records.mark_resumed(self.dir, self.resumed, UUID, self.NOW)
+        self.assertTrue(records.mark_resumed(self.dir, self.resumed, UUID, self.NOW))
         self.assertFalse((self.dir / (UUID + ".json")).exists())
         moved = json.loads((self.resumed / (UUID + ".json")).read_text(encoding="utf-8"))
         self.assertEqual((moved["status"], moved["resumed_at"]), ("resumed", "2026-09-27T12:00:00Z"))
         self.assertEqual(stat.S_IMODE(self.resumed.stat().st_mode), 0o700)
+
+    def test_a_record_already_moved_by_someone_else_is_not_an_error(self):
+        self.assertFalse(records.mark_resumed(self.dir, self.resumed, UUID, self.NOW))
+        self.assertFalse(self.resumed.exists())
 
     def test_resumed_records_are_deleted_after_the_retention_only(self):
         keep_days = 30
