@@ -198,3 +198,13 @@ def compacted_since(rows, moment):
             if at is not None and at >= moment:
                 return True
     return False
+
+
+def pending_preparation(rows, prompt):
+    """The reply to the last `prompt` when it proposed a focus and no compaction followed
+    it (a `c` pressed again after a dialog); else None."""
+    starts = [i for i, row in enumerate(rows) if _is_prompt(row, prompt)]
+    if not starts or any(row.get("subtype") == "compact_boundary" for row in rows[starts[-1]:]):
+        return None
+    reply = preparation_reply(rows, prompt)
+    return reply if reply.focus else None

@@ -648,7 +648,7 @@ server is never restarted.
 - [x] `agent_prompt_stalled` with `Unknown command:` on screen (the skill is missing) sends the
       built-in text instead and says so; without a fallback (`prepare_prompt` set) it is
       `prepare_failed`
-- [ ] `c` again with a focus tag already present continues from the focus extraction
+- [x] `c` again with a focus tag already present continues from the focus extraction
 - [x] no focus tag gives an empty focus in the confirmation
 - [x] a boundary that does not appear within `compact_timeout_seconds` gives `compact_failed`
 - [ ] `C` asks for the note first, runs the compact flow, then the park procedure; a failed

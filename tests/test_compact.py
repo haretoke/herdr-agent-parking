@@ -55,8 +55,10 @@ SKILL_LINE = "<command-message>prepare-compact</command-message>\n<command-name>
 class FocusTest(FlowTestCase):
     def test_the_focus_is_read_from_the_reply_to_the_preparation(self):
         rt = self.flow()
-        rt.rows_for = lambda session_id: [user(SKILL_LINE), said("Saved.\n<compact-focus>keep the plan</compact-focus>")]
+        reply = [user(SKILL_LINE), said("Saved.\n<compact-focus>keep the plan</compact-focus>")]
+        rt.rows_for = lambda session_id: reply if "agent.prompt" in self.fake.methods() else []
         outcome = compact.prepare(rt, "w1:p2")
+        self.assertIn("agent.prompt", self.fake.methods())
         self.assertEqual((outcome.kind, outcome.reply.focus), ("prepared", "keep the plan"))
         self.assertIn("Saved.", outcome.reply.text)
 
@@ -124,6 +126,29 @@ class SkillMissingTest(FlowTestCase):
         outcome = compact.prepare(rt, "w1:p2")
         self.assertEqual(outcome.kind, "prepare_failed")
         self.assertIn("Unknown command", outcome.message)
+
+
+class AgainTest(FlowTestCase):
+    def test_c_again_reuses_a_finished_preparation_without_sending_it_again(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: [user(SKILL_LINE), said("<compact-focus>keep the plan</compact-focus>")]
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertNotIn("agent.prompt", self.fake.methods())
+        self.assertEqual((outcome.kind, outcome.reply.focus), ("prepared", "keep the plan"))
+        self.assertIn("earlier preparation", outcome.message)
+
+    def test_a_preparation_already_followed_by_a_compaction_is_not_reused(self):
+        rt = self.flow()
+        rows = [user(SKILL_LINE), said("<compact-focus>old</compact-focus>"), boundary("2026-09-27T11:59:50Z")]
+        rt.rows_for = lambda session_id: rows
+        compact.prepare(rt, "w1:p2")
+        self.assertIn("agent.prompt", self.fake.methods())
+
+    def test_a_reply_without_a_tag_is_not_reused(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: [user(SKILL_LINE), said("working on it")]
+        compact.prepare(rt, "w1:p2")
+        self.assertIn("agent.prompt", self.fake.methods())
 
 
 class ConfirmationTest(unittest.TestCase):

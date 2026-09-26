@@ -18,6 +18,11 @@ def prepare(rt, pane_id):
     if refusal:
         return Outcome("refused", refusal, None)
     preparation = config.preparation(rt.settings)
+    rows = rt.rows_for(pane.session_id)
+    for text in (preparation.first, preparation.fallback):
+        earlier = transcript.pending_preparation(rows, text) if text else None
+        if earlier is not None:
+            return Outcome("prepared", "using the earlier preparation (not sent again)", earlier)
     sent, note = preparation.first, ""
     try:
         result = _send_and_wait(rt, pane_id, sent)
