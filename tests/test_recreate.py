@@ -58,5 +58,16 @@ class TabTest(FlowTestCase):
                                                          "cwd": "/repo", "focus": False})])
 
 
+class WorkspaceTest(FlowTestCase):
+    def test_without_the_tab_a_new_tab_opens_in_the_workspace(self):
+        created = {"type": "tab_created", "tab": {"tab_id": "w1:t9"}, "root_pane": {"pane_id": "w1:p20"}}
+        rt = self.flow(**{"tab.create": created})
+        placed = recreate.place(rt, dict(RECORD, layout_hint=None), [pane("w1:p3", "w1:t4")])
+        self.assertEqual(placed.pane_id, "w1:p20")
+        calls = [(r["method"], r["params"]) for r in self.fake.requests]
+        self.assertEqual(calls, [("tab.create", {"workspace_id": "w1", "cwd": "/repo", "label": "api",
+                                                 "focus": False})])
+
+
 if __name__ == "__main__":
     unittest.main()

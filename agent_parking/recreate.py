@@ -30,4 +30,8 @@ def place(rt, record, panes):
     in_tab = [p for p in panes if p.tab_id == record.get("tab_id")]
     if in_tab:
         return Placed(_split(rt, in_tab[0].pane_id, "right", record["cwd"]), "")
+    if any(p.workspace_id == record.get("workspace_id") for p in panes):
+        result = rt.herdr.call("tab.create", {"workspace_id": record["workspace_id"], "cwd": record["cwd"],
+                                              "label": record.get("tab_label"), "focus": False})
+        return Placed(result["root_pane"]["pane_id"], "")
     return Placed(None, "no place to put the pane back")

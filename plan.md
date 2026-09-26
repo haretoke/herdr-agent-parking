@@ -682,7 +682,7 @@ server is never restarted.
 - [x] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio
 - [x] with a `first`-position hint, the same split followed by `pane.swap {source_pane_id: <new>, target_pane_id: <sibling>}` before the ratio is set
 - [x] with a subtree sibling (`null`) or a missing sibling but the tab present, `pane split --direction right --cwd <cwd> --no-focus` on a pane of that tab
-- [ ] without the tab but with the workspace, `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`
+- [x] without the tab but with the workspace, `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`
 - [ ] without the workspace, after confirmation, `workspace create --cwd <cwd> --label <label> --no-focus`
 - [ ] without the cwd, stop with a reason
 - [ ] the new pane ID is written and the old one goes to `pane_id_history`
