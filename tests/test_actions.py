@@ -2,7 +2,7 @@ import os
 import unittest
 import unittest.mock
 
-from agent_parking import actions, idle, park, records
+from agent_parking import actions, idle, park, records, resume
 from tests.flows import UUID
 from tests.flows import FlowRuntimeTestCase
 
@@ -52,6 +52,15 @@ class SetNoteTest(ActionsTestCase):
         self.assertEqual(records.read(acting.rt.paths.records, UUID)["title"], "work")
         acting.set_note(UUID, "  ")
         self.assertIsNone(records.read(acting.rt.paths.records, UUID)["note"])
+
+
+class ResumeTest(ActionsTestCase):
+    def test_resume_runs_the_resume_flow_and_now_is_the_runtimes_clock(self):
+        acting = self.actions()
+        with unittest.mock.patch.object(resume, "resume", return_value="outcome") as flow:
+            self.assertEqual(acting.resume(UUID, True), "outcome")
+        flow.assert_called_once_with(acting.rt, UUID, new_workspace=True)
+        self.assertEqual(acting.now(), acting.rt.clock())
 
 
 if __name__ == "__main__":

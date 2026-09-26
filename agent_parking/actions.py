@@ -1,7 +1,7 @@
 """What the dashboard's keys do, on the real Herdr and records (the dashboard itself only
 decides when; tests give it a fake)."""
 
-from . import park, records
+from . import park, records, resume
 
 
 class Actions:
@@ -27,3 +27,9 @@ class Actions:
         record["note"] = note if note and note.strip() else None
         records.write(self.rt.paths.records, record)
         return None
+
+    def now(self):
+        return self.rt.clock()
+
+    def resume(self, session_id, new_workspace):
+        return resume.resume(self.rt, session_id, new_workspace=new_workspace)
