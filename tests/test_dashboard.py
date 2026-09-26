@@ -343,5 +343,29 @@ class CompactTest(unittest.TestCase):
         self.assertIn("compacted w8:p36", shown.message)
 
 
+    def test_e_edits_the_focus_and_an_empty_one_sends_compact_alone(self):
+        actions = FakeActions(prepare=compact.Outcome("prepared", "", REPLY),
+                              compact=compact.Outcome("compacted", "", None))
+        shown = board(live(), actions=actions)
+        shown.on_input(b"c")
+        shown.run_pending()
+        shown.on_input(b"e")
+        self.assertEqual(shown.lines(78, 30)[-1], " > port map")
+        shown.on_input(b" and TODOs\r")
+        self.assertIn("focus: port map and TODOs", "\n".join(shown.lines(78, 30)))
+        shown.on_input(b"e\x15\r\r")
+        shown.run_pending()
+        self.assertEqual(actions.calls[-1], ("compact", "w8:p36", None))
+
+    def test_a_preparation_that_stops_says_why_and_compacts_nothing(self):
+        blocked = compact.Outcome("blocked", "Claude stopped at a dialog while preparing", None)
+        actions = FakeActions(prepare=blocked)
+        shown = board(live(), actions=actions)
+        shown.on_input(b"c")
+        shown.run_pending()
+        self.assertIsNone(shown.dialog)
+        self.assertIn("blocked w8:p36: Claude stopped at a dialog", shown.message)
+
+
 if __name__ == "__main__":
     unittest.main()

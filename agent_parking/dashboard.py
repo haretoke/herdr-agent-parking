@@ -252,7 +252,7 @@ class Dashboard:
         self.message = self._refusal(row, "compact") or ""
         if self.message:
             return
-        self._later("preparing %s: Claude saves its state first (up to %s)…" % (row.pane_id, "10 min"),
+        self._later("preparing %s: Claude saves its state first (this can take minutes)…" % row.pane_id,
                     lambda: self._prepared(row, self.actions.prepare(row.pane_id)))
 
     def _prepared(self, row, outcome):
@@ -263,9 +263,18 @@ class Dashboard:
 
     def _confirm_compact(self, row, reply, remark):
         lines = ([remark] if remark else []) + compact.confirmation(reply)
-        self._ask(dialogs.Confirm(lines, {"enter": "yes"}),
-                  lambda _: self._later("compacting %s…" % row.pane_id,
-                                        lambda: _said(self.actions.compact(row.pane_id, reply.focus), row.pane_id)))
+
+        def chosen(choice):
+            if choice == "edit":
+                self._ask(dialogs.TextInput(["focus (one line; empty sends /compact alone):"],
+                                            initial=reply.focus or ""),
+                          lambda focus: self._confirm_compact(row, reply._replace(focus=focus.strip() or None),
+                                                              remark))
+            else:
+                self._later("compacting %s…" % row.pane_id,
+                            lambda: _said(self.actions.compact(row.pane_id, reply.focus), row.pane_id))
+
+        self._ask(dialogs.Confirm(lines, {"enter": "yes", "e": "edit"}), chosen)
 
     def _set_filter(self, text):
         chosen = self._row()
