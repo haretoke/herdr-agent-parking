@@ -486,7 +486,8 @@ server is never restarted.
 - [x] a missing `config.json` gives the defaults silently; an empty, broken or non-object one
       gives the defaults and a logged reason; a mistyped value falls back to its own default
       and an unknown key is ignored, each with a logged reason
-- [ ] `records_dir` moves only the records; `observed.json` and the log stay in the state directory
+- [x] `records_dir` moves only the records; `observed.json` and the log stay in the state directory (`~` expands to
+      `HOME`)
 - [ ] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR`, then `~/.claude`
 - [ ] `context_window_by_model` is a map of model id prefix to a positive integer; other
       shapes are ignored with a logged reason
