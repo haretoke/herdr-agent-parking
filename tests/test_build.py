@@ -3,7 +3,7 @@ import unittest
 from agent_parking import idle, inventory
 from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
-from tests.flows import UUID, FlowRuntimeTestCase
+from tests.flows import PROCESS, UUID, FlowRuntimeTestCase
 
 
 def raw_pane(pane_id, agent="claude", status="idle", session_id=UUID, label=None, title="work"):
@@ -20,14 +20,14 @@ def pane_list(*panes):
 
 
 class BuildTestCase(FlowRuntimeTestCase):
-    def build(self, script, own="w1:p9"):
+    def build(self, script, own="w1:p9", system=None):
         base = {"pane.list": pane_list(), "agent.list": {"type": "agent_list", "agents": []},
                 "workspace.list": {"type": "workspace_list", "workspaces": []},
                 "tab.list": {"type": "tab_list", "tabs": []},
                 "pane.process_info": {"type": "process_info", "process_info": {}}}
         base.update(script)
         self.rt = self.runtime(base)
-        self.rt.system = FakeSystem(proc=False)
+        self.rt.system = system or FakeSystem(proc=False)
         self.tracker = idle.Tracker(self.rt.clock, lambda pane_id: None)
         return inventory.build(self.rt, self.tracker, own)
 
@@ -51,6 +51,16 @@ class LabelErrorTest(BuildTestCase):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "workspace.list": Error("internal"),
                           "tab.list": Error("internal")})
         self.assertEqual([(r.pane_id, r.tab_label, r.workspace_label) for r in got.rows], [("w1:p2", None, None)])
+
+
+class ProcessTest(BuildTestCase):
+    def test_memory_and_version_come_from_the_claude_process_group(self):
+        system = FakeSystem(proc=False)
+        system.rss = {200: 200_000, 201: 10_000}
+        system.links = {"/home/u/.local/bin/claude": "/home/u/.local/share/claude/versions/2.1.290"}
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": PROCESS}, system=system)
+        [row] = got.rows
+        self.assertEqual((row.rss_kb, row.claude_rss_kb, row.version, row.old), (210_000, 200_000, "2.1.283", True))
 
 
 if __name__ == "__main__":

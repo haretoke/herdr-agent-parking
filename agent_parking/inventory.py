@@ -172,5 +172,21 @@ def build(rt, tracker, own_pane_id):
     panes = rt.herdr.panes()
     workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
     tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
-    rows = [row(p, workspace_labels, tab_labels) for p in claude_panes(panes, own_pane_id)]
+    rows = []
+    for pane in claude_panes(panes, own_pane_id):
+        found = row(pane, workspace_labels, tab_labels)
+        _add_process(rt, found)
+        rows.append(found)
     return Inventory(rows, other_agents(panes))
+
+
+def _add_process(rt, found):
+    """Memory and version from the pane's foreground processes."""
+    info = rt.herdr.process_info(found.pane_id)
+    found.rss_kb, found.claude_rss_kb = memory(info, rt.system)
+    process = claude_process(info)
+    if process is None:
+        return
+    found.version = running_version(process, rt.system)
+    argv0 = (argv_of(process, rt.system) or [None])[0]
+    found.old = is_old(found.version, current_version(argv0, rt.settings, rt.system, rt.environ))
