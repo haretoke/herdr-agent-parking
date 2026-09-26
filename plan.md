@@ -250,10 +250,21 @@ server is never restarted.
       `HERDR_PLUGIN_CONTEXT_JSON` whose `focused_pane_id` was the pane under the overlay
       (`w1:p1`). When `probe.py` exited the overlay closed and focus went back to
       `w1:p1`
-- [ ] from inside the overlay, socket `pane.focus {pane_id}` onto pane X in another tab,
+- [x] from inside the overlay, socket `pane.focus {pane_id}` onto pane X in another tab,
       then exit the dashboard: does focus stay on X or does the overlay's "restore the
       previous focus" take it back? If it does, `g` is limited to tab / zoomed placements
       or sends `pane.focus` from a detached process after exit
+      (2026-09-27, Mac local, isolated throwaway session without a TUI client): the
+      overlay (`w1:p6`, over `w1:p1` in tab `w1:t1`) sent
+      `{"method":"pane.focus","params":{"pane_id":"w1:p5"}}` on the raw socket for a pane
+      in tab `w1:t2`. The reply was `pane_info` with `focused: true`, `pane list` showed
+      only `w1:p5` focused, and after the overlay exited focus stayed on `w1:p5` with
+      `w1:t2` the focused tab. Tab `w1:t1` was left unzoomed with its own focused pane
+      back on `w1:p1`. So the overlay's restore does not undo an explicit focus: `g` can
+      send `pane.focus` and exit, in the overlay too, without a detached process.
+      `pane.focus` is in the API schema (`herdr api schema --json`) although the socket
+      doc's method table lists only `pane.focus_direction`; the CLI has no pane-id focus.
+      Not checked with a TUI client attached; the real-device `g` check covers that
 - [ ] what `[[events]]` `pane.exited` reports (root shell or foreground child)
 - [ ] with the dashboard open as a tab, a status change of a Claude in another tab is
       seen both through `events.subscribe` (`pane.agent_status_changed`) and through
