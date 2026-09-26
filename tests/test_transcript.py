@@ -190,6 +190,22 @@ class WindowTest(TranscriptTestCase):
         self.assertEqual(transcript.statusline_windows(path), {})
 
 
+class LoadTest(TranscriptTestCase):
+    def test_a_missing_unreadable_or_empty_transcript_gives_an_empty_summary(self):
+        empty = transcript.load(self.put("-a", text=""))
+        self.assertEqual(empty, transcript.EMPTY)
+        self.assertEqual((empty.tokens, empty.compacted), (None, False))
+        self.assertEqual(transcript.load(self.config / "projects" / "-a" / "missing.jsonl"), transcript.EMPTY)
+        self.assertEqual(transcript.load(self.put("-b", text="garbage\n")), transcript.EMPTY)
+        directory = self.config / "projects" / "-c" / (UUID + ".jsonl")
+        directory.mkdir(parents=True)
+        self.assertEqual(transcript.load(directory), transcript.EMPTY)
+
+    def test_a_readable_transcript_is_summarized_from_its_tail(self):
+        path = self.put("-a", text=jsonl(user(), assistant(10, 7555, 29325)))
+        self.assertEqual(transcript.load(path).tokens, 36890)
+
+
 class PercentTest(unittest.TestCase):
     def test_the_percentage_is_truncated_like_the_statusline(self):
         for tokens, window, expected in [(36890, 200_000, 18), (199_999, 200_000, 99), (0, 200_000, 0),

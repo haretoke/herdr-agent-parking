@@ -558,7 +558,7 @@ server is never restarted.
 - [x] the window size comes from `context_window_by_model` by model id prefix, else from
       the statusline file `context-windows.json` by session id, else is unknown
 - [x] the percentage is truncated (36890 / 200000 → 18) and absent when the window is unknown
-- [ ] a missing, unreadable or empty transcript gives an empty ctx
+- [x] a missing, unreadable or empty transcript gives an empty ctx
 - [ ] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
       after the line whose user text equals the sent prompt; none gives an empty focus
 - [ ] a new `compact_boundary` after a given time is detected

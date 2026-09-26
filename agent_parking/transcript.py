@@ -72,6 +72,17 @@ class Cache:
 Summary = namedtuple("Summary", "tokens model compacted compacted_at")
 
 
+EMPTY = Summary(tokens=None, model=None, compacted=False, compacted_at=None)
+
+
+def load(path, cap=TAIL_BYTES):
+    """The summary of the transcript at `path`; EMPTY when it cannot be read."""
+    try:
+        return summarize(read_tail(path, cap))
+    except OSError:
+        return EMPTY
+
+
 def _usage(row):
     message = row.get("message") if row.get("type") == "assistant" else None
     usage = message.get("usage") if isinstance(message, dict) else None
