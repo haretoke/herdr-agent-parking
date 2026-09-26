@@ -149,6 +149,25 @@ class RecordFieldsTest(FlowTestCase):
         self.assertEqual(self.saved()["parked_mode"], "keep")
 
 
+class ExitTest(FlowTestCase):
+    def test_exit_is_a_plain_agent_prompt_without_a_wait(self):
+        park.park(self.flow(), "w1:p2", note=None)
+        [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(prompt["params"], {"target": "w1:p2", "text": "/exit"})
+
+
+class LabelTest(FlowTestCase):
+    def test_after_the_shell_is_back_the_pane_is_labelled_and_the_old_label_kept(self):
+        rt = self.flow(**{"pane.get": [pane_reply(label="api"), pane_reply(label="api"), SHELL]})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        self.assertEqual(len(self.slept), 1)
+        [rename] = [r for r in self.fake.requests if r["method"] == "pane.rename"]
+        self.assertEqual(rename["params"], {"pane_id": "w1:p2", "label": "💤 work"})
+        self.assertLess(self.fake.methods().index("agent.prompt"), self.fake.methods().index("pane.rename"))
+        self.assertEqual(self.saved()["label_before"], "api")
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

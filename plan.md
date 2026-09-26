@@ -612,8 +612,8 @@ server is never restarted.
 - [x] the record is written before `/exit` is sent (order of the fake herdr calls)
 - [x] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
       `label_before`, all read before `/exit`, and `parked_mode` after
-- [ ] `/exit` is sent with `agent prompt <P> "/exit"`
-- [ ] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
+- [x] `/exit` is sent with `agent prompt <P> "/exit"`
+- [x] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
       `label_before` keeps the previous label
 - [ ] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
       ratio, boolean path) from `layout.export` is stored before the park, whatever

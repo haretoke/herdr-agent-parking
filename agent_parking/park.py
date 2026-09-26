@@ -38,9 +38,16 @@ def park(rt, pane_id, note):
     records.start_parking(rt.paths.records, record)
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
     _wait_for_shell(rt, pane_id)
+    rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": _label(rt.settings, record)})
     record.update(status="parked", parked_mode="keep")
     records.write(rt.paths.records, record)
     return Outcome("parked", "", record)
+
+
+def _label(settings, record):
+    """The parked pane's label from `parked_label_format`."""
+    return settings["parked_label_format"].format(title=record.get("title") or "",
+                                                  short_id=record["session_id"][:8])
 
 
 def _context(rt, session_id):
