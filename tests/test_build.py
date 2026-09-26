@@ -1,7 +1,8 @@
+import json
 import unittest
 from datetime import timedelta
 
-from agent_parking import idle, inventory, records, state, times, transcript
+from agent_parking import idle, inventory, records, state, terminal, times, transcript
 from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
 from tests.flows import NOW, PROCESS, UUID, FlowRuntimeTestCase
@@ -186,6 +187,16 @@ class PollAgainTest(BuildTestCase):
         self.fake.script["agent.list"] = {"type": "agent_list", "agents": [{"pane_id": "w1:p2", "state_change_seq": 5}]}
         third = inventory.build(self.rt, self.tracker, "w1:p9").rows[0]
         self.assertEqual((third.status, third.rss_kb, third.ctx, third.idle), ("working", 260_000, "52k", "—"))
+
+
+class SaveObservedTest(BuildTestCase):
+    def test_each_refresh_saves_the_idle_tracking_of_the_live_panes(self):
+        self.build({"pane.list": [pane_list(raw_pane("w1:p2"), raw_pane("w1:p3")), pane_list(raw_pane("w1:p2"))]})
+        refresh = terminal.refresher(self.rt, self.tracker, "w1:p9")
+        refresh()
+        saved = json.loads(self.rt.paths.observed.read_text())
+        self.assertEqual(list(saved), ["w1:p2"])
+        self.assertEqual(saved["w1:p2"]["status"], "idle")
 
 
 if __name__ == "__main__":

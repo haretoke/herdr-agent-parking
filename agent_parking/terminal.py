@@ -151,10 +151,19 @@ def stop_on_signals():
     return stopping
 
 
+def refresher(rt, tracker, own_pane_id):
+    """The dashboard's refresh: build the list, then save the idle tracking of the live
+    panes to `observed.json` (atomically, so a second dashboard never reads half a file)."""
+    def refresh():
+        found = inventory.build(rt, tracker, own_pane_id)
+        tracker.save(rt.paths.observed, {row.pane_id for row in found.rows if row.record is None})
+        return found
+    return refresh
+
+
 def run_dashboard(rt, own_pane_id):
     tracker = idle.Tracker.load(rt.paths.observed, rt.clock)
-    board = dashboard.Dashboard(refresh=lambda: inventory.build(rt, tracker, own_pane_id),
-                                on_event=tracker.on_event)
+    board = dashboard.Dashboard(refresh=refresher(rt, tracker, own_pane_id), on_event=tracker.on_event)
     stopping = stop_on_signals()
     with Terminal() as terminal:
         run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,
