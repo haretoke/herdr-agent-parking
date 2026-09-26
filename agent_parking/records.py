@@ -22,11 +22,19 @@ def _private_dir(directory):
 
 
 def write(directory, record):
-    """Write `record` as `<directory>/<session_id>.json`, readable by the owner only."""
+    """Write `record` as `<directory>/<session_id>.json`, readable by the owner only.
+
+    The file is replaced atomically: a failure midway keeps the previous record."""
     name = checked_uuid(record.get("session_id")) + ".json"
     _private_dir(directory)
     path = directory / name
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump(record, f, ensure_ascii=False, indent=2)
+    tmp = directory / (".%s.%d.tmp" % (name, os.getpid()))
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(record, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return path

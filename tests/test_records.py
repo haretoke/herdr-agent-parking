@@ -3,6 +3,7 @@ import os
 import stat
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from agent_parking import records
@@ -40,6 +41,19 @@ class WriteTest(RecordsTestCase):
                 with self.assertRaises(ValueError):
                     records.write(self.dir, record(session_id=bad))
         self.assertFalse(self.dir.exists())
+
+    def test_a_write_that_fails_midway_keeps_the_old_record_and_leaves_no_temp_file(self):
+        path = records.write(self.dir, record(note="old"))
+
+        def half_then_crash(obj, f, **kwargs):
+            f.write('{"schema_version": 1, "sess')
+            raise OSError("disk full")
+
+        with unittest.mock.patch.object(records.json, "dump", half_then_crash):
+            with self.assertRaises(OSError):
+                records.write(self.dir, record(note="new"))
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["note"], "old")
+        self.assertEqual(sorted(p.name for p in self.dir.iterdir()), [UUID + ".json"])
 
 
 if __name__ == "__main__":
