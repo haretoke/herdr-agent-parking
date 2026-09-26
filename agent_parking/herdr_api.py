@@ -133,3 +133,10 @@ class Subscription:
             self.closed = True
             self.reader.close()
             self.client.close()
+
+
+def status_subscriptions(pane_ids):
+    """What the dashboard subscribes to: every Claude arriving or leaving, and the status of
+    each Claude pane (`pane.agent_status_changed` requires a pane id; spike 0-6)."""
+    return [{"type": "pane.agent_detected"}] + [
+        {"type": "pane.agent_status_changed", "pane_id": pane_id} for pane_id in pane_ids]

@@ -98,6 +98,16 @@ class SubscribeTest(unittest.TestCase):
         self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
 
 
+class StatusSubscriptionsTest(unittest.TestCase):
+    def test_agent_detected_for_all_panes_and_status_changes_per_claude_pane(self):
+        self.assertEqual(herdr_api.status_subscriptions(["w1:p5", "w8:p36"]), [
+            {"type": "pane.agent_detected"},
+            {"type": "pane.agent_status_changed", "pane_id": "w1:p5"},
+            {"type": "pane.agent_status_changed", "pane_id": "w8:p36"},
+        ])
+        self.assertEqual(herdr_api.status_subscriptions([]), [{"type": "pane.agent_detected"}])
+
+
 class ErrorTest(unittest.TestCase):
     def fake(self, script):
         fake = FakeHerdr(script)

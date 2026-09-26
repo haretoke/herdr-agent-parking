@@ -537,7 +537,7 @@ server is never restarted.
       socket are `HerdrError`s with distinct codes
 - [x] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
 - [x] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
-- [ ] the subscription list is `pane.agent_detected` without a pane plus one
+- [x] the subscription list is `pane.agent_detected` without a pane plus one
       `pane.agent_status_changed` per given Claude pane
 - [ ] an `error` reply to the subscription is an exception, not an empty stream
 - [ ] every command has a timeout and a timeout is an exception
