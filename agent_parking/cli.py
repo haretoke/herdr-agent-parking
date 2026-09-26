@@ -1,9 +1,10 @@
 """The plugin's commands: `dashboard` (the pane process)."""
 
 import copy
+import traceback
 from datetime import datetime, timezone
 
-from . import config, herdr_api, runtime, state, system, terminal, transcript
+from . import config, herdr_api, logfile, runtime, state, system, terminal, transcript
 
 
 def _now():
@@ -24,5 +25,10 @@ def make_runtime(environ):
 
 def main(args, environ):
     if args == ["dashboard"]:
-        return terminal.run_dashboard(make_runtime(environ), environ.get("HERDR_PANE_ID"))
+        rt = make_runtime(environ)
+        try:
+            return terminal.run_dashboard(rt, environ.get("HERDR_PANE_ID"))
+        except Exception:
+            logfile.append(rt.paths.log, "dashboard error\n" + traceback.format_exc())
+            return 1
     return 2

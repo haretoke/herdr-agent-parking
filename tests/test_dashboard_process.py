@@ -150,5 +150,21 @@ class ResizeTest(DashboardProcessTestCase):
         self.wait_for(master, b"status\x1b[K", timeout=1.0)  # under 52 columns status is the last one
 
 
+class CrashTest(DashboardProcessTestCase):
+    def test_an_unexpected_error_is_logged_under_the_state_directory_before_exiting(self):
+        records = self.state_dir / "records"
+        records.mkdir(parents=True)
+        records.chmod(0)  # listing the records raises PermissionError
+        self.addCleanup(records.chmod, 0o700)
+        process, master = self.start(script(claude_pane()))
+
+        self.assertEqual(self.wait_exit(process, master), 1)
+
+        log = self.state_dir / "dashboard.log"
+        self.assertIn("PermissionError", log.read_text())
+        self.assertIn("Traceback", log.read_text())
+        self.assertEqual(log.stat().st_mode & 0o777, 0o600)
+
+
 if __name__ == "__main__":
     unittest.main()
