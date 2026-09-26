@@ -44,5 +44,33 @@ class ResumeFlagsTest(unittest.TestCase):
                 self.assertEqual(argv.resume_flags(given).flags, expected)
 
 
+    def test_an_initial_prompt_is_not_replayed_and_is_reported(self):
+        result = argv.resume_flags([CLAUDE, "--model", "x", "fix the login bug"])
+        self.assertEqual(result.flags, ["--model", "x"])
+        self.assertEqual(result.dropped, ["fix the login bug"])
+
+    def test_values_stay_with_their_flags(self):
+        cases = [
+            ([CLAUDE, "--add-dir", "/a", "/b", "--model", "x"], ["--add-dir", "/a", "/b", "--model", "x"], []),
+            ([CLAUDE, "--worktree", "calltracker-inbound", "--resume", UUID], ["--worktree", "calltracker-inbound"], []),
+            ([CLAUDE, "-w", "--model", "x"], ["-w", "--model", "x"], []),
+            ([CLAUDE, "--debug", "api", "hello"], ["--debug", "api"], ["hello"]),
+            ([CLAUDE, "--settings", "{\"a\": 1}", "--append-system-prompt", "be brief"],
+             ["--settings", "{\"a\": 1}", "--append-system-prompt", "be brief"], []),
+            ([CLAUDE, "--allowedTools", "Read", "Edit", "--effort", "low"],
+             ["--allowedTools", "Read", "Edit", "--effort", "low"], []),
+            ([CLAUDE, "--dangerously-skip-permissions", "go"], ["--dangerously-skip-permissions"], ["go"]),
+        ]
+        for given, flags, dropped in cases:
+            with self.subTest(argv=given):
+                result = argv.resume_flags(given)
+                self.assertEqual((result.flags, result.dropped), (flags, dropped))
+
+    def test_the_value_of_an_unknown_flag_is_not_assumed(self):
+        result = argv.resume_flags([CLAUDE, "--brand-new-flag", "value", "--model", "x"])
+        self.assertEqual(result.flags, ["--brand-new-flag", "--model", "x"])
+        self.assertEqual(result.dropped, ["value"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -516,7 +516,7 @@ server is never restarted.
       (`--effort medium`, `--model x`, `--permission-mode auto`) keep their order
 - [x] both `--resume=<id>` and `-r <id>` are removed
 - [x] a value-taking flag at the end without its value does not crash
-- [ ] a positional argument (an initial prompt, `claude "fix the bug"`) is not replayed, since
+- [x] a positional argument (an initial prompt, `claude "fix the bug"`) is not replayed, since
       a resume would send it again; it is reported in `dropped`. Values stay with their flag:
       one-value flags (`--model x`), variadic ones (`--add-dir a b`, until the next flag) and
       optional-value ones (`--worktree name`, `--debug api`) as `claude --help` lists them;
