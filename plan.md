@@ -578,7 +578,7 @@ server is never restarted.
 - [x] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
       from `ps -o rss=`, and the row survives when both fail
 - [x] RSS is the sum over every foreground pid, with the Claude-only value kept
-- [ ] the current version is the basename of the `realpath` of `argv[0]` when it is a path,
+- [x] the current version is the basename of the `realpath` of `argv[0]` when it is a path,
       else of `claude_command` found on `PATH`, else of `~/.local/bin/claude`; `old` when it
       differs from the running version, no badge when equal or either is unknown
 - [ ] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript

@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -48,3 +49,10 @@ class System:
             return None
         text = done.stdout.strip() if done.returncode == 0 else ""
         return int(text) if text.isdigit() else None
+
+    def realpath(self, path):
+        return os.path.realpath(path)
+
+    def which(self, command, path):
+        """`command` found on the `PATH` string `path`, or None."""
+        return shutil.which(command, path=path)

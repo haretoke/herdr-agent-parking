@@ -55,6 +55,14 @@ class FakeSystem:
         self.exes = exes or {}
         self.proc = proc
         self.rss = {}
+        self.links = {}
+        self.found = {}
+
+    def realpath(self, path):
+        return self.links.get(path, path)
+
+    def which(self, command, path):
+        return self.found.get(command)
 
     def rss_kb(self, pid):
         return self.rss.get(pid)
@@ -83,6 +91,38 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(inventory.memory(info, fake), (8_000, None))
         fake.rss = {}
         self.assertEqual(inventory.memory(info, fake), (None, None))
+
+
+class CurrentVersionTest(unittest.TestCase):
+    ENV = {"HOME": "/home/u", "PATH": "/usr/bin:/home/u/.local/bin"}
+
+    def fake(self, links, found=None):
+        fake = FakeSystem()
+        fake.links = links
+        fake.found = found or {}
+        return fake
+
+    def test_a_path_argv0_then_claude_command_on_path_then_the_home_install(self):
+        links = {"/Users/u/.local/bin/claude": "/Users/u/.local/share/claude/versions/2.1.283",
+                 "/home/u/.local/bin/claude": "/home/u/.local/share/claude/versions/2.1.282",
+                 "/opt/claude/bin/claude": "/opt/claude/versions/2.1.290"}
+        fake = self.fake(links, found={"claude": "/opt/claude/bin/claude"})
+        settings = {"claude_command": "claude"}
+        self.assertEqual(inventory.current_version("/Users/u/.local/bin/claude", settings, fake, self.ENV), "2.1.283")
+        self.assertEqual(inventory.current_version("claude", settings, fake, self.ENV), "2.1.290")
+        fake.found = {}
+        self.assertEqual(inventory.current_version("claude", settings, fake, self.ENV), "2.1.282")
+
+    def test_nothing_that_looks_like_a_version_is_unknown(self):
+        fake = self.fake({"/usr/local/bin/claude": "/usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js"})
+        self.assertIsNone(inventory.current_version("/usr/local/bin/claude", {"claude_command": "claude"}, fake, self.ENV))
+        self.assertIsNone(inventory.current_version(None, {"claude_command": "claude"}, self.fake({}), self.ENV))
+
+    def test_old_only_when_both_versions_are_known_and_differ(self):
+        self.assertTrue(inventory.is_old("2.1.281", "2.1.283"))
+        self.assertFalse(inventory.is_old("2.1.283", "2.1.283"))
+        self.assertFalse(inventory.is_old(None, "2.1.283"))
+        self.assertFalse(inventory.is_old("2.1.281", None))
 
 
 class RunningVersionTest(unittest.TestCase):

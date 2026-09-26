@@ -69,3 +69,23 @@ def memory(info, system):
     known = {p.get("pid"): system.rss_kb(p.get("pid")) for p in info.processes}
     values = [v for v in known.values() if v is not None]
     return (sum(values) if values else None, known.get(info.group_id))
+
+
+def _version_of(executable, system):
+    name = os.path.basename(system.realpath(executable)) if executable else None
+    return name if name and VERSION.fullmatch(name) else None
+
+
+def current_version(argv0, settings, system, environ):
+    """The version a new `claude` would start: where the running `argv[0]` points now
+    when it is a path (macOS), else `claude_command` on `PATH`, else `~/.local/bin/claude`
+    (the plugin runs in the Herdr server's environment, whose PATH may lack it)."""
+    if argv0 and "/" in argv0:
+        return _version_of(argv0, system)
+    found = system.which(settings["claude_command"], environ.get("PATH", ""))
+    home = environ.get("HOME") or os.path.expanduser("~")
+    return _version_of(found, system) or _version_of(os.path.join(home, ".local", "bin", "claude"), system)
+
+
+def is_old(running, current):
+    return running is not None and current is not None and running != current
