@@ -1,6 +1,7 @@
 import unittest
 
 from agent_parking import idle, inventory
+from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
 from tests.flows import UUID, FlowRuntimeTestCase
 
@@ -43,6 +44,13 @@ class BuildRowsTest(BuildTestCase):
         self.assertEqual([(r.pane_id, r.label, r.tab_label, r.workspace_label, r.status, r.session_id)
                           for r in got.rows], [("w1:p2", "api", "2", "zf-api", "idle", UUID)])
         self.assertEqual(got.others, {"codex": 2})
+
+
+class LabelErrorTest(BuildTestCase):
+    def test_labels_that_cannot_be_read_are_left_out(self):
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "workspace.list": Error("internal"),
+                          "tab.list": Error("internal")})
+        self.assertEqual([(r.pane_id, r.tab_label, r.workspace_label) for r in got.rows], [("w1:p2", None, None)])
 
 
 if __name__ == "__main__":

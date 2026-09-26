@@ -7,7 +7,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional
 
-from . import display, transcript
+from . import display, herdr_api, transcript
 
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 
@@ -158,8 +158,12 @@ def other_agents(panes):
 
 
 def _labels(rt, method, key, id_key):
-    """`{id: label}` from `workspace.list` or `tab.list`."""
-    result = rt.herdr.call(method, {})
+    """`{id: label}` from `workspace.list` or `tab.list`; none when Herdr cannot say (the
+    labels only help to recognize a row)."""
+    try:
+        result = rt.herdr.call(method, {})
+    except herdr_api.HerdrError:
+        return {}
     return {item.get(id_key): item.get("label") for item in result.get(key) or []}
 
 
