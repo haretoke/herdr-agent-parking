@@ -17,6 +17,19 @@ def columns(width):
     return ("place_id", "name", "status")
 
 
+MARK_WIDTH = 2  # the selection mark `▶ `
+MIN_NAME = 12
+FIXED = {"place": 14, "place_id": 12, "status": 8, "idle": 6, "ctx": 12, "ctx_short": 7, "rss": 5, "ver": 11}
+
+
+def widths(cols, width):
+    """Each column's width at `width`: the fixed ones, and the rest for the name (at least
+    `MIN_NAME`, even when that makes the line too wide; it is cut when drawn)."""
+    fixed = {c: FIXED[c] for c in cols if c != "name"}
+    rest = width - MARK_WIDTH - sum(fixed.values()) - (len(cols) - 1)
+    return dict(fixed, name=max(MIN_NAME, rest))
+
+
 PARKED_MARK = "💤"
 
 

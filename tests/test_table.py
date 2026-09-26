@@ -18,6 +18,14 @@ class ColumnsTest(unittest.TestCase):
                 self.assertEqual(table.columns(width), expected)
 
 
+class NameWidthTest(unittest.TestCase):
+    def test_the_name_takes_what_the_other_columns_leave_but_at_least_12(self):
+        cases = [(120, 56), (78, 14), (77, 31), (64, 18), (63, 24), (52, 13), (51, 27), (36, 12), (20, 12)]
+        for width, name in cases:
+            with self.subTest(width=width):
+                self.assertEqual(table.widths(table.columns(width), width)["name"], name)
+
+
 def live(**fields):
     base = dict(pane_id="w8:p36", tab_id="w8:t3", workspace_id="w8", tab_label="2", workspace_label="zf-api",
                 label="web", name="api gateway refactor", status="idle", rss_kb=210_000, version="2.1.283",
