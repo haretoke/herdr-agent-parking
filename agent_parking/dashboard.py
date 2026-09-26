@@ -187,13 +187,26 @@ class Dashboard:
 
     def _resume(self):
         row = self._parked_row()
-        if row is None:
-            return
+        if row is not None:
+            self._confirm_resume(row)
+
+    def _confirm_resume(self, row):
         lines = resume.confirmation(row.record, self.actions.now())
-        self._ask(dialogs.Confirm(lines, {"enter": "yes"}), lambda _: self._start_resume(row, False))
+        self._ask(dialogs.Confirm(lines, {"enter": "yes", "e": "edit"}),
+                  lambda choice: self._edit_before_resume(row) if choice == "edit"
+                  else self._start_resume(row, False))
+
+    def _edit_before_resume(self, row):
+        """`e` in the resume confirmation: save the edited note, then confirm again."""
+        def save(note):
+            self.actions.set_note(row.session_id, note)
+            row.record = dict(row.record, note=note if note.strip() else None)
+            self._confirm_resume(row)
+        self._ask(dialogs.TextInput(["note (a blank line or Ctrl-D ends it):"], initial=row.record.get("note") or "",
+                                    multiline=True), save)
 
     def _start_resume(self, row, new_workspace):
-        self._later("resuming %s (up to %s)…" % (row.pane_id or row.session_id[:8], "30 s"),
+        self._later("resuming %s…" % (row.pane_id or row.session_id[:8]),
                     lambda: self._resumed(row, self.actions.resume(row.session_id, new_workspace)))
 
     def _resumed(self, row, outcome):

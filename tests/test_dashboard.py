@@ -280,5 +280,17 @@ class NewWorkspaceTest(unittest.TestCase):
         self.assertIn("resumed w5:p1", shown.message)
 
 
+class ResumeNoteTest(unittest.TestCase):
+    def test_e_edits_the_note_and_comes_back_to_the_confirmation(self):
+        actions = FakeActions(now=NOW)
+        shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
+        shown.on_input(b"re")
+        self.assertEqual(shown.lines(78, 30)[-2:], [" > wiki", " > table"])
+        shown.on_input(b" done\r\r")
+        self.assertEqual(acted(actions), [("set_note", UUID, "wiki\ntable done")])
+        self.assertIn("  table done", "\n".join(shown.lines(78, 30)))
+        self.assertIn("Enter to resume", shown.lines(78, 30)[-1])
+
+
 if __name__ == "__main__":
     unittest.main()
