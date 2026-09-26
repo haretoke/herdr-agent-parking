@@ -86,6 +86,12 @@ def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=(), subscr
                 next_poll = now + poll_seconds
                 events.follow()
             terminal.draw(board.lines(*terminal.size()))
+            if board.pending:
+                board.run_pending()  # it read the list again afterwards
+                next_poll = clock() + poll_seconds
+                if not _drop_typed_ahead(terminal):
+                    break
+                continue
             data, ready = terminal.read(max(0, next_poll - clock()), events.descriptors())
             if data is None:
                 break
@@ -95,6 +101,17 @@ def run(board, terminal, poll_seconds, clock=time.monotonic, stopping=(), subscr
                 board.on_input(data)
     finally:
         events.close()
+
+
+def _drop_typed_ahead(terminal):
+    """Throw away keys pressed while an action ran, so a q or Enter meant for the wait
+    does not act on what comes after it. False when the pane is gone."""
+    while True:
+        data, _ = terminal.read(0)
+        if data is None:
+            return False
+        if not data:
+            return True
 
 
 class Events:

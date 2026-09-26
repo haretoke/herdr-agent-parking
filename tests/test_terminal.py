@@ -114,5 +114,26 @@ class EventTest(unittest.TestCase):
         self.assertTrue(board.events_on)
 
 
+class PendingTest(unittest.TestCase):
+    def test_a_long_action_runs_after_its_wait_is_drawn_and_keys_typed_meanwhile_are_dropped(self):
+        clock = Clock()
+        board = dashboard.Dashboard(refresh=lambda: Inventory([Row(pane_id="w1:p2", status="idle")], {}))
+        ran = []
+
+        def park():
+            ran.append(len(fake.frames))
+            clock.now += 20
+            return "parked w1:p2"
+
+        board.pending = ("parking w1:p2…", park)
+        # typed while parking: q (dropped), then nothing; then a real q
+        fake = FakeTerminal(clock, [(0, b"q", []), (0, b"", []), (0, b"q", [])])
+        terminal.run(board, fake, poll_seconds=2, clock=clock)
+        self.assertEqual(ran, [1])
+        self.assertIn(" parking w1:p2…", fake.frames[0])
+        self.assertIn(" parked w1:p2", fake.frames[1])
+        self.assertEqual(fake.timeouts[:2], [0, 0])  # the drain does not wait
+
+
 if __name__ == "__main__":
     unittest.main()
