@@ -577,7 +577,7 @@ server is never restarted.
       exists, else `process-info`'s `name` when it looks like a version, else unknown
 - [x] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
       from `ps -o rss=`, and the row survives when both fail
-- [ ] RSS is the sum over every foreground pid, with the Claude-only value kept
+- [x] RSS is the sum over every foreground pid, with the Claude-only value kept
 - [ ] the current version is the basename of the `realpath` of `argv[0]` when it is a path,
       else of `claude_command` found on `PATH`, else of `~/.local/bin/claude`; `old` when it
       differs from the running version, no badge when equal or either is unknown

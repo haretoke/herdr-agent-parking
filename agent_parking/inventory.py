@@ -61,3 +61,11 @@ def running_version(process, system):
     else:
         candidate = process.get("name")
     return candidate if candidate and VERSION.fullmatch(candidate) else None
+
+
+def memory(info, system):
+    """(RSS of the whole foreground group, RSS of Claude alone) in KiB. Parking frees the
+    group: Claude plus its stdio MCP servers and `caffeinate` (spike 0-11)."""
+    known = {p.get("pid"): system.rss_kb(p.get("pid")) for p in info.processes}
+    values = [v for v in known.values() if v is not None]
+    return (sum(values) if values else None, known.get(info.group_id))

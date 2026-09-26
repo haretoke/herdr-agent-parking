@@ -54,6 +54,10 @@ class FakeSystem:
         self.cmdlines = cmdlines or {}
         self.exes = exes or {}
         self.proc = proc
+        self.rss = {}
+
+    def rss_kb(self, pid):
+        return self.rss.get(pid)
 
     def cmdline(self, pid):
         return self.cmdlines.get(pid)
@@ -63,6 +67,22 @@ class FakeSystem:
 
     def has_proc(self):
         return self.proc
+
+
+class MemoryTest(unittest.TestCase):
+    def test_the_group_sum_and_the_claude_share(self):
+        info = ProcessInfo(5, 63115, [{"pid": 63115}, {"pid": 97490}, {"pid": 97556}])
+        fake = FakeSystem()
+        fake.rss = {63115: 365_000, 97490: 8_000, 97556: 9_000}
+        self.assertEqual(inventory.memory(info, fake), (382_000, 365_000))
+
+    def test_unknown_members_are_skipped_and_nothing_known_is_none(self):
+        info = ProcessInfo(5, 63115, [{"pid": 63115}, {"pid": 97490}])
+        fake = FakeSystem()
+        fake.rss = {97490: 8_000}
+        self.assertEqual(inventory.memory(info, fake), (8_000, None))
+        fake.rss = {}
+        self.assertEqual(inventory.memory(info, fake), (None, None))
 
 
 class RunningVersionTest(unittest.TestCase):
