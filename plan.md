@@ -781,6 +781,10 @@ server is never restarted.
       starting, so the resume refused (a new pane now gets up to 10 s for its shell)
 - [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
 - [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
+      (2026-09-27, with the threshold edited to 5 minutes instead of waiting an hour):
+      the list marked the rows idle 12m and 9m and skipped the one idle 1m with its
+      reason; one note for both; `parked 2 of 2`, in list order. The 60-minute default
+      itself is left to check
 - [x] Mac local: `c` prepares, shows the focus, compacts, and the row turns `compacted`
       (2026-09-27, haiku, the user-level `prepare-compact` skill): `c` showed the wait,
       haiku ran `/prepare-compact` (about a minute), the confirmation showed the end of
