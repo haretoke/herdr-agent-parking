@@ -278,8 +278,12 @@ be read before step 6.
 5. `pane run <P> "printf '%s\n' '💤 <note>'"` (secondary display; continue on failure).
 6. `agent start <name> --kind claude --pane <P> --timeout <start_timeout_ms> -- --resume <UUID> <flags>`.
    `<flags>` is the record's `argv` minus the executable and minus `--resume` / `-r` /
-   `--continue` / `-c` / `--session-id` / `--name` / `-n` / `--fork-session` with their
-   values. `<name>` is made by the plugin (`parking-<first 8 of the UUID>`,
+   `--continue` / `-c` / `--session-id` / `--name` / `-n` / `--fork-session` /
+   `--from-pr` / `--teleport` with their values. An initial prompt given as a positional
+   argument (`claude "fix the bug"`) is left out too, because a resume would send it
+   again; so is the value of a flag the plugin does not know. Flag arities follow
+   `claude --help`. What was left out is shown in the confirmation box. `<name>` is made
+   by the plugin (`parking-<first 8 of the UUID>`,
    `[a-z][a-z0-9_-]{0,31}`).
 7. On success, `pane get <P>` must show `agent_session.value == UUID`; otherwise warn
    (a different session came up).
