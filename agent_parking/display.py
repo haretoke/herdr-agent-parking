@@ -3,14 +3,14 @@
 import unicodedata
 
 
-def age(seconds):
-    """`12m`, `3h05m` (`2h` on the hour) or `2d`."""
+def age(seconds, coarse=False):
+    """`12m`, `3h05m` (`2h` on the hour; `3h` when `coarse`) or `2d`."""
     minutes = max(0, int(seconds)) // 60
     hours, minutes = divmod(minutes, 60)
     if hours >= 24:
         return "%dd" % (hours // 24)
     if hours:
-        return "%dh%02dm" % (hours, minutes) if minutes else "%dh" % hours
+        return "%dh%02dm" % (hours, minutes) if minutes and not coarse else "%dh" % hours
     return "%dm" % minutes
 
 

@@ -114,7 +114,7 @@ def ctx_text(summary, window, now):
     if summary.compacted:
         if summary.compacted_at is None:
             return "compacted"
-        return "compacted " + display.age((now - summary.compacted_at).total_seconds())
+        return "compacted " + display.age((now - summary.compacted_at).total_seconds(), coarse=True)
     if summary.tokens is None:
         return ""
     share = transcript.percent(summary.tokens, window)

@@ -117,6 +117,13 @@ class CtxTextTest(unittest.TestCase):
                          "compacted 2h")
         self.assertEqual(inventory.ctx_text(self.summary(compacted=True), 200_000, self.NOW), "compacted")
 
+    def test_the_compaction_age_drops_the_minutes_once_it_is_hours_so_the_column_holds_it(self):
+        for delta, text in [(timedelta(minutes=59), "compacted 59m"), (timedelta(hours=3, minutes=5), "compacted 3h"),
+                            (timedelta(hours=23, minutes=59), "compacted 23h"), (timedelta(days=2), "compacted 2d")]:
+            with self.subTest(delta=delta):
+                summary = self.summary(compacted=True, compacted_at=self.NOW - delta)
+                self.assertEqual(inventory.ctx_text(summary, None, self.NOW), text)
+
     def test_nothing_known_is_empty(self):
         self.assertEqual(inventory.ctx_text(transcript.EMPTY, 200_000, self.NOW), "")
         self.assertEqual(inventory.ctx_text(None, None, self.NOW), "")
