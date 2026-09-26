@@ -301,8 +301,17 @@ server is never restarted.
       - The dashboard therefore subscribes to `pane.agent_detected` globally plus one
         `pane.agent_status_changed` per Claude pane, and reopens the subscription when
         the set of Claude panes changes; polling `agent list` stays the base
-- [ ] `agent start ... -- --resume <UUID> --effort medium` shows the extra flags as is in
+- [x] `agent start ... -- --resume <UUID> --effort medium` shows the extra flags as is in
       `process-info` (a swap round trip neither adds nor drops argv)
+      (2026-09-27, Mac local, isolated throwaway session): `agent start ev7 --kind claude
+      -- --model haiku --effort low` gave argv
+      `[<abs path>/claude, --model, haiku, --effort, low]`; after one prompt and `/exit`,
+      `agent start ev7 --kind claude -- --resume <uuid> --model haiku --effort low` gave
+      `[<abs path>/claude, --resume, <uuid>, --model, haiku, --effort, low]` with the same
+      UUID in `agent_session`. The args pass through verbatim and in order, `argv[0]` is
+      the absolute path of `claude` (not the bare name typed), and removing the
+      executable and `--resume <uuid>` gives back the original flags, so a swap round
+      trip is stable
 - [x] right after Claude exits, whether `HERDR_PLUGIN_EVENT_JSON` of an
       `[[events]] on = "pane.agent_status_changed"` / `"pane.exited"` hook still holds
       `agent_session` (if so, the "exited by hand" extension is possible; optional)
