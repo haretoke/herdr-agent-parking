@@ -746,8 +746,16 @@ server is never restarted.
 - [ ] the skill mirror carries `prepare-compact` to the Mac and the containers
 
 ### real devices
-- [ ] Mac local: park an idle Claude → the label appears → `r` resumes in the same pane and
+- [x] Mac local: park an idle Claude → the label appears → `r` resumes in the same pane and
       `agent_session` is the same UUID
+      (2026-09-27, isolated throwaway session, haiku, dashboard opened by the `open`
+      action): `s` + empty note parked `w1:p1` in about 10 s, the pane showed
+      `💤 Session acknowledgment`; `r` + Enter answered `resumed w1:p1` with the same UUID
+      and the label back to none. The first run found two defects, both fixed with tests:
+      `pane.get` right after `agent.start` had no `agent_session` yet (the resume now asks
+      again until the start timeout), and a new tab's label is its number (`1`), now left
+      out of the place. The dashboard drew live data (ctx `37k`, memory, idle from the
+      transcript) and the event stream stayed on
 - [ ] Mac local: close the parked pane, then `r` → recreated in the same tab and resumed
 - [ ] Mac local: `on_park = close` → the pane closes → `r` recreates it next to the old neighbour
 - [ ] Mac local: `R` brings an old Claude up on the new version and `old` disappears
