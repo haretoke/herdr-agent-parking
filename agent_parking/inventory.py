@@ -169,6 +169,7 @@ def _labels(rt, method, key, id_key):
 
 def build(rt, tracker, own_pane_id):
     """The dashboard's rows now: every Claude pane but the dashboard's own."""
+    now = rt.clock()
     panes = rt.herdr.panes()
     workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
     tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
@@ -176,6 +177,7 @@ def build(rt, tracker, own_pane_id):
     for pane in claude_panes(panes, own_pane_id):
         found = row(pane, workspace_labels, tab_labels)
         _add_process(rt, found)
+        found.ctx = _ctx(rt, found.session_id, now)
         rows.append(found)
     return Inventory(rows, other_agents(panes))
 
@@ -194,3 +196,12 @@ def _add_process(rt, found):
     found.version = running_version(process, rt.system)
     argv0 = (argv_of(process, rt.system) or [None])[0]
     found.old = is_old(found.version, current_version(argv0, rt.settings, rt.system, rt.environ))
+
+
+def _ctx(rt, session_id, now):
+    summary = rt.summary_for(session_id) if session_id else None
+    if summary is None:
+        return ""
+    window = transcript.window_size(summary.model, session_id, rt.settings["context_window_by_model"],
+                                    rt.statusline_windows)
+    return ctx_text(summary, window, now)

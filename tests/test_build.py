@@ -1,6 +1,6 @@
 import unittest
 
-from agent_parking import idle, inventory
+from agent_parking import idle, inventory, transcript
 from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
 from tests.flows import PROCESS, UUID, FlowRuntimeTestCase
@@ -28,6 +28,7 @@ class BuildTestCase(FlowRuntimeTestCase):
         base.update(script)
         self.rt = self.runtime(base)
         self.rt.system = system or FakeSystem(proc=False)
+        self.rt.summary_for = lambda session_id: getattr(self, "summaries", {}).get(session_id)
         self.tracker = idle.Tracker(self.rt.clock, lambda pane_id: None)
         return inventory.build(self.rt, self.tracker, own)
 
@@ -66,6 +67,17 @@ class ProcessTest(BuildTestCase):
     def test_a_pane_whose_processes_cannot_be_read_keeps_its_row(self):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": Error("pane_not_found")})
         self.assertEqual([(r.pane_id, r.rss_kb, r.version) for r in got.rows], [("w1:p2", None, None)])
+
+
+class CtxTest(BuildTestCase):
+    def test_ctx_comes_from_the_sessions_transcript_and_the_window(self):
+        self.settings["context_window_by_model"] = {"claude-haiku": 200_000}
+        summary = transcript.Summary(tokens=37_000, model="claude-haiku-4-5", compacted=False, compacted_at=None,
+                                     last_activity=None)
+        base = {"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p3", session_id=None))}
+        self.summaries = {UUID: summary}
+        got = self.build(base)
+        self.assertEqual([r.ctx for r in got.rows], ["37k 18%", ""])
 
 
 if __name__ == "__main__":
