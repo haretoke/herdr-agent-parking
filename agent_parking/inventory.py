@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from . import display, transcript
+
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 
 
@@ -89,3 +91,19 @@ def current_version(argv0, settings, system, environ):
 
 def is_old(running, current):
     return running is not None and current is not None and running != current
+
+
+def ctx_text(summary, window, now):
+    """The ctx column: `37k 18%`, `37k` without a known window, `compacted 2h` while no
+    reply followed the last compaction, empty when nothing is known."""
+    if summary is None:
+        return ""
+    if summary.compacted:
+        if summary.compacted_at is None:
+            return "compacted"
+        return "compacted " + display.age((now - summary.compacted_at).total_seconds())
+    if summary.tokens is None:
+        return ""
+    share = transcript.percent(summary.tokens, window)
+    text = display.tokens(summary.tokens)
+    return text if share is None else "%s %d%%" % (text, share)

@@ -581,7 +581,7 @@ server is never restarted.
 - [x] the current version is the basename of the `realpath` of `argv[0]` when it is a path,
       else of `claude_command` found on `PATH`, else of `~/.local/bin/claude`; `old` when it
       differs from the running version, no badge when equal or either is unknown
-- [ ] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript
+- [x] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript
 - [ ] a record whose `pane_id` hosts a Claude with the same `agent_session.value` becomes
       `resumed` and its label is restored (resumed by hand)
 - [ ] a record whose UUID runs in another pane becomes `resumed`, `pane_id` moves, the old

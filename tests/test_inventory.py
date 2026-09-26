@@ -1,6 +1,7 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 
-from agent_parking import inventory
+from agent_parking import display, inventory, transcript
 from agent_parking.herdr_api import Pane, ProcessInfo
 
 UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
@@ -123,6 +124,37 @@ class CurrentVersionTest(unittest.TestCase):
         self.assertFalse(inventory.is_old("2.1.283", "2.1.283"))
         self.assertFalse(inventory.is_old(None, "2.1.283"))
         self.assertFalse(inventory.is_old("2.1.281", None))
+
+
+class CtxTextTest(unittest.TestCase):
+    NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
+
+    def summary(self, tokens=None, compacted=False, compacted_at=None, model="claude-haiku"):
+        return transcript.Summary(tokens=tokens, model=model, compacted=compacted,
+                                  compacted_at=compacted_at, last_activity=None)
+
+    def test_tokens_with_and_without_a_percentage(self):
+        self.assertEqual(inventory.ctx_text(self.summary(36890), 200_000, self.NOW), "37k 18%")
+        self.assertEqual(inventory.ctx_text(self.summary(36890), None, self.NOW), "37k")
+        self.assertEqual(inventory.ctx_text(self.summary(850), 200_000, self.NOW), "850 0%")
+
+    def test_a_compacted_session_shows_how_long_ago(self):
+        at = self.NOW - timedelta(hours=2)
+        self.assertEqual(inventory.ctx_text(self.summary(compacted=True, compacted_at=at), 200_000, self.NOW),
+                         "compacted 2h")
+        self.assertEqual(inventory.ctx_text(self.summary(compacted=True), 200_000, self.NOW), "compacted")
+
+    def test_nothing_known_is_empty(self):
+        self.assertEqual(inventory.ctx_text(transcript.EMPTY, 200_000, self.NOW), "")
+        self.assertEqual(inventory.ctx_text(None, None, self.NOW), "")
+
+
+class AgeTest(unittest.TestCase):
+    def test_ages_are_minutes_hours_and_days(self):
+        for seconds, text in [(30, "0m"), (12 * 60, "12m"), (2 * 3600, "2h"), (3 * 3600 + 5 * 60, "3h05m"),
+                              (26 * 3600, "1d"), (5 * 86400 + 3600, "5d"), (-5, "0m")]:
+            with self.subTest(seconds=seconds):
+                self.assertEqual(display.age(seconds), text)
 
 
 class RunningVersionTest(unittest.TestCase):
