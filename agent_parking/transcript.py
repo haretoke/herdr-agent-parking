@@ -100,3 +100,27 @@ def summarize(rows):
             model = row["message"].get("model")
             compacted, compacted_at = False, None
     return Summary(tokens=tokens, model=model, compacted=compacted, compacted_at=compacted_at)
+
+
+def window_size(model, session_id, by_model, from_statusline):
+    """The context window in tokens: the longest `context_window_by_model` prefix of
+    `model`, else the statusline's value for the session, else None (unknown)."""
+    if model:
+        prefixes = [prefix for prefix in by_model if model.startswith(prefix)]
+        if prefixes:
+            return by_model[max(prefixes, key=len)]
+    return from_statusline.get(session_id)
+
+
+def statusline_windows(path):
+    """`{session_id: context_window_size}` written by the optional statusline hook-up;
+    anything unreadable or malformed is left out."""
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(loaded, dict):
+        return {}
+    return {key: value for key, value in loaded.items()
+            if records.UUID.fullmatch(key) and isinstance(value, int)
+            and not isinstance(value, bool) and value > 0}

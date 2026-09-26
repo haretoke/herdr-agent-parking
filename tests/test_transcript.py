@@ -163,5 +163,32 @@ class CompactedTest(unittest.TestCase):
         self.assertIsNone(transcript.summarize(rows + [assistant(2)]).compacted_at)
 
 
+class WindowTest(TranscriptTestCase):
+    def test_the_setting_by_longest_model_prefix_then_the_statusline_file_then_unknown(self):
+        by_model = {"claude-haiku": 200_000, "claude-opus": 200_000, "claude-opus-5": 1_000_000}
+        from_statusline = {UUID: 1_000_000}
+        cases = [
+            ("claude-haiku-4-5-20251001", UUID, 200_000),
+            ("claude-opus-5-5", UUID, 1_000_000),
+            ("claude-opus-4-1", UUID, 200_000),
+            ("claude-sonnet-5", UUID, 1_000_000),
+            ("claude-sonnet-5", "0939a1b4-2ecb-4bd4-a241-59bd6732651f", None),
+            (None, UUID, 1_000_000),
+        ]
+        for model, session_id, expected in cases:
+            with self.subTest(model=model, session_id=session_id):
+                self.assertEqual(transcript.window_size(model, session_id, by_model, from_statusline), expected)
+
+    def test_the_statusline_file_maps_session_ids_to_positive_sizes(self):
+        path = self.config / "context-windows.json"
+        self.assertEqual(transcript.statusline_windows(path), {})
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({UUID: 200000, "x": 5, "0939a1b4-2ecb-4bd4-a241-59bd6732651f": "big"}),
+                        encoding="utf-8")
+        self.assertEqual(transcript.statusline_windows(path), {UUID: 200000})
+        path.write_text("{broken", encoding="utf-8")
+        self.assertEqual(transcript.statusline_windows(path), {})
+
+
 if __name__ == "__main__":
     unittest.main()

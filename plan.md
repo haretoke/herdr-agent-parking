@@ -555,7 +555,7 @@ server is never restarted.
 - [x] a session is compacted when the last `compact_boundary` has no assistant usage after
       it; a following `user` line with `isCompactSummary: true` does not change that
 - [x] the compacted age comes from the boundary's `timestamp`
-- [ ] the window size comes from `context_window_by_model` by model id prefix, else from
+- [x] the window size comes from `context_window_by_model` by model id prefix, else from
       the statusline file `context-windows.json` by session id, else is unknown
 - [ ] the percentage is truncated (36890 / 200000 → 18) and absent when the window is unknown
 - [ ] a missing, unreadable or empty transcript gives an empty ctx
