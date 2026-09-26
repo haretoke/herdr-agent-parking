@@ -27,7 +27,8 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
   time is only a lower bound (`≥`); Codex panes are not listed, only counted in the
   footer; `R` (swap) asks for confirmation when the running version equals the
   current one; RSS is the sum over the foreground process group, with the Claude-only
-  value kept in the JSON output; how `g` moves focus is decided by the spike.
+  value kept in the JSON output; `g` sends `pane.focus` and exits, in every placement
+  (spike 0-4: the overlay does not take an explicit focus back).
 - The resume key is always the session UUID. Names are never used to resume.
 - The dashboard needs no new Claude hook: it reads `agent_session` and the launch
   argv before it sends `/exit`. Recording sessions that were exited by hand is an
@@ -120,7 +121,7 @@ Every Claude pane on this server, with these columns:
 | `C` | Compact, then park (the note is asked first) | Same as park |
 | `r` | Resume | A row with a record. Recreate when the pane is gone |
 | `R` | Swap (park → resume) | Same as park. Asks for confirmation when the running version equals the current one |
-| `g` | Go to the pane (socket `pane.focus {pane_id}`) and close the dashboard | A row with a pane. Whether an overlay hands focus back on close is a spike; if it does, `g` is limited to the tab placement or sends `pane.focus` from a detached process after exit |
+| `g` | Go to the pane (socket `pane.focus {pane_id}`) and close the dashboard | A row with a pane. Works in every placement: the overlay does not take an explicit focus back when it closes (spike 0-4) |
 | `S` | Park every session idle for at least a threshold | Lists idle/done rows at or above the threshold, including `≥` rows, confirms, then parks in order. The threshold is the only condition; ctx is not |
 | `n` | Edit the note | A row with a record |
 | `x` | Forget the record | A row with a record. Asks for confirmation. Never touches the transcript |
@@ -609,9 +610,6 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 
 Everything below is unverified and appears as a spike in `plan.md`:
 
-- Pane / tab IDs, labels and cwd after a Herdr server restart (throwaway session only).
-- Whether an overlay hands focus back when the dashboard exits after `pane.focus`
-  (decides how `g` is implemented).
 - Whether a `[[events]]` hook still sees `agent_session` right after Claude exits, and
   what `pane.exited` means.
 - The state directory not being a bind mount in containers (inferred).
