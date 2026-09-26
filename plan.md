@@ -635,7 +635,7 @@ server is never restarted.
 - [x] the label format is configurable, cut at 80 characters, and free of control characters
 
 ### compact (fake herdr, fake transcript)
-- [ ] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
+- [x] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
       other states and a half-typed line are refused
 - [ ] with `prepare_prompt` set, that text is sent instead of `prepare_command`
 - [ ] the flow waits with `agent wait --until idle --timeout <prepare_timeout_seconds>`
