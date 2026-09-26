@@ -15,6 +15,7 @@ class Entry:
     status: Optional[str]
     since: datetime
     lower_bound: bool
+    from_event: bool = False
 
 
 class Tracker:
@@ -52,8 +53,17 @@ class Tracker:
             entry = self._first(seq, status, self.summary_for(pane_id))
             self.entries[pane_id] = entry
         elif seq != entry.seq:
-            entry.seq, entry.status, entry.since, entry.lower_bound = seq, status, self.clock(), False
+            if not (entry.from_event and entry.status == status):
+                entry.status, entry.since, entry.lower_bound = status, self.clock(), False
+            entry.seq, entry.from_event = seq, False
         return entry
+
+    def event(self, pane_id, status):
+        """A `pane.agent_status_changed` event: the exact moment of a change. The poll that
+        later sees its new `state_change_seq` keeps this time instead of its own."""
+        entry = self.entries.get(pane_id)
+        if entry is not None and status != entry.status:
+            entry.status, entry.since, entry.lower_bound, entry.from_event = status, self.clock(), False, True
 
     def _first(self, seq, status, summary):
         """A pane seen for the first time starts at its last conversation line (nothing

@@ -71,6 +71,44 @@ class SaveTest(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
 
 
+class EventTest(unittest.TestCase):
+    def test_a_change_seen_by_an_event_and_then_by_a_poll_counts_once(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock, summary_for=lambda pane_id: None)
+        tracker.poll("w1:p1", seq=18, status="working")
+        clock.advance(seconds=30)
+        tracker.event("w1:p1", status="idle")
+        clock.advance(seconds=2)
+        entry = tracker.poll("w1:p1", seq=19, status="idle")
+        self.assertEqual((entry.since, entry.status, entry.seq, entry.lower_bound),
+                         (NOW + timedelta(seconds=30), "idle", 19, False))
+
+    def test_changes_between_polls_keep_the_last_events_time(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock, summary_for=lambda pane_id: None)
+        tracker.poll("w1:p1", seq=18, status="idle")
+        clock.advance(seconds=10)
+        tracker.event("w1:p1", status="working")
+        clock.advance(seconds=10)
+        tracker.event("w1:p1", status="idle")
+        clock.advance(seconds=5)
+        self.assertEqual(tracker.poll("w1:p1", seq=21, status="idle").since, NOW + timedelta(seconds=20))
+
+    def test_a_poll_that_disagrees_with_the_event_wins(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock, summary_for=lambda pane_id: None)
+        tracker.poll("w1:p1", seq=18, status="idle")
+        tracker.event("w1:p1", status="working")
+        clock.advance(seconds=3)
+        entry = tracker.poll("w1:p1", seq=22, status="done")
+        self.assertEqual((entry.status, entry.since), ("done", NOW + timedelta(seconds=3)))
+
+    def test_an_event_for_an_unseen_pane_is_ignored_until_polled(self):
+        tracker = idle.Tracker(Clock(), summary_for=lambda pane_id: None)
+        tracker.event("w1:p9", status="idle")
+        self.assertEqual(tracker.entries, {})
+
+
 class TextTest(unittest.TestCase):
     def test_idle_time_text_with_a_lower_bound_mark_and_none_while_working(self):
         entry = idle.Entry

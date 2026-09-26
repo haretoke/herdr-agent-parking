@@ -599,7 +599,7 @@ server is never restarted.
 - [x] tracking of a vanished pane is dropped at the next save
 - [x] `observed.json` is written by atomic rename and a broken file starts empty
 - [x] idle times render as `12m`, `3h05m`, `2d`, with `≥` for lower bounds
-- [ ] a change delivered by an event and by polling does not count twice on one row
+- [x] a change delivered by an event and by polling does not count twice on one row
 
 ### park (fake herdr)
 - [ ] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
