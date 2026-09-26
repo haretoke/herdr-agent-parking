@@ -543,6 +543,7 @@ server is never restarted.
 - [x] every command has a timeout and a timeout is an exception
 - [x] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)
+- [x] `pane.list` comes back as `Pane` shapes (for the check before a resume)
 
 ### transcript
 - [x] the transcript of a UUID is found by globbing `<claude_config_dir>/projects/*/<uuid>.jsonl`;

@@ -62,6 +62,15 @@ class ShapeTest(unittest.TestCase):
                 self.assertEqual((got.pane_id, got.agent, got.session_id, got.label), ("w1:p1", None, None, None))
         self.assertIsNone(self.herdr({"pane.get": {"type": "pane_info"}}).pane("w1:p1"))
 
+    def test_the_pane_list_comes_back_as_panes(self):
+        panes = [{"pane_id": "w1:p1", "agent": "claude",
+                  "agent_session": {"value": "2716af66-e4d8-4950-8185-97da891f78a9"}},
+                 {"pane_id": "w1:p2"}]
+        got = self.herdr({"pane.list": {"type": "pane_list", "panes": panes}}).panes()
+        self.assertEqual([(p.pane_id, p.agent, p.session_id) for p in got],
+                         [("w1:p1", "claude", "2716af66-e4d8-4950-8185-97da891f78a9"), ("w1:p2", None, None)])
+        self.assertEqual(self.herdr({"pane.list": {"type": "pane_list"}}).panes(), [])
+
     def test_process_info_without_its_keys_is_empty(self):
         info = self.herdr({"pane.process_info": {"process_info": {}}}).process_info("w1:p1")
         self.assertEqual(info, herdr_api.ProcessInfo(shell_pid=None, group_id=None, processes=[]))

@@ -87,6 +87,11 @@ class Herdr:
         client.settimeout(None)
         return Subscription(client, reader)
 
+    def panes(self):
+        """Every pane of this Herdr server."""
+        raw = self.call("pane.list", {}).get("panes") or []
+        return [pane_from(p) for p in raw if isinstance(p, dict)]
+
     def pane(self, pane_id):
         raw = self.call("pane.get", {"pane_id": pane_id}).get("pane")
         return pane_from(raw) if isinstance(raw, dict) else None
