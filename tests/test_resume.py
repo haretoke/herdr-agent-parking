@@ -218,6 +218,22 @@ class SwapTest(ResumeTestCase):
         [start] = [r["params"] for r in self.fake.requests if r["method"] == "agent.start"]
         self.assertEqual((start["pane_id"], start["args"][:2]), ("w1:p2", ["--resume", UUID]))
 
+    def test_a_swap_keeps_its_pane_even_when_parks_close_theirs(self):
+        # Seen on the Mac: with on_park = close, R closed the pane and recreated it.
+        self.settings["on_park"] = "close"
+        two_panes = {"type": "layout_export", "tab_id": "w1:t1", "root": {
+            "type": "split", "direction": "right", "ratio": 0.5,
+            "first": {"type": "pane", "pane_id": "w1:p1"}, "second": {"type": "pane", "pane_id": "w1:p2"}}}
+        rt = self.resuming(**{"pane.get": [pane_reply(), SHELL, SHELL, pane_reply()],
+                              "agent.read": screen_reply("❯"), "layout.export": two_panes,
+                              "pane.process_info": [PROCESS, SHELL_PROCESS, SHELL_PROCESS],
+                              "agent.prompt": {"type": "ok"}})
+        parked, resumed = resume.swap(rt, "w1:p2")
+        self.assertEqual((parked.kind, resumed.kind), ("parked", "resumed"))
+        self.assertNotIn("pane.close", self.fake.methods())
+        [start] = [r["params"] for r in self.fake.requests if r["method"] == "agent.start"]
+        self.assertEqual(start["pane_id"], "w1:p2")
+
     def test_a_refused_park_does_not_resume(self):
         rt = self.resuming(**{"pane.get": pane_reply(status="working")})
         parked, resumed = resume.swap(rt, "w1:p2")

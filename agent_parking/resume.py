@@ -142,7 +142,7 @@ def swap(rt, pane_id):
     """`R`: park the Claude in `pane_id` and resume it at once, so it restarts on the
     current `claude`. A park that does not complete does not resume.
     Returns (park Outcome, resume Outcome or None)."""
-    parked = park.park(rt, pane_id, note=None)
+    parked = park.park(rt, pane_id, note=None, keep=True)
     if parked.kind != "parked":
         return parked, None
     return parked, resume(rt, parked.record["session_id"])

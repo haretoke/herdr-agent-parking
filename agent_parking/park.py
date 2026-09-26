@@ -12,7 +12,9 @@ PARKABLE = ready.READY_STATUSES
 POLL_SECONDS = 0.5
 
 
-def park(rt, pane_id, note):
+def park(rt, pane_id, note, keep=False):
+    """Park the Claude in `pane_id`; `keep` leaves the pane whatever `on_park` says (a swap
+    resumes in it at once)."""
     pane, refusal = ready.check(rt, pane_id, "park")
     if refusal:
         return Outcome("refused", refusal, None)
@@ -45,7 +47,7 @@ def park(rt, pane_id, note):
         return Outcome("park_failed", "Claude did not exit within %s s; the pane is left as it is "
                                       "(its record stays, so `r` works after a manual /exit)"
                        % rt.settings["exit_timeout_seconds"], record)
-    mode, reason = _close_or_keep(rt, pane_id, tree)
+    mode, reason = ("keep", "") if keep else _close_or_keep(rt, pane_id, tree)
     if mode == "close":
         rt.herdr.call("pane.close", {"pane_id": pane_id})
     else:
