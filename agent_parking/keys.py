@@ -7,6 +7,11 @@ CONTROLS = {"\r": "enter", "\n": "enter", "\x7f": "backspace", "\x08": "backspac
             "\x03": "ctrl-c", "\x15": "ctrl-u"}
 
 
+def _arrow(final):
+    """The arrow a sequence's final byte stands for, as a list (empty for other keys)."""
+    return [ARROWS[final]] if final in ARROWS else []
+
+
 class KeyParser:
     def __init__(self):
         self.pending = b""
@@ -34,14 +39,13 @@ class KeyParser:
                 if end >= len(buffer):
                     self.pending = buffer[position:]
                     break
-                keys.extend([ARROWS[buffer[end:end + 1]]] if buffer[end:end + 1] in ARROWS else [])
+                keys.extend(_arrow(buffer[end:end + 1]))
                 position = end + 1
             elif kind == b"O":  # SS3: one more byte
                 if position + 2 >= len(buffer):
                     self.pending = buffer[position:]
                     break
-                keys.extend([ARROWS[buffer[position + 2:position + 3]]]
-                            if buffer[position + 2:position + 3] in ARROWS else [])
+                keys.extend(_arrow(buffer[position + 2:position + 3]))
                 position += 3
             else:
                 keys.append("esc")
