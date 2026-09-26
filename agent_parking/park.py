@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 
-from . import inventory, records, screen
+from . import inventory, records, screen, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -22,17 +22,33 @@ def park(rt, pane_id, note):
                                   "`herdr integration install claude` and restart it", None)
     if screen.input_box(rt.herdr.screen(pane_id)) != "empty":
         return Outcome("refused", "a draft is in Claude's input box; clear it first (g, then Ctrl+C)", None)
-    record = {"schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
-              "status": "parking", "pane_id": pane_id}
     process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
-    record["argv"] = inventory.argv_of(process, rt.system) if process else []
+    record = {
+        "schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
+        "status": "parking", "pane_id": pane_id, "pane_id_history": [],
+        "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
+        "cwd": process.get("cwd") or pane.cwd,
+        "argv": inventory.argv_of(process, rt.system) if process else [],
+        "claude_version": inventory.running_version(process, rt.system) if process else None,
+        "label_before": pane.label, "layout_hint": None,
+        "context_at_park": _context(rt, pane.session_id),
+        "parked_at": times.iso(rt.clock()),
+    }
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
     _wait_for_shell(rt, pane_id)
-    record["status"] = "parked"
+    record.update(status="parked", parked_mode="keep")
     records.write(rt.paths.records, record)
     return Outcome("parked", "", record)
+
+
+def _context(rt, session_id):
+    summary = rt.summary_for(session_id) or transcript.EMPTY
+    window = transcript.window_size(summary.model, session_id, rt.settings["context_window_by_model"],
+                                    rt.statusline_windows)
+    return {"tokens": summary.tokens, "percent": transcript.percent(summary.tokens, window),
+            "compacted": summary.compacted}
 
 
 def _wait_for_shell(rt, pane_id):

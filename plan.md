@@ -610,7 +610,7 @@ server is never restarted.
       between rules is "unknown" and refused
 - [x] the park confirmation always carries the warning about lost background tasks
 - [x] the record is written before `/exit` is sent (order of the fake herdr calls)
-- [ ] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
+- [x] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
       `label_before`, all read before `/exit`, and `parked_mode` after
 - [ ] `/exit` is sent with `agent prompt <P> "/exit"`
 - [ ] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
@@ -627,7 +627,7 @@ server is never restarted.
 - [ ] a timeout gives `park_failed` and the pane is untouched
 - [ ] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [ ] the note is stored; an empty note is `null`
-- [ ] the context numbers at park time are stored in `context_at_park`
+- [x] the context numbers at park time are stored in `context_at_park`
 - [ ] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
       continues after one failure, and reports the results
 - [ ] the label format is configurable, cut at 80 characters, and free of control characters

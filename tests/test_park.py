@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agent_parking import config, herdr_api, park, runtime, state
+from agent_parking import config, herdr_api, park, runtime, state, transcript
 from tests.fake_herdr import FakeHerdr
 from tests.fakes import FakeSystem
 
@@ -120,6 +120,33 @@ class OrderTest(FlowTestCase):
         self.assertEqual(seen["record"]["status"], "parking")
         self.assertEqual(seen["record"]["session_id"], UUID)
         self.assertLess(self.fake.methods().index("pane.process_info"), self.fake.methods().index("agent.prompt"))
+
+
+class RecordFieldsTest(FlowTestCase):
+    def test_what_is_read_before_exit_is_in_the_parking_record(self):
+        seen = {}
+
+        def exit_prompt(fake, connection, reader, request):
+            seen["record"] = self.saved()
+            fake.reply(connection, request)
+
+        rt = self.flow(**{"agent.prompt": exit_prompt,
+                          "pane.get": [pane_reply(label="api"), SHELL]})
+        rt.summary_for = lambda session_id: transcript.EMPTY._replace(tokens=36890, model="claude-haiku-4-5")
+        self.settings["context_window_by_model"] = {"claude-haiku": 200_000}
+        outcome = park.park(rt, "w1:p2", note=None)
+        before = seen["record"]
+        self.assertEqual(before["argv"], ["/home/u/.local/bin/claude", "--model", "haiku"])
+        self.assertEqual(before["claude_version"], "2.1.283")
+        self.assertEqual(before["label_before"], "api")
+        self.assertEqual(before["context_at_park"], {"tokens": 36890, "percent": 18, "compacted": False})
+        self.assertEqual((before["title"], before["cwd"], before["tab_id"], before["workspace_id"]),
+                         ("work", "/repo", "w1:t1", "w1"))
+        self.assertEqual(before["parked_at"], "2026-09-27T12:00:00Z")
+        self.assertIn("layout_hint", before)
+        self.assertNotIn("parked_mode", before)
+        self.assertEqual(outcome.record["parked_mode"], "keep")
+        self.assertEqual(self.saved()["parked_mode"], "keep")
 
 
 class ConfirmationTest(unittest.TestCase):
