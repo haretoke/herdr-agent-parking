@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from agent_parking import dashboard, display, park, recreate, resume, table
+from agent_parking import compact, dashboard, display, park, recreate, resume, table, transcript
 from agent_parking.inventory import Inventory, Row
 
 
@@ -319,6 +319,28 @@ class SwapTest(unittest.TestCase):
         shown = board(live(status="working"), actions=FakeActions())
         shown.on_input(b"R")
         self.assertIn("working", shown.message)
+
+
+REPLY = transcript.Reply(found=True, text="Saved the port map to memory.\n<compact-focus>port map</compact-focus>",
+                         focus="port map")
+
+
+class CompactTest(unittest.TestCase):
+    def test_c_prepares_shows_the_report_and_focus_then_compacts_with_it(self):
+        actions = FakeActions(prepare=compact.Outcome("prepared", "", REPLY),
+                              compact=compact.Outcome("compacted", "", None))
+        shown = board(live(), actions=actions)
+        shown.on_input(b"c")
+        self.assertIn("preparing w8:p36", shown.lines(78, 24)[-2])
+        shown.run_pending()
+        text = "\n".join(shown.lines(78, 30))
+        self.assertIn("Saved the port map to memory.", text)
+        self.assertIn("focus: port map", text)
+        shown.on_input(b"\r")
+        self.assertIn("compacting w8:p36", shown.lines(78, 24)[-2])
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("prepare", "w8:p36"), ("compact", "w8:p36", "port map")])
+        self.assertIn("compacted w8:p36", shown.message)
 
 
 if __name__ == "__main__":

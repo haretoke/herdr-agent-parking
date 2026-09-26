@@ -3,7 +3,7 @@ drives it is in `terminal`)."""
 
 import textwrap
 
-from . import dialogs, display, keys, park, ready, recreate, resume, table
+from . import compact, dialogs, display, keys, park, ready, recreate, resume, table
 
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
@@ -132,6 +132,8 @@ class Dashboard:
                 self._resume()
             elif key == "R":
                 self._swap()
+            elif key == "c":
+                self._compact()
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)
@@ -242,6 +244,28 @@ class Dashboard:
         if resumed is None:
             return _said(parked, row.pane_id)
         return _said(resumed, (resumed.record or {}).get("pane_id") or row.pane_id)
+
+    def _compact(self):
+        """`c`: Claude prepares (saves its state and proposes a focus), the report and the
+        focus are confirmed, then `/compact <focus>` is sent."""
+        row = self._row()
+        self.message = self._refusal(row, "compact") or ""
+        if self.message:
+            return
+        self._later("preparing %s: Claude saves its state first (up to %s)…" % (row.pane_id, "10 min"),
+                    lambda: self._prepared(row, self.actions.prepare(row.pane_id)))
+
+    def _prepared(self, row, outcome):
+        if outcome.kind != "prepared":
+            return _said(outcome, row.pane_id)
+        self._confirm_compact(row, outcome.reply, outcome.message)
+        return ""
+
+    def _confirm_compact(self, row, reply, remark):
+        lines = ([remark] if remark else []) + compact.confirmation(reply)
+        self._ask(dialogs.Confirm(lines, {"enter": "yes"}),
+                  lambda _: self._later("compacting %s…" % row.pane_id,
+                                        lambda: _said(self.actions.compact(row.pane_id, reply.focus), row.pane_id)))
 
     def _set_filter(self, text):
         chosen = self._row()
