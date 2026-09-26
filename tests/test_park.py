@@ -56,5 +56,27 @@ class IntegrationTest(ParkTestCase):
         self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+RULE = "─" * 40
+
+
+def screen_reply(input_line):
+    text = "\r\n".join(["⏺ OK", RULE, input_line, RULE, "  ctx 18%"])
+    return {"type": "agent_read", "read": {"pane_id": "w1:p2", "workspace_id": "w1", "tab_id": "w1:t1",
+                                           "source": "visible", "format": "ansi", "text": text,
+                                           "revision": 1, "truncated": False}}
+
+
+class DraftTest(ParkTestCase):
+    def test_a_half_typed_line_is_refused_and_no_exit_is_sent(self):
+        rt = self.runtime({"pane.get": pane_reply(), "agent.read": screen_reply("❯ half typed line")})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("draft", outcome.message)
+        self.assertNotIn("agent.prompt", self.fake.methods())
+        read = [r for r in self.fake.requests if r["method"] == "agent.read"][0]
+        self.assertEqual(read["params"], {"target": "w1:p2", "source": "visible", "format": "ansi",
+                                          "strip_ansi": False})
+
+
 if __name__ == "__main__":
     unittest.main()

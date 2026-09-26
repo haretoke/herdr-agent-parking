@@ -91,6 +91,13 @@ class Herdr:
         raw = self.call("pane.get", {"pane_id": pane_id}).get("pane")
         return pane_from(raw) if isinstance(raw, dict) else None
 
+    def screen(self, pane_id):
+        """The visible screen of the agent in `pane_id`, ANSI styling kept."""
+        result = self.call("agent.read", {"target": pane_id, "source": "visible", "format": "ansi",
+                                          "strip_ansi": False})
+        read = result.get("read") if isinstance(result.get("read"), dict) else {}
+        return read.get("text") or ""
+
     def process_info(self, pane_id):
         raw = self.call("pane.process_info", {"pane_id": pane_id}).get("process_info") or {}
         return ProcessInfo(shell_pid=raw.get("shell_pid"), group_id=raw.get("foreground_process_group_id"),

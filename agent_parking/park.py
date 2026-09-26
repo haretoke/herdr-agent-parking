@@ -2,6 +2,8 @@
 
 from collections import namedtuple
 
+from . import screen
+
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -17,4 +19,6 @@ def park(rt, pane_id, note):
     if not pane.session_id:
         return Outcome("refused", "Herdr does not know this Claude's session; run "
                                   "`herdr integration install claude` and restart it", None)
+    if screen.input_box(rt.herdr.screen(pane_id)) != "empty":
+        return Outcome("refused", "a draft is in Claude's input box; clear it first (g, then Ctrl+C)", None)
     return Outcome("parked", "", None)
