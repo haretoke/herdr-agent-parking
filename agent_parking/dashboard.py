@@ -134,6 +134,8 @@ class Dashboard:
                 self._swap()
             elif key == "c":
                 self._compact()
+            elif key == "C":
+                self._compact_then_park()
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)
@@ -253,6 +255,20 @@ class Dashboard:
         if self.message:
             return
         self._prepare(row, lambda focus: _said(self.actions.compact(row.pane_id, focus), row.pane_id))
+
+    def _compact_then_park(self):
+        """`C`: the note first (nothing waits on the person later), then `c`'s steps, then park."""
+        row = self._row()
+        self.message = self._refusal(row, "compact") or ""
+        if self.message:
+            return
+        prompt = ["compact, then park %s: note (empty for none; a blank line or Ctrl-D ends it):" % row.pane_id]
+        self._ask(dialogs.TextInput(prompt, multiline=True),
+                  lambda note: self._prepare(row, lambda focus: self._compacted_then_parked(row, focus, note)))
+
+    def _compacted_then_parked(self, row, focus, note):
+        compacted, parked = self.actions.compact_then_park(row.pane_id, focus, note)
+        return _said(parked if parked is not None else compacted, row.pane_id)
 
     def _prepare(self, row, finish):
         """Prepare, confirm, then `finish(focus)` (compact, or compact and park) gives the message."""

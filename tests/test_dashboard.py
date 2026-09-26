@@ -367,5 +367,39 @@ class CompactTest(unittest.TestCase):
         self.assertIn("blocked w8:p36: Claude stopped at a dialog", shown.message)
 
 
+class CompactThenParkTest(unittest.TestCase):
+    def test_C_asks_for_the_note_first_then_compacts_and_parks(self):
+        parked = park.Outcome("parked", "", {})
+        actions = FakeActions(prepare=compact.Outcome("prepared", "", REPLY),
+                              compact_then_park=(compact.Outcome("compacted", "", None), parked))
+        shown = board(live(), actions=actions)
+        shown.on_input(b"C")
+        self.assertIn("note", " ".join(shown.lines(78, 24)[-3:]))
+        self.assertEqual(actions.calls, [])
+        shown.on_input(b"wiki\r\r")
+        shown.run_pending()
+        self.assertIn("focus: port map", "\n".join(shown.lines(78, 30)))
+        shown.on_input(b"\r")
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("prepare", "w8:p36"), ("compact_then_park", "w8:p36", "port map", "wiki")])
+        self.assertIn("parked w8:p36", shown.message)
+
+    def test_a_compaction_that_fails_says_so_and_does_not_park(self):
+        failed = compact.Outcome("compact_failed", "no new compaction", None)
+        actions = FakeActions(prepare=compact.Outcome("prepared", "", REPLY), compact_then_park=(failed, None))
+        shown = board(live(), actions=actions)
+        shown.on_input(b"C\r")
+        shown.run_pending()
+        shown.on_input(b"\r")
+        shown.run_pending()
+        self.assertIn("compact failed w8:p36: no new compaction", shown.message)
+
+    def test_C_on_a_working_row_is_refused_before_the_note(self):
+        shown = board(live(status="working"), actions=FakeActions())
+        shown.on_input(b"C")
+        self.assertIsNone(shown.dialog)
+        self.assertIn("working", shown.message)
+
+
 if __name__ == "__main__":
     unittest.main()
