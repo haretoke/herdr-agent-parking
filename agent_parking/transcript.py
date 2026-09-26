@@ -124,3 +124,11 @@ def statusline_windows(path):
     return {key: value for key, value in loaded.items()
             if records.UUID.fullmatch(key) and isinstance(value, int)
             and not isinstance(value, bool) and value > 0}
+
+
+def percent(tokens, window):
+    """The share of the window in use, truncated like Claude's statusline
+    (36890 / 200000 → 18); None when either side is unknown."""
+    if tokens is None or not window:
+        return None
+    return tokens * 100 // window

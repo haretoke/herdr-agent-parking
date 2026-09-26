@@ -190,5 +190,17 @@ class WindowTest(TranscriptTestCase):
         self.assertEqual(transcript.statusline_windows(path), {})
 
 
+class PercentTest(unittest.TestCase):
+    def test_the_percentage_is_truncated_like_the_statusline(self):
+        for tokens, window, expected in [(36890, 200_000, 18), (199_999, 200_000, 99), (0, 200_000, 0),
+                                         (279_596, 1_000_000, 27), (250_000, 200_000, 125)]:
+            with self.subTest(tokens=tokens, window=window):
+                self.assertEqual(transcript.percent(tokens, window), expected)
+
+    def test_no_percentage_without_a_window_or_tokens(self):
+        self.assertIsNone(transcript.percent(36890, None))
+        self.assertIsNone(transcript.percent(None, 200_000))
+
+
 if __name__ == "__main__":
     unittest.main()
