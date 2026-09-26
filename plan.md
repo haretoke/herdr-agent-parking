@@ -545,7 +545,7 @@ server is never restarted.
       whatever its name (`-zsh`, `zsh`, `bash`)
 
 ### transcript
-- [ ] the transcript of a UUID is found by globbing `<claude_config_dir>/projects/*/<uuid>.jsonl`;
+- [x] the transcript of a UUID is found by globbing `<claude_config_dir>/projects/*/<uuid>.jsonl`;
       none or several give no result
 - [ ] the tail read never loads more than the cap and handles a line split at the cap
 - [ ] the result is cached by mtime and size and re-read when either changes
