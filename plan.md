@@ -610,6 +610,8 @@ server is never restarted.
       between rules is "unknown" and refused
 - [ ] the park confirmation always carries the warning about lost background tasks
 - [ ] the record is written before `/exit` is sent (order of the fake herdr calls)
+- [ ] the record stores `argv`, `layout_hint`, `claude_version`, `context_at_park` and
+      `label_before`, all read before `/exit`, and `parked_mode` after
 - [ ] `/exit` is sent with `agent prompt <P> "/exit"`
 - [ ] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
       `label_before` keeps the previous label
@@ -650,6 +652,7 @@ server is never restarted.
 - [ ] with the pane present and the shell alone in the foreground,
       `agent start <name> --kind claude --pane <P> --timeout <ms> -- --resume <UUID> <flags>` is called
 - [ ] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
+- [ ] the confirmation text lists the tokens `resume_flags` left out (`dropped`)
 - [ ] a pane cwd different from the record's sends `pane.send_input` of `cd <quoted>` + Enter first
 - [ ] the note is printed with `pane.send_input` of `printf ...` + Enter before the resume; a failure does not stop it
 - [ ] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
