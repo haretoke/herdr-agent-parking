@@ -126,3 +126,13 @@ def swap(rt, pane_id):
     if parked.kind != "parked":
         return parked, None
     return parked, resume(rt, parked.record["session_id"])
+
+
+def swap_question(running, current):
+    """What to ask before a swap: nothing when a newer `claude` is there (the reason to swap),
+    else whether to restart anyway."""
+    if running is not None and current is not None and running != current:
+        return None
+    if running is None or current is None:
+        return "the versions are unknown; restart this session anyway? (y/N)"
+    return "this session already runs %s, the current claude; restart it anyway? (y/N)" % current

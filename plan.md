@@ -676,7 +676,7 @@ server is never restarted.
 - [x] only with `send_note_as_prompt = true` is `agent prompt <P> <note>` sent after `agent wait --until idle`
 - [x] before `r`, a matching UUID running elsewhere makes the record `resumed` without starting a second process
 - [x] swap parks then resumes in the same pane, and a refused park does not resume
-- [ ] swap asks for confirmation when the running version equals the current one
+- [x] swap asks for confirmation when the running version equals the current one
 
 ### recreate (fake herdr)
 - [ ] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio

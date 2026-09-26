@@ -211,6 +211,14 @@ class SwapTest(ResumeTestCase):
         self.assertNotIn("agent.start", self.fake.methods())
 
 
+class SwapQuestionTest(unittest.TestCase):
+    def test_swap_asks_first_unless_a_newer_claude_is_there(self):
+        self.assertIsNone(resume.swap_question("2.1.281", "2.1.283"))
+        self.assertIn("already runs 2.1.283", resume.swap_question("2.1.283", "2.1.283"))
+        self.assertIn("unknown", resume.swap_question(None, "2.1.283"))
+        self.assertIn("unknown", resume.swap_question("2.1.283", None))
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re
