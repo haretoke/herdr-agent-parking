@@ -17,6 +17,7 @@ class Dashboard:
         self.selected = 0
         self.show_detail = True
         self.keys = keys.KeyParser()
+        self.quit = False
 
     def refresh(self):
         inventory = self._refresh()
@@ -45,7 +46,9 @@ class Dashboard:
 
     def on_input(self, data):
         for key in self.keys.feed(data):
-            if key == "i":
+            if key == "q":
+                self.quit = True
+            elif key == "i":
                 self.show_detail = not self.show_detail
             elif key in MOVES:
                 self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))
