@@ -265,15 +265,33 @@ server is never restarted.
       `pane.focus` is in the API schema (`herdr api schema --json`) although the socket
       doc's method table lists only `pane.focus_direction`; the CLI has no pane-id focus.
       Not checked with a TUI client attached; the real-device `g` check covers that
-- [ ] what `[[events]]` `pane.exited` reports (root shell or foreground child)
+- [x] what `[[events]]` `pane.exited` reports (root shell or foreground child)
+      (2026-09-27, Mac local, isolated throwaway session): the probe plugin hooked
+      `pane.exited`, `pane.closed` and `pane.agent_status_changed` and ran
+      `pane get` inside each hook. A foreground child exiting (`sleep 1`) fired
+      nothing. Claude's `/exit` fired no `pane.exited`, only
+      `pane.agent_status_changed` with `agent_status: "unknown"` and no `agent` key.
+      `exit` in the root shell fired `pane.exited`
+      (`{"event":"pane_exited","data":{"pane_id":..,"workspace_id":..}}`) and the pane
+      was already gone in the hook (`pane_not_found`); no `pane.closed` was logged for
+      it. So `pane.exited` means the pane's root process ended and the pane closed;
+      the end of Claude is `agent_status_changed` to `unknown` without an `agent`
 - [ ] with the dashboard open as a tab, a status change of a Claude in another tab is
       seen both through `events.subscribe` (`pane.agent_status_changed`) and through
       `state_change_seq` in `agent list`
 - [ ] `agent start ... -- --resume <UUID> --effort medium` shows the extra flags as is in
       `process-info` (a swap round trip neither adds nor drops argv)
-- [ ] right after Claude exits, whether `HERDR_PLUGIN_EVENT_JSON` of an
+- [x] right after Claude exits, whether `HERDR_PLUGIN_EVENT_JSON` of an
       `[[events]] on = "pane.agent_status_changed"` / `"pane.exited"` hook still holds
       `agent_session` (if so, the "exited by hand" extension is possible; optional)
+      (2026-09-27, same run as the `pane.exited` spike): no. The event on `/exit` was
+      `{"type":"pane_agent_status_changed","pane_id":..,"workspace_id":..,"agent_status":"unknown"}`
+      with no session, and `pane get` inside the hook already returned `agent: null`,
+      `agent_session: null`. While Claude ran, every status event's `pane get` did carry
+      `agent_session`, so an event hook that remembers the last UUID per pane on each
+      `idle` / `done` / `working` event could still record a hand-made `/exit`; the
+      hook alone at exit time cannot. The optional extension, if built, keeps that
+      last-seen map
 - [ ] `ps -o rss= -p <pid>` units on macOS (KB) and in a Linux container (KB)
 - [ ] `old` detection: `os.readlink` of the running process's `argv[0]`
       (`~/.local/bin/claude`) gives the current `versions/<v>`, compared with
