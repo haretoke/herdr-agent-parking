@@ -28,6 +28,13 @@ class HerdrError(Exception):
         self.code = code
 
 
+def _transport_error(method, error):
+    """The HerdrError for a socket failure: `timeout` when Herdr was too slow."""
+    if isinstance(error, socket.timeout):
+        return HerdrError("Herdr did not answer %s in time" % method, "timeout")
+    return HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable")
+
+
 class Herdr:
     def __init__(self, socket_path, timeout=10):
         self.socket_path = socket_path
@@ -51,7 +58,7 @@ class Herdr:
             return client, client.makefile("rb")
         except OSError as error:
             client.close()
-            raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
+            raise _transport_error(method, error) from error
 
     def call(self, method, params):
         """Send one request on its own connection and return its result.
@@ -63,7 +70,7 @@ class Herdr:
             with client, reader:
                 line = reader.readline(MAX_LINE_BYTES + 1)
         except OSError as error:
-            raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
+            raise _transport_error(method, error) from error
         return parse_reply(method, line)
 
     def subscribe(self, subscriptions):
@@ -76,7 +83,7 @@ class Herdr:
             client.close()
             if isinstance(error, HerdrError):
                 raise
-            raise HerdrError("could not subscribe to Herdr events: %s" % error, "unreachable") from error
+            raise _transport_error("events.subscribe", error) from error
         client.settimeout(None)
         return Subscription(client, reader)
 

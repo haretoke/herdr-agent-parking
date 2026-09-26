@@ -98,6 +98,25 @@ class SubscribeTest(unittest.TestCase):
         self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
 
 
+class TimeoutTest(unittest.TestCase):
+    def test_a_reply_slower_than_the_timeout_is_a_timeout_error(self):
+        def slow(fake, connection, reader, request):
+            time.sleep(1)
+            fake.reply(connection, request)
+
+        fake = FakeHerdr({"pane.get": slow, "events.subscribe": slow})
+        self.addCleanup(fake.close)
+        herdr = herdr_api.Herdr(fake.path, timeout=0.2)
+        for attempt in (lambda: herdr.call("pane.get", {"pane_id": "w1:p1"}),
+                        lambda: herdr.subscribe([{"type": "pane.agent_detected"}])):
+            with self.subTest(attempt=attempt):
+                started = time.monotonic()
+                with self.assertRaises(herdr_api.HerdrError) as raised:
+                    attempt()
+                self.assertEqual(raised.exception.code, "timeout")
+                self.assertLess(time.monotonic() - started, 0.8)
+
+
 class SubscribeErrorTest(unittest.TestCase):
     def test_an_error_reply_to_the_subscription_raises_instead_of_an_empty_stream(self):
         fake = FakeHerdr({"events.subscribe": Error("invalid_request", "missing field `pane_id`")})
