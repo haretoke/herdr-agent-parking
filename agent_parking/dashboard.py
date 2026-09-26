@@ -78,7 +78,6 @@ class Dashboard:
     def on_input(self, data):
         for key in self.keys.feed(data):
             self.message = ""
-        self.dialog = None
             if key == "q":
                 self.quit = True
             elif key == "i":
