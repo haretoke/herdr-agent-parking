@@ -710,7 +710,7 @@ server is never restarted.
 - [x] SIGWINCH redraws
 - [x] an unexpected exception is logged to `dashboard.log` before exit
 - [x] a second dashboard at the same time does not corrupt `observed.json`
-- [ ] `?` lists every key with what it does; any key closes the list
+- [x] `?` lists every key with what it does; any key closes the list
 
 ### cli
 - [ ] `dashboard` starts the pane process
