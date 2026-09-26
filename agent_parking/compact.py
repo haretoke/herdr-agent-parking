@@ -6,7 +6,7 @@ Outcome kinds: refused, blocked, prepared, prepare_failed, compacted, compact_fa
 
 from collections import namedtuple
 
-from . import config, ready
+from . import config, ready, transcript
 
 Outcome = namedtuple("Outcome", "kind message reply")
 
@@ -21,4 +21,5 @@ def prepare(rt, pane_id):
     # (it may take minutes: the preparation can commit and push).
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first, "wait": {
         "until": ["idle", "done"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
-    return Outcome("prepared", "", None)
+    reply = transcript.preparation_reply(rt.rows_for(pane.session_id), preparation.first)
+    return Outcome("prepared", "", reply)

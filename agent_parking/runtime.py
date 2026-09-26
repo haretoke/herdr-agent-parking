@@ -15,4 +15,5 @@ class Runtime:
     environ: dict
     sleep: Callable = time.sleep
     summary_for: Callable = lambda session_id: None   # session id -> transcript.Summary
+    rows_for: Callable = lambda session_id: []        # session id -> transcript tail rows
     statusline_windows: dict = field(default_factory=dict)  # session id -> window size

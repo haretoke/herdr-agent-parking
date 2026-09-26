@@ -39,5 +39,26 @@ class WaitTest(FlowTestCase):
         self.assertEqual(prompt["params"]["wait"], {"until": ["idle", "done"], "timeout_ms": 900_000})
 
 
+def user(text):
+    return {"type": "user", "timestamp": "2026-09-27T11:59:00Z", "message": {"content": text}}
+
+
+def said(text):
+    return {"type": "assistant", "timestamp": "2026-09-27T11:59:30Z",
+            "message": {"content": [{"type": "text", "text": text}], "usage": {"input_tokens": 1}}}
+
+
+SKILL_LINE = "<command-message>prepare-compact</command-message>\n<command-name>/prepare-compact</command-name>"
+
+
+class FocusTest(FlowTestCase):
+    def test_the_focus_is_read_from_the_reply_to_the_preparation(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: [user(SKILL_LINE), said("Saved.\n<compact-focus>keep the plan</compact-focus>")]
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertEqual((outcome.kind, outcome.reply.focus), ("prepared", "keep the plan"))
+        self.assertIn("Saved.", outcome.reply.text)
+
+
 if __name__ == "__main__":
     unittest.main()

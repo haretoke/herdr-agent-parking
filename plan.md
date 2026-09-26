@@ -640,7 +640,7 @@ server is never restarted.
 - [x] with `prepare_prompt` set, that text is sent instead of `prepare_command`
 - [x] the flow waits in the same `agent.prompt` request (`wait: {until: [idle, done], timeout_ms:
       prepare_timeout_seconds × 1000}`), so no status change slips in between
-- [ ] the focus tag is taken from the assistant text after the sent prompt
+- [x] the focus tag is taken from the assistant text after the sent prompt
 - [ ] the confirmation shows the report summary and the focus, and the focus can be edited
 - [ ] `/compact <focus>` is sent as one line (newlines become spaces); an empty focus sends `/compact`
 - [ ] the flow completes when a new `compact_boundary` appears; the row turns `compacted`
