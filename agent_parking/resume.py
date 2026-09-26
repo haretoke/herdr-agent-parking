@@ -41,6 +41,10 @@ def resume(rt, session_id):
                                       "args": ["--resume", session_id] + flags, "timeout_ms": start_ms},
                       timeout=start_ms / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
     except herdr_api.HerdrError as error:
+        if error.code == "timeout":
+            record.update(status="resume_failed", error="%s\n%s" % (error, _tail(rt, pane_id)))
+            records.write(rt.paths.records, record)
+            return Outcome("resume_failed", record["error"], record)
         if error.code != "agent_not_ready":
             raise
         record["status"] = "resume_pending"
@@ -67,6 +71,19 @@ def _finish(rt, record, running_in, restore_label_on):
         rt.herdr.call("pane.rename", {"pane_id": restore_label_on, "label": record.get("label_before")})
     records.mark_resumed(rt.paths.records, rt.paths.resumed, record["session_id"], rt.clock())
     return Outcome("resumed", "", record)
+
+
+TAIL_LINES = 10
+
+
+def _tail(rt, pane_id):
+    """The pane's last lines, to show why a start failed (not stored beyond the record)."""
+    try:
+        read = rt.herdr.call("pane.read", {"pane_id": pane_id, "source": "recent", "lines": TAIL_LINES})
+    except herdr_api.HerdrError:
+        return ""
+    text = (read.get("read") or {}).get("text") or ""
+    return "\n".join(text.splitlines()[-TAIL_LINES:])
 
 
 def _type(rt, pane_id, command):

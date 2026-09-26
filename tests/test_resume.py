@@ -141,6 +141,23 @@ class RunningElsewhereTest(ResumeTestCase):
         self.assertEqual((outcome.record["pane_id"], outcome.record["pane_id_history"]), ("w1:p7", ["w1:p2"]))
 
 
+class StartTimeoutTest(ResumeTestCase):
+    def test_a_start_that_times_out_keeps_the_panes_last_lines_as_the_reason(self):
+        from tests.fake_herdr import Error
+        self.park_record()
+        tail = "\n".join("line %d" % i for i in range(1, 31))
+        rt = self.resuming(**{"agent.start": Error("timeout", "timed out waiting for agent startup"),
+                              "pane.read": {"type": "pane_read", "read": {"text": tail}}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+        [read] = [r for r in self.fake.requests if r["method"] == "pane.read"]
+        self.assertEqual(read["params"], {"pane_id": "w1:p2", "source": "recent", "lines": 10})
+        saved = self.saved()
+        self.assertEqual(saved["status"], "resume_failed")
+        self.assertIn("timed out", saved["error"])
+        self.assertIn("line 30", saved["error"])
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re
