@@ -24,6 +24,12 @@ class Row:
     cwd: Optional[str] = None
     status: Optional[str] = None
     session_id: Optional[str] = None
+    rss_kb: Optional[int] = None          # the whole foreground group
+    claude_rss_kb: Optional[int] = None   # Claude alone (the JSON output)
+    version: Optional[str] = None
+    old: bool = False
+    ctx: str = ""
+    record: Optional[dict] = None         # the park record, for parked sessions
 
 
 def claude_panes(panes, own_pane_id):
