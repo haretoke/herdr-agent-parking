@@ -70,10 +70,10 @@ class Cache:
         return cached[1]
 
 
-Summary = namedtuple("Summary", "tokens model compacted compacted_at")
+Summary = namedtuple("Summary", "tokens model compacted compacted_at last_activity")
 
 
-EMPTY = Summary(tokens=None, model=None, compacted=False, compacted_at=None)
+EMPTY = Summary(tokens=None, model=None, compacted=False, compacted_at=None, last_activity=None)
 
 
 def load(path, cap=TAIL_BYTES):
@@ -97,10 +97,14 @@ def summarize(rows):
     assistant usage after the last compact boundary (the statusline's numerator).
     The session is `compacted` while no assistant usage follows the last boundary; the
     summary after a boundary is a `user` line (`isCompactSummary`), so it does not count
-    (spike 0-20). `compacted_at` is that boundary's time."""
-    tokens = model = compacted_at = None
+    (spike 0-20). `compacted_at` is that boundary's time. `last_activity` is the time of
+    the last user or assistant line that is not meta; nothing else is written while a
+    session sits idle (spike 0-19)."""
+    tokens = model = compacted_at = last_activity = None
     compacted = False
     for row in rows:
+        if row.get("type") in ("user", "assistant") and not row.get("isMeta"):
+            last_activity = parse_time(row.get("timestamp")) or last_activity
         if row.get("subtype") == "compact_boundary":
             tokens = model = None
             compacted, compacted_at = True, parse_time(row.get("timestamp"))
@@ -111,7 +115,8 @@ def summarize(rows):
                 "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
             model = row["message"].get("model")
             compacted, compacted_at = False, None
-    return Summary(tokens=tokens, model=model, compacted=compacted, compacted_at=compacted_at)
+    return Summary(tokens=tokens, model=model, compacted=compacted, compacted_at=compacted_at,
+                   last_activity=last_activity)
 
 
 def window_size(model, session_id, by_model, from_statusline):

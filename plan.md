@@ -563,7 +563,7 @@ server is never restarted.
       after the line whose user text equals the sent prompt (for a slash command, its
       `<command-name>` line); none gives an empty focus
 - [x] a new `compact_boundary` after a given time is detected
-- [ ] the last conversation time is the `timestamp` of the last `user` / `assistant` line that is
+- [x] the last conversation time is the `timestamp` of the last `user` / `assistant` line that is
       not `isMeta`; bookkeeping lines (`cost-state`, `file-history-snapshot`, ...) are ignored
 
 ### inventory

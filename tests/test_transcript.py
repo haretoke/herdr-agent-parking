@@ -247,6 +247,17 @@ class CompactedSinceTest(unittest.TestCase):
         self.assertFalse(transcript.compacted_since([boundary("not a time")], sent))
 
 
+class LastActivityTest(unittest.TestCase):
+    def test_the_last_user_or_assistant_line_that_is_not_meta_gives_the_time(self):
+        rows = [user(ts="2026-09-26T16:00:00Z"), assistant(1, ts="2026-09-26T16:05:00.500Z"),
+                user("caveat", ts="2026-09-26T17:00:00Z", isMeta=True),
+                {"type": "cost-state"}, {"type": "file-history-snapshot"},
+                {"type": "system", "subtype": "informational", "timestamp": "2026-09-26T18:00:00Z"}]
+        self.assertEqual(transcript.summarize(rows).last_activity,
+                         datetime(2026, 9, 26, 16, 5, 0, 500000, tzinfo=timezone.utc))
+        self.assertIsNone(transcript.summarize([{"type": "cost-state"}]).last_activity)
+
+
 class PercentTest(unittest.TestCase):
     def test_the_percentage_is_truncated_like_the_statusline(self):
         for tokens, window, expected in [(36890, 200_000, 18), (199_999, 200_000, 99), (0, 200_000, 0),
