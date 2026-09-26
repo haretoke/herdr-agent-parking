@@ -6,6 +6,8 @@ from . import display, keys, table
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
 
+MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
+
 
 class Dashboard:
     def __init__(self, refresh):
@@ -45,3 +47,5 @@ class Dashboard:
         for key in self.keys.feed(data):
             if key == "i":
                 self.show_detail = not self.show_detail
+            elif key in MOVES:
+                self.selected = max(0, min(len(self.rows) - 1, self.selected + MOVES[key]))

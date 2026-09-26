@@ -53,5 +53,17 @@ class DetailTest(unittest.TestCase):
         self.assertEqual(len(board(live()).lines(100, 20)), 6)
 
 
+class MoveTest(unittest.TestCase):
+    def test_j_k_and_the_arrows_move_the_selection_and_stop_at_the_ends(self):
+        shown = board(live("w8:p1"), live("w8:p2"), live("w8:p3"))
+        steps = [(b"k", 0), (b"j", 1), (b"\x1b[B", 2), (b"j", 2), (b"\x1b[A", 1), (b"kk", 0)]
+        for data, selected in steps:
+            with self.subTest(data=data):
+                shown.on_input(data)
+                self.assertEqual(shown.selected, selected)
+        self.assertEqual(board().selected, 0)
+        board().on_input(b"j")
+
+
 if __name__ == "__main__":
     unittest.main()
