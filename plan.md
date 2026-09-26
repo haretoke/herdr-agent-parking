@@ -593,7 +593,7 @@ server is never restarted.
       the column (CJK counts double width)
 
 ### idle (injectable clock)
-- [ ] a row seen for the first time takes `since` from its transcript's last conversation time;
+- [x] a row seen for the first time takes `since` from its transcript's last conversation time;
       without one it gets `since = now` and `lower_bound = true`
 - [ ] a changed `state_change_seq` updates `since` and clears `lower_bound`
 - [ ] tracking of a vanished pane is dropped at the next save
