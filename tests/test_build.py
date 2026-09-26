@@ -33,6 +33,12 @@ class BuildTestCase(FlowRuntimeTestCase):
         self.tracker = idle.Tracker(self.rt.clock)
         return inventory.build(self.rt, self.tracker, own)
 
+    def park(self, session_id, pane_id, title, days):
+        records.write(state.paths(self.environ, self.settings).records, {
+            "schema_version": 1, "session_id": session_id, "status": "parked", "pane_id": pane_id,
+            "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": title, "cwd": "/notes",
+            "argv": ["claude"], "label_before": None, "parked_at": times.iso(NOW - timedelta(days=days))})
+
 
 class BuildRowsTest(BuildTestCase):
     def test_claude_panes_become_rows_with_their_labels_and_other_agents_are_counted(self):
@@ -98,12 +104,6 @@ THIRD = "5e0c1f2a-0000-4000-8000-000000000002"
 
 
 class ParkedRowsTest(BuildTestCase):
-    def park(self, session_id, pane_id, title, days):
-        records.write(state.paths(self.environ, self.settings).records, {
-            "schema_version": 1, "session_id": session_id, "status": "parked", "pane_id": pane_id,
-            "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": title, "cwd": "/notes",
-            "argv": ["claude"], "label_before": None, "parked_at": times.iso(NOW - timedelta(days=days))})
-
     def test_parked_records_follow_the_live_rows_and_those_without_a_pane_come_last(self):
         self.park(THIRD, "w1:p8", "billing", 5)
         self.park(OTHER, "w1:p5", "color notes", 2)
@@ -115,6 +115,20 @@ class ParkedRowsTest(BuildTestCase):
             (None, "parked", "billing", "/notes", "5d", THIRD)])
         self.assertEqual([r.record is not None for r in got.rows], [False, True, True])
         self.assertEqual(got.rows[1].tab_id, "w1:t1")
+
+
+class ResumedByHandTest(BuildTestCase):
+    def test_a_session_resumed_by_hand_elsewhere_settles_its_record_and_gets_no_parked_row(self):
+        self.park(OTHER, "w1:p5", "color notes", 2)
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p5", agent=None, session_id=None, label="💤 color notes"),
+                                                 raw_pane("w1:p6", session_id=OTHER)),
+                          "pane.rename": {"type": "pane_info"}})
+        self.assertEqual([(r.pane_id, r.status, r.record) for r in got.rows], [("w1:p6", "idle", None)])
+        [rename] = [r["params"] for r in self.fake.requests if r["method"] == "pane.rename"]
+        self.assertEqual(rename, {"pane_id": "w1:p5", "label": None})
+        paths = state.paths(self.environ, self.settings)
+        self.assertIsNone(records.read(paths.records, OTHER))
+        self.assertEqual(records.read(paths.resumed, OTHER)["pane_id"], "w1:p6")
 
 
 if __name__ == "__main__":

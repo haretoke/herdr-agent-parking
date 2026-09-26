@@ -215,6 +215,9 @@ def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
     by_id = {p.pane_id: p for p in panes}
     with_pane, without = [], []
     for decision in reconcile(parked, panes):
+        if decision.kind == "resumed":
+            settle_resumed(rt, decision.record, decision.pane_id, decision.restore_label_on)
+            continue
         pane = by_id.get(decision.pane_id)
         found = _record_row(rt, decision.record, pane, now)
         if pane is not None:
