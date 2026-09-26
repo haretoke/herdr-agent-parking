@@ -18,3 +18,12 @@ class Actions:
 
     def forget(self, session_id):
         records.forget(self.rt.paths.records, session_id)
+
+    def set_note(self, session_id, note):
+        """`n`: the record as it is now, with the new note (blank means none)."""
+        record = records.read(self.rt.paths.records, session_id)
+        if record is None:
+            return "the record is gone"
+        record["note"] = note if note and note.strip() else None
+        records.write(self.rt.paths.records, record)
+        return None

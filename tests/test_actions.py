@@ -42,5 +42,17 @@ class ForgetTest(ActionsTestCase):
         self.assertTrue(os.path.exists(transcript))
 
 
+class SetNoteTest(ActionsTestCase):
+    def test_the_note_is_rewritten_in_the_record_and_blank_means_none(self):
+        acting = self.actions()
+        records.write(acting.rt.paths.records, {"schema_version": 1, "session_id": UUID, "status": "parked",
+                                                "note": "old", "title": "work"})
+        acting.set_note(UUID, "wiki\ntable")
+        self.assertEqual(records.read(acting.rt.paths.records, UUID)["note"], "wiki\ntable")
+        self.assertEqual(records.read(acting.rt.paths.records, UUID)["title"], "work")
+        acting.set_note(UUID, "  ")
+        self.assertIsNone(records.read(acting.rt.paths.records, UUID)["note"])
+
+
 if __name__ == "__main__":
     unittest.main()
