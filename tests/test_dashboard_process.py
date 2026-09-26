@@ -138,5 +138,17 @@ class StopTest(DashboardProcessTestCase):
             self.fail("the dashboard did not exit")
 
 
+class ResizeTest(DashboardProcessTestCase):
+    def test_sigwinch_redraws_at_once_for_the_new_width(self):
+        process, master = self.start(script(claude_pane()))
+        self.wait_for(master, b"ver\x1b[K")  # the header at 80 columns ends with ver
+        self.output = b""
+
+        fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 50, 0, 0))
+        process.send_signal(signal.SIGWINCH)
+
+        self.wait_for(master, b"status\x1b[K", timeout=1.0)  # under 52 columns status is the last one
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -73,6 +73,7 @@ class Terminal:
 def run(board, terminal, poll_seconds):
     """Draw and read keys until q, a stop signal, or the pane going away."""
     stopping = []
+    signal.signal(signal.SIGWINCH, lambda *_: None)  # wakes the loop, which redraws at the new size
     for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         signal.signal(signum, lambda *_: stopping.append(True))
     while not board.quit and not stopping:
