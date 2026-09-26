@@ -33,9 +33,9 @@ class BuildTestCase(FlowRuntimeTestCase):
         self.tracker = idle.Tracker(self.rt.clock)
         return inventory.build(self.rt, self.tracker, own)
 
-    def park(self, session_id, pane_id, title, days):
+    def park(self, session_id, pane_id, title, days, status="parked"):
         records.write(state.paths(self.environ, self.settings).records, {
-            "schema_version": 1, "session_id": session_id, "status": "parked", "pane_id": pane_id,
+            "schema_version": 1, "session_id": session_id, "status": status, "pane_id": pane_id,
             "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": title, "cwd": "/notes",
             "argv": ["claude"], "label_before": None, "parked_at": times.iso(NOW - timedelta(days=days))})
 
@@ -138,6 +138,29 @@ class ConflictTest(BuildTestCase):
         self.assertEqual([(r.pane_id, r.status, r.session_id) for r in got.rows],
                          [("w1:p5", "idle", UUID), ("w1:p5", "conflict", OTHER)])
         self.assertIsNotNone(records.read(state.paths(self.environ, self.settings).records, OTHER))
+
+
+class RecordStatusTest(BuildTestCase):
+    def test_every_record_is_listed_with_a_short_status(self):
+        ids = ["5e0c1f2a-0000-4000-8000-00000000001%d" % n for n in range(5)]
+        for session_id, status in zip(ids, ["parking", "park_failed", "resume_pending", "resume_failed"]):
+            self.park(session_id, None, status, 1, status=status)
+        self.park(ids[2], "w1:p5", "pending", 1, status="resume_pending")
+        (state.paths(self.environ, self.settings).records / (ids[4] + ".json")).write_text("{broken")
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p5", session_id=None))})
+        self.assertEqual([(r.pane_id, r.status, r.session_id) for r in got.rows], [
+            ("w1:p5", "idle", None), ("w1:p5", "pending", ids[2]), (None, "parking", ids[0]),
+            (None, "failed", ids[1]), (None, "failed", ids[3]), (None, "broken", ids[4])])
+
+
+    def test_a_park_in_progress_or_a_failed_park_is_not_settled_by_its_running_session(self):
+        for status, shown in (("parking", "parking"), ("park_failed", "failed")):
+            with self.subTest(status=status):
+                self.park(OTHER, "w1:p5", "notes", 1, status=status)
+                got = self.build({"pane.list": pane_list(raw_pane("w1:p5", session_id=OTHER))})
+                self.assertEqual([(r.pane_id, r.status) for r in got.rows], [("w1:p5", "idle"), ("w1:p5", shown)])
+                self.assertEqual(records.read(state.paths(self.environ, self.settings).records, OTHER)["status"],
+                                 status)
 
 
 if __name__ == "__main__":

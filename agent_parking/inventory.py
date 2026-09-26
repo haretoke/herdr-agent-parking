@@ -209,18 +209,26 @@ def build(rt, tracker, own_pane_id):
     return Inventory(rows, other_agents(panes))
 
 
+SHORT_STATUS = {"parked": "parked", "parking": "parking", "park_failed": "failed",
+                "resume_pending": "pending", "resume_failed": "failed", "broken": "broken"}
+# Records that a running session settles. Not `parking` (a park in progress, maybe by another
+# dashboard) nor `park_failed` (Claude did not exit; the record waits for a manual /exit).
+SETTLED_BY_A_RUNNING_SESSION = ("parked", "resume_pending", "resume_failed")
+
+
 def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
-    """Rows for the parked records: those whose pane is there, then those without one."""
-    parked = [r for r in records.list_records(rt.paths.records) if r.get("status") == "parked"]
+    """Rows for the park records: those whose pane is there, then those without one."""
     by_id = {p.pane_id: p for p in panes}
     with_pane, without = [], []
-    for decision in reconcile(parked, panes):
-        if decision.kind == "resumed":
+    for decision in reconcile(records.list_records(rt.paths.records), panes):
+        status = decision.record.get("status")
+        if decision.kind == "resumed" and status in SETTLED_BY_A_RUNNING_SESSION:
             settle_resumed(rt, decision.record, decision.pane_id, decision.restore_label_on)
             continue
-        pane = by_id.get(decision.pane_id)
+        pane = by_id.get(decision.record.get("pane_id"))
         found = _record_row(rt, decision.record, pane, now)
-        if decision.kind == "conflict":
+        found.status = SHORT_STATUS.get(status, status)
+        if decision.kind == "conflict" and status == "parked":
             found.status = "conflict"
         if pane is not None:
             found.workspace_label = workspace_labels.get(pane.workspace_id)
@@ -235,7 +243,7 @@ def _record_row(rt, record, pane, now):
     summary = rt.summary_for(session_id)
     return Row(pane_id=pane.pane_id if pane else None, tab_id=pane.tab_id if pane else record.get("tab_id"),
                workspace_id=pane.workspace_id if pane else record.get("workspace_id"),
-               name=record.get("title"), cwd=record.get("cwd"), status="parked", session_id=session_id,
+               name=record.get("title"), cwd=record.get("cwd"), session_id=session_id,
                ctx=_ctx(rt, summary, session_id, now), record=record,
                idle=display.age((now - parked_at).total_seconds()) if parked_at else "")
 
