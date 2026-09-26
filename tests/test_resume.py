@@ -219,6 +219,34 @@ class SwapQuestionTest(unittest.TestCase):
         self.assertIn("unknown", resume.swap_question("2.1.283", None))
 
 
+class RecreateTest(ResumeTestCase):
+    def test_a_closed_pane_is_recreated_and_the_record_follows_it(self):
+        self.park_record(pane_id="w1:p9", parked_mode="close",
+                         layout_hint={"sibling_pane_id": "w1:p8", "position": "second", "direction": "right",
+                                      "ratio": 0.5, "path": []})
+        sibling = pane_reply(pane_id="w1:p8", agent=None, session_id=None)["pane"]
+        new_shell = pane_reply(pane_id="w1:p12", agent=None, session_id=None)
+        rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [sibling]},
+                              "pane.split": {"type": "pane_info", "pane": {"pane_id": "w1:p12"}},
+                              "layout.set_split_ratio": {"type": "ok"},
+                              "pane.get": [new_shell, pane_reply(pane_id="w1:p12")]})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        [start] = [r["params"] for r in self.fake.requests if r["method"] == "agent.start"]
+        self.assertEqual(start["pane_id"], "w1:p12")
+        self.assertEqual((outcome.record["pane_id"], outcome.record["pane_id_history"]), ("w1:p12", ["w1:p9"]))
+
+    def test_no_place_to_recreate_refuses_with_the_reason(self):
+        self.park_record(pane_id="w1:p9", tab_id="w1:t1", workspace_id="w1")
+        rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [
+            pane_reply(pane_id="w2:p1", agent=None, session_id=None)["pane"] | {"tab_id": "w2:t1",
+                                                                              "workspace_id": "w2"}]}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("workspace", outcome.message)
+        self.assertNotIn("agent.start", self.fake.methods())
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re

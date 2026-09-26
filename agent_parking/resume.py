@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, herdr_api, inventory, park, records, times
+from . import argv, display, herdr_api, inventory, park, records, recreate, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -16,13 +16,24 @@ def agent_name(session_id):
     return "parking-" + session_id[:8]
 
 
-def resume(rt, session_id):
+def resume(rt, session_id, new_workspace=False):
+    """Resume the parked `session_id` in its pane, recreating the pane when it is gone
+    (`new_workspace` allows a new workspace when its own is gone too)."""
     record = records.read(rt.paths.records, session_id)
-    [decision] = inventory.reconcile([record], rt.herdr.panes())
+    panes = rt.herdr.panes()
+    [decision] = inventory.reconcile([record], panes)
     if decision.kind == "resumed":
         # Already running (a retry after a startup dialog, or resumed by hand): finish the
         # bookkeeping and never start a second process on the same transcript (spike 0-14).
         return _finish(rt, record, decision.pane_id, decision.restore_label_on)
+    if decision.kind == "conflict":
+        return Outcome("refused", "another Claude session runs in %s" % decision.pane_id, record)
+    if decision.kind == "no_pane":
+        placed = recreate.place(rt, record, panes, new_workspace=new_workspace)
+        if placed.pane_id is None:
+            return Outcome("refused", placed.message, record)
+        record = records.with_pane(record, placed.pane_id)
+        records.write(rt.paths.records, record)
     pane_id = record["pane_id"]
     pane = rt.herdr.pane(pane_id)
     if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):

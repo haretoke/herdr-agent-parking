@@ -685,7 +685,7 @@ server is never restarted.
 - [x] without the tab but with the workspace, `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`
 - [x] without the workspace, after confirmation, `workspace create --cwd <cwd> --label <label> --no-focus`
 - [x] without the cwd, stop with a reason
-- [ ] the new pane ID is written and the old one goes to `pane_id_history`
+- [x] the new pane ID is written and the old one goes to `pane_id_history`
 
 ### dashboard (PTY, fake herdr, injectable clock)
 - [ ] the list is drawn at start and column widths fit the terminal width
