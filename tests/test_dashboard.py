@@ -33,5 +33,25 @@ class ScreenTest(unittest.TestCase):
             self.assertLessEqual(display.width(line), 78)
 
 
+class DetailTest(unittest.TestCase):
+    def test_the_selected_row_has_its_detail_line_and_i_toggles_it(self):
+        first = live()
+        parked = live("w8:p37", status="parked", record={"note": "stopped before the wiki"}, idle="2d")
+        shown = board(first, parked)
+        lines = shown.lines(60, 20)
+        self.assertEqual(lines[4], table.detail(table.cells(first), None, 60))
+        self.assertEqual(lines[5], table.line(table.cells(parked), 60, selected=False))
+        shown.on_input(b"i")
+        self.assertEqual(shown.lines(60, 20)[4], lines[5])
+        shown.on_input(b"i")
+        self.assertEqual(shown.lines(60, 20), lines)
+
+    def test_a_parked_row_shows_its_note_and_nothing_is_added_when_there_is_nothing_to_say(self):
+        parked = live(status="parked", record={"note": "stopped before the wiki"}, idle="2d")
+        lines = board(parked, live("w8:p37")).lines(100, 20)
+        self.assertEqual(lines[4], '    ↳ "stopped before the wiki"')
+        self.assertEqual(len(board(live()).lines(100, 20)), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
