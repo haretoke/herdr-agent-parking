@@ -3,6 +3,7 @@ knows about it (process, memory, version, context, park record)."""
 
 import os
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional
 
@@ -107,3 +108,19 @@ def ctx_text(summary, window, now):
     share = transcript.percent(summary.tokens, window)
     text = display.tokens(summary.tokens)
     return text if share is None else "%s %d%%" % (text, share)
+
+
+Decision = namedtuple("Decision", "record kind pane_id restore_label_on")
+
+
+def reconcile(parked_records, panes):
+    """What each park record means now, given the live panes (pure; the caller acts).
+
+    `resumed`: its session runs in a Claude pane (resumed by hand, maybe elsewhere)."""
+    running = {p.session_id: p for p in panes if p.agent == "claude" and p.session_id}
+    decisions = []
+    for record in parked_records:
+        host = running.get(record["session_id"])
+        if host is not None:
+            decisions.append(Decision(record, "resumed", host.pane_id, record.get("pane_id")))
+    return decisions

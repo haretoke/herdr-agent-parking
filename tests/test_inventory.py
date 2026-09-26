@@ -157,6 +157,21 @@ class AgeTest(unittest.TestCase):
                 self.assertEqual(display.age(seconds), text)
 
 
+OTHER = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
+
+
+def parked(session_id=UUID, pane_id="w1:p2", status="parked"):
+    return {"schema_version": 1, "session_id": session_id, "pane_id": pane_id, "status": status,
+            "label_before": None, "pane_id_history": []}
+
+
+class ReconcileTest(unittest.TestCase):
+    def test_the_same_session_running_in_the_records_pane_was_resumed_by_hand(self):
+        panes = [pane("w1:p2", session_id=UUID, label="💤 work")]
+        [decision] = inventory.reconcile([parked()], panes)
+        self.assertEqual((decision.kind, decision.pane_id, decision.restore_label_on), ("resumed", "w1:p2", "w1:p2"))
+
+
 class RunningVersionTest(unittest.TestCase):
     def test_linux_reads_the_exe_link_and_macos_the_process_name(self):
         linux = FakeSystem(exes={7: "/home/node/.local/share/claude/versions/2.1.281"})
