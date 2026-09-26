@@ -17,10 +17,21 @@ def make_runtime(environ):
     settings = config.load(state.config_dir(environ) / "config.json", lambda line: logfile.append(log, line))
     config_dir = state.claude_config_dir(environ, settings)
     summaries = transcript.Cache(transcript.load)
+
+    def rows_for(session_id):
+        """The tail of the session's transcript (the compact flow reads Claude's replies)."""
+        path = transcript.find(config_dir, session_id)
+        try:
+            return transcript.read_tail(path) if path is not None else []
+        except OSError:
+            return []
+
     return runtime.Runtime(
         herdr=herdr_api.Herdr.from_environ(environ), system=system.System(),
         paths=state.paths(environ, settings), settings=settings, clock=_now, environ=environ,
-        summary_for=lambda session_id: summaries.get(transcript.find(config_dir, session_id)))
+        summary_for=lambda session_id: summaries.get(transcript.find(config_dir, session_id)),
+        rows_for=rows_for,
+        statusline_windows=transcript.statusline_windows(state.state_dir(environ) / "context-windows.json"))
 
 
 def main(args, environ):
