@@ -707,7 +707,7 @@ server is never restarted.
 - [ ] polling updates status, RSS and ctx, and idle time advances
 - [ ] a dropped event subscription keeps polling and shows "events: off" in the footer
 - [x] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
-- [ ] SIGWINCH redraws
+- [x] SIGWINCH redraws
 - [ ] an unexpected exception is logged to `dashboard.log` before exit
 - [ ] a second dashboard at the same time does not corrupt `observed.json`
 
