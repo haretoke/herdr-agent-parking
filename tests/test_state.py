@@ -42,6 +42,16 @@ class ConfigDirTest(unittest.TestCase):
                 self.assertEqual(state.config_dir({"HOME": "/home/u", **extra}), expected)
 
 
+class DashboardPaneTest(unittest.TestCase):
+    def test_only_the_dashboard_entrypoint_of_this_plugin_has_a_pane_of_its_own(self):
+        mine = {"HERDR_PLUGIN_ID": state.PLUGIN_ID, "HERDR_PLUGIN_ENTRYPOINT_ID": "dashboard", "HERDR_PANE_ID": "w1:p9"}
+        self.assertEqual(state.dashboard_pane(mine), "w1:p9")
+        for environ in ({"HERDR_PANE_ID": "w1:p2"}, dict(mine, HERDR_PLUGIN_ID="other.plugin"),
+                        dict(mine, HERDR_PLUGIN_ENTRYPOINT_ID="viewer"), dict(mine, HERDR_PANE_ID="")):
+            with self.subTest(environ=environ):
+                self.assertIsNone(state.dashboard_pane(environ))
+
+
 class PathsTest(unittest.TestCase):
     ENV = {"HOME": "/home/u", "HERDR_PLUGIN_ID": "haretoke.agent-parking",
            "HERDR_PLUGIN_STATE_DIR": "/s"}

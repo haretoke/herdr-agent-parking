@@ -156,6 +156,30 @@ class OnParkTest(FlowTestCase):
                 self.assertIn(reason, outcome.message)
 
 
+def with_overlay(root):
+    """The tab's layout while the dashboard's overlay (`w1:p9`) is open over it (seen on the Mac)."""
+    return {"type": "layout_export", "tab_id": "w1:t1", "root": {
+        "type": "split", "direction": "right", "ratio": 0.5, "first": root, "second": {"type": "pane", "pane_id": "w1:p9"}}}
+
+
+class OverlayTest(FlowTestCase):
+    def setUp(self):
+        super().setUp()
+        self.environ.update(HERDR_PANE_ID="w1:p9", HERDR_PLUGIN_ENTRYPOINT_ID="dashboard")
+
+    def test_the_dashboards_own_pane_is_left_out_of_the_hint(self):
+        park.park(self.flow(**{"layout.export": with_overlay(TWO_PANES["root"])}), "w1:p2", note=None)
+        self.assertEqual(self.saved()["layout_hint"], {"sibling_pane_id": "w1:p1", "position": "second",
+                                                       "direction": "right", "ratio": 0.5, "path": []})
+
+    def test_a_pane_alone_with_the_overlay_is_the_last_one_of_its_tab(self):
+        self.settings["on_park"] = "close"
+        outcome = park.park(self.flow(**{"layout.export": with_overlay(ONE_PANE["root"])}), "w1:p2", note=None)
+        self.assertNotIn("pane.close", self.fake.methods())
+        self.assertIsNone(self.saved()["layout_hint"])
+        self.assertIn("last pane", outcome.message)
+
+
 class TimeoutTest(FlowTestCase):
     def test_claude_still_there_after_the_timeout_is_park_failed_and_the_pane_untouched(self):
         self.settings["exit_timeout_seconds"] = 1

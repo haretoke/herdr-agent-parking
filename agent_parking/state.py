@@ -48,6 +48,13 @@ def config_dir(environ):
                        ("herdr", "plugins", "config", PLUGIN_ID))
 
 
+def dashboard_pane(environ):
+    """The pane this process draws the dashboard in, or None for the shell commands."""
+    if environ.get("HERDR_PLUGIN_ID") == PLUGIN_ID and environ.get("HERDR_PLUGIN_ENTRYPOINT_ID") == "dashboard":
+        return environ.get("HERDR_PANE_ID") or None
+    return None
+
+
 def paths(environ, settings):
     """Where each file lives. `records_dir` moves the records (parked and resumed) only."""
     own = state_dir(environ)

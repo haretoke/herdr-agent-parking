@@ -3,7 +3,7 @@
 import unicodedata
 from collections import namedtuple
 
-from . import config, display, herdr_api, inventory, layout, ready, records, times, transcript
+from . import config, display, herdr_api, inventory, layout, ready, records, state, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -78,12 +78,13 @@ def _label_before(rt, pane):
 
 
 def _tab_tree(rt, pane_id):
-    """The split tree of the pane's tab (`layout.export`), or None when Herdr cannot say."""
+    """The split tree of the pane's tab (`layout.export`) as it is without the dashboard's
+    own overlay, or None when Herdr cannot say."""
     try:
         exported = rt.herdr.call("layout.export", {"pane_id": pane_id})
     except herdr_api.HerdrError:
         return None
-    return exported.get("layout", exported).get("root")
+    return layout.without(exported.get("layout", exported).get("root"), state.dashboard_pane(rt.environ))
 
 
 LABEL_LIMIT = 80
