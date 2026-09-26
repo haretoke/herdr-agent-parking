@@ -40,40 +40,43 @@ class Herdr:
             raise HerdrError("not running inside Herdr (HERDR_SOCKET_PATH is not set)", "not_in_herdr")
         return cls(path, timeout)
 
+    def _send(self, method, params):
+        """A connected socket that has sent the request, and a reader for the replies."""
+        request = {"id": "agent-parking:" + uuid.uuid4().hex, "method": method, "params": params}
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client.settimeout(self.timeout)
+            client.connect(self.socket_path)
+            client.sendall(json.dumps(request).encode("utf-8") + b"\n")
+            return client, client.makefile("rb")
+        except OSError as error:
+            client.close()
+            raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
+
     def call(self, method, params):
         """Send one request on its own connection and return its result.
 
         Every failure is a HerdrError: Herdr's own code for an error reply, else
         `unreachable`, `closed` or `invalid_reply`."""
-        request = {"id": "agent-parking:" + uuid.uuid4().hex, "method": method, "params": params}
+        client, reader = self._send(method, params)
         try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-                client.settimeout(self.timeout)
-                client.connect(self.socket_path)
-                client.sendall(json.dumps(request).encode("utf-8") + b"\n")
-                with client.makefile("rb") as reader:
-                    line = reader.readline(MAX_LINE_BYTES + 1)
+            with client, reader:
+                line = reader.readline(MAX_LINE_BYTES + 1)
         except OSError as error:
             raise HerdrError("could not reach Herdr for %s: %s" % (method, error), "unreachable") from error
         return parse_reply(method, line)
 
     def subscribe(self, subscriptions):
         """Open an `events.subscribe` connection; returns once Herdr acknowledged it."""
-        request = {"id": "agent-parking:" + uuid.uuid4().hex, "method": "events.subscribe",
-                   "params": {"subscriptions": subscriptions}}
-        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        client, reader = self._send("events.subscribe", {"subscriptions": subscriptions})
         try:
-            client.settimeout(self.timeout)
-            client.connect(self.socket_path)
-            client.sendall(json.dumps(request).encode("utf-8") + b"\n")
-            reader = client.makefile("rb")
             parse_reply("events.subscribe", reader.readline(MAX_LINE_BYTES + 1))
-        except OSError as error:
+        except (OSError, HerdrError) as error:
+            reader.close()
             client.close()
+            if isinstance(error, HerdrError):
+                raise
             raise HerdrError("could not subscribe to Herdr events: %s" % error, "unreachable") from error
-        except HerdrError:
-            client.close()
-            raise
         client.settimeout(None)
         return Subscription(client, reader)
 
