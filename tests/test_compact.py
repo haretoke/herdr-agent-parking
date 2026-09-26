@@ -60,5 +60,23 @@ class FocusTest(FlowTestCase):
         self.assertIn("Saved.", outcome.reply.text)
 
 
+class ConfirmationTest(unittest.TestCase):
+    def test_the_box_shows_the_end_of_the_report_and_the_editable_focus(self):
+        report = "\n".join(["line %d" % i for i in range(1, 11)] +
+                           ["<compact-focus>keep the plan</compact-focus>", "`/compact keep the plan`"])
+        reply = compact.transcript.Reply(found=True, text=report, focus="keep the plan")
+        lines = compact.confirmation(reply)
+        text = "\n".join(lines)
+        self.assertIn("line 10", text)
+        self.assertNotIn("line 1\n", text + "\n")
+        self.assertNotIn("<compact-focus>", text)
+        self.assertIn("focus: keep the plan", text)
+        self.assertIn("e to edit", text)
+
+    def test_an_empty_focus_is_shown_as_such(self):
+        lines = compact.confirmation(compact.transcript.Reply(found=True, text="Nothing to save.", focus=""))
+        self.assertIn("focus: (none, /compact alone)", "\n".join(lines))
+
+
 if __name__ == "__main__":
     unittest.main()

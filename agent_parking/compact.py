@@ -23,3 +23,16 @@ def prepare(rt, pane_id):
         "until": ["idle", "done"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
     reply = transcript.preparation_reply(rt.rows_for(pane.session_id), preparation.first)
     return Outcome("prepared", "", reply)
+
+
+REPORT_LINES = 8
+
+
+def confirmation(reply):
+    """The lines of the compact confirmation: the end of the preparation report (without
+    the focus tag and the ready-to-type command) and the focus, which can be edited."""
+    report = [line for line in reply.text.splitlines()
+              if line.strip() and not transcript.FOCUS.search(line) and "/compact" not in line]
+    focus = reply.focus or "(none, /compact alone)"
+    return (["preparation report (end):"] + ["  " + line for line in report[-REPORT_LINES:]] +
+            ["focus: " + focus, "Enter to compact, e to edit the focus, Esc to cancel"])
