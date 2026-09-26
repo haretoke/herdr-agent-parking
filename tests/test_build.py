@@ -1,7 +1,7 @@
 import unittest
 from datetime import timedelta
 
-from agent_parking import idle, inventory, transcript
+from agent_parking import idle, inventory, records, state, times, transcript
 from tests.fake_herdr import Error
 from tests.fakes import FakeSystem
 from tests.flows import NOW, PROCESS, UUID, FlowRuntimeTestCase
@@ -91,6 +91,30 @@ class IdleTest(BuildTestCase):
                           "agent.list": {"type": "agent_list", "agents": agents}})
         self.assertEqual([r.idle for r in got.rows], ["1h12m", "—", "≥0m"])
         self.assertEqual((self.tracker.entries["w1:p2"].seq, self.tracker.entries["w1:p3"].seq), (4, 9))
+
+
+OTHER = "5e0c1f2a-0000-4000-8000-000000000001"
+THIRD = "5e0c1f2a-0000-4000-8000-000000000002"
+
+
+class ParkedRowsTest(BuildTestCase):
+    def park(self, session_id, pane_id, title, days):
+        records.write(state.paths(self.environ, self.settings).records, {
+            "schema_version": 1, "session_id": session_id, "status": "parked", "pane_id": pane_id,
+            "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": title, "cwd": "/notes",
+            "argv": ["claude"], "label_before": None, "parked_at": times.iso(NOW - timedelta(days=days))})
+
+    def test_parked_records_follow_the_live_rows_and_those_without_a_pane_come_last(self):
+        self.park(THIRD, "w1:p8", "billing", 5)
+        self.park(OTHER, "w1:p5", "color notes", 2)
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p5", agent=None, session_id=None,
+                                                                             label="💤 color notes"))})
+        self.assertEqual([(r.pane_id, r.status, r.name, r.cwd, r.idle, r.session_id) for r in got.rows], [
+            ("w1:p2", "idle", "work", "/repo", "≥0m", UUID),
+            ("w1:p5", "parked", "color notes", "/notes", "2d", OTHER),
+            (None, "parked", "billing", "/notes", "5d", THIRD)])
+        self.assertEqual([r.record is not None for r in got.rows], [False, True, True])
+        self.assertEqual(got.rows[1].tab_id, "w1:t1")
 
 
 if __name__ == "__main__":

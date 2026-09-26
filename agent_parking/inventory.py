@@ -7,7 +7,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional
 
-from . import display, herdr_api, idle, transcript
+from . import display, herdr_api, idle, records, times, transcript
 
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 
@@ -193,7 +193,34 @@ def build(rt, tracker, own_pane_id):
         entry = tracker.poll(found.pane_id, seqs.get(found.pane_id), found.status, summary)
         found.idle = idle.text(entry, now)
         rows.append(found)
+    rows.extend(_parked_rows(rt, panes, workspace_labels, tab_labels, now))
     return Inventory(rows, other_agents(panes))
+
+
+def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
+    """Rows for the parked records: those whose pane is there, then those without one."""
+    parked = [r for r in records.list_records(rt.paths.records) if r.get("status") == "parked"]
+    by_id = {p.pane_id: p for p in panes}
+    with_pane, without = [], []
+    for decision in reconcile(parked, panes):
+        pane = by_id.get(decision.pane_id)
+        found = _record_row(rt, decision.record, pane, now)
+        if pane is not None:
+            found.workspace_label = workspace_labels.get(pane.workspace_id)
+            found.tab_label = tab_labels.get(pane.tab_id)
+        (with_pane if pane is not None else without).append(found)
+    return with_pane + without
+
+
+def _record_row(rt, record, pane, now):
+    session_id = record["session_id"]
+    parked_at = times.parse(record.get("parked_at"))
+    summary = rt.summary_for(session_id)
+    return Row(pane_id=pane.pane_id if pane else None, tab_id=pane.tab_id if pane else record.get("tab_id"),
+               workspace_id=pane.workspace_id if pane else record.get("workspace_id"),
+               name=record.get("title"), cwd=record.get("cwd"), status="parked", session_id=session_id,
+               ctx=_ctx(rt, summary, session_id, now), record=record,
+               idle=display.age((now - parked_at).total_seconds()) if parked_at else "")
 
 
 def _add_process(rt, found):
