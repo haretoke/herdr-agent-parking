@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from agent_parking import dashboard, display, park, resume, table
+from agent_parking import dashboard, display, park, recreate, resume, table
 from agent_parking.inventory import Inventory, Row
 
 
@@ -263,6 +263,21 @@ class ResumeTest(unittest.TestCase):
         shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
         shown.on_input(b"r\x1b")
         self.assertEqual((shown.dialog, shown.pending, acted(actions)), (None, None, []))
+
+
+class NewWorkspaceTest(unittest.TestCase):
+    def test_a_resume_that_needs_a_new_workspace_asks_then_resumes_with_it(self):
+        refused = resume.Outcome("refused", recreate.NEEDS_WORKSPACE, RECORD)
+        actions = FakeActions(resume=refused, now=NOW)
+        shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
+        shown.on_input(b"r\r")
+        shown.run_pending()
+        self.assertIn("(y/N)", shown.lines(78, 30)[-1])
+        actions.outcomes["resume"] = resume.Outcome("resumed", "", dict(RECORD, pane_id="w5:p1"))
+        shown.on_input(b"y")
+        shown.run_pending()
+        self.assertEqual(acted(actions), [("resume", UUID, False), ("resume", UUID, True)])
+        self.assertIn("resumed w5:p1", shown.message)
 
 
 if __name__ == "__main__":

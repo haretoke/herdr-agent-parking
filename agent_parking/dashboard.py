@@ -3,7 +3,7 @@ drives it is in `terminal`)."""
 
 import textwrap
 
-from . import dialogs, display, keys, park, ready, resume, table
+from . import dialogs, display, keys, park, ready, recreate, resume, table
 
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
@@ -190,10 +190,20 @@ class Dashboard:
         if row is None:
             return
         lines = resume.confirmation(row.record, self.actions.now())
-        self._ask(dialogs.Confirm(lines, {"enter": "yes"}),
-                  lambda _: self._later("resuming %s…" % (row.pane_id or row.session_id[:8]),
-                                        lambda: _said(self.actions.resume(row.session_id, False),
-                                                      row.pane_id or "(new pane)")))
+        self._ask(dialogs.Confirm(lines, {"enter": "yes"}), lambda _: self._start_resume(row, False))
+
+    def _start_resume(self, row, new_workspace):
+        self._later("resuming %s (up to %s)…" % (row.pane_id or row.session_id[:8], "30 s"),
+                    lambda: self._resumed(row, self.actions.resume(row.session_id, new_workspace)))
+
+    def _resumed(self, row, outcome):
+        """The message for a resume, or the question whether to open a new workspace
+        when the session's own is gone."""
+        if outcome.kind == "refused" and outcome.message == recreate.NEEDS_WORKSPACE:
+            self._ask(dialogs.Confirm([outcome.message + " (y/N)"], {"y": "yes"}, others_cancel=True),
+                      lambda _: self._start_resume(row, True))
+            return ""
+        return _said(outcome, (outcome.record or {}).get("pane_id") or row.pane_id or "(new pane)")
 
     def _set_filter(self, text):
         chosen = self._row()
