@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 
 from agent_parking import records, resume
-from tests.flows import SHELL, SHELL_PROCESS, UUID, FlowTestCase, pane_reply
+from tests.flows import NOW, SHELL, SHELL_PROCESS, UUID, FlowTestCase, pane_reply
 
 PARKED = {"schema_version": 1, "session_id": UUID, "status": "parked", "pane_id": "w1:p2",
           "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": "work", "cwd": "/repo",
@@ -36,6 +36,29 @@ class StartTest(ResumeTestCase):
         self.assertEqual(start["params"], {"name": "parking-2716af66", "kind": "claude", "pane_id": "w1:p2",
                                            "args": ["--resume", UUID, "--model", "haiku"],
                                            "timeout_ms": 30000})
+
+
+class NameTest(unittest.TestCase):
+    def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
+        import re
+        name = resume.agent_name(UUID)
+        self.assertEqual(name, "parking-2716af66")
+        self.assertRegex(name, re.compile(r"^[a-z][a-z0-9_-]{0,31}$"))
+
+
+class ConfirmationTest(unittest.TestCase):
+    def test_the_box_shows_the_command_the_left_out_arguments_and_the_note(self):
+        record = dict(PARKED, argv=["claude", "--model", "haiku", "fix the login bug"],
+                      note="LUT の一覧を貼る前で止めた\n次は色域", parked_at="2026-09-25T12:00:00Z")
+        text = "\n".join(resume.confirmation(record, now=NOW))
+        self.assertIn("w1:p2", text)
+        self.assertIn("parked 2d ago", text)
+        self.assertIn("claude --resume %s --model haiku" % UUID[:8], text)
+        self.assertIn('left out: "fix the login bug"', text)
+        self.assertIn("LUT の一覧を貼る前で止めた\n  次は色域", text)
+
+    def test_nothing_left_out_says_nothing(self):
+        self.assertNotIn("left out", "\n".join(resume.confirmation(dict(PARKED, argv=["claude", "-c"]), now=NOW)))
 
 
 if __name__ == "__main__":

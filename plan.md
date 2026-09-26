@@ -658,8 +658,8 @@ server is never restarted.
 ### resume (fake herdr)
 - [x] with the pane present and the shell alone in the foreground,
       `agent start <name> --kind claude --pane <P> --timeout <ms> -- --resume <UUID> <flags>` is called
-- [ ] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
-- [ ] the confirmation text lists the tokens `resume_flags` left out (`dropped`)
+- [x] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
+- [x] the confirmation text lists the tokens `resume_flags` left out (`dropped`)
 - [ ] a pane cwd different from the record's sends `pane.send_input` of `cd <quoted>` + Enter first
 - [ ] the note is printed with `pane.send_input` of `printf ...` + Enter before the resume; a failure does not stop it
 - [ ] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
