@@ -227,8 +227,11 @@ class Dashboard:
         self.message = self._refusal(row, "swap") or ""
         if self.message:
             return
-        start = lambda _=None: self._later("swapping %s (park, then resume)…" % row.pane_id,  # noqa: E731
-                                           lambda: self._swapped(row, *self.actions.swap(row.pane_id)))
+
+        def start(_=None):
+            self._later("swapping %s (park, then resume)…" % row.pane_id,
+                        lambda: self._swapped(row, *self.actions.swap(row.pane_id)))
+
         question = resume.swap_question(row.version, row.current_version)
         if question is None:
             start()
