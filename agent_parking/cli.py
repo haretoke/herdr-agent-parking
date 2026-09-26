@@ -1,6 +1,7 @@
 """The plugin's commands: `dashboard` (the pane process), `open` and `open-tab` (the
 plugin actions that open it), `list` (the rows as JSON for scripts)."""
 
+import argparse
 import dataclasses
 import json
 import sys
@@ -40,18 +41,27 @@ def make_runtime(environ):
 
 
 def main(args, environ):
-    if args == ["dashboard"]:
-        rt = make_runtime(environ)
-        try:
-            return terminal.run_dashboard(rt, environ.get("HERDR_PANE_ID"))
-        except Exception:
-            logfile.append(rt.paths.log, "dashboard error\n" + traceback.format_exc())
-            return 1
-    if args in (["open"], ["open-tab"]):
-        return _open(environ, tab=args == ["open-tab"])
-    if args == ["list"]:
-        return _list(environ)
-    return 2
+    parser = argparse.ArgumentParser(prog="agent-parking")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("dashboard", help="run the dashboard pane (started by Herdr)")
+    commands.add_parser("open", help="open the dashboard over the active pane (plugin action)")
+    commands.add_parser("open-tab", help="open the dashboard in a new tab (plugin action)")
+    commands.add_parser("list", help="print the rows as JSON")
+    parsed = parser.parse_args(args)
+    if parsed.command == "dashboard":
+        return _dashboard(environ)
+    if parsed.command in ("open", "open-tab"):
+        return _open(environ, tab=parsed.command == "open-tab")
+    return _list(environ)
+
+
+def _dashboard(environ):
+    rt = make_runtime(environ)
+    try:
+        return terminal.run_dashboard(rt, environ.get("HERDR_PANE_ID"))
+    except Exception:
+        logfile.append(rt.paths.log, "dashboard error\n" + traceback.format_exc())
+        return 1
 
 
 def _open(environ, tab):
