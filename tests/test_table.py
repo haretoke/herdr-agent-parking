@@ -20,7 +20,8 @@ class ColumnsTest(unittest.TestCase):
 
 class NameWidthTest(unittest.TestCase):
     def test_the_name_takes_what_the_other_columns_leave_but_at_least_12(self):
-        cases = [(120, 56), (78, 14), (77, 31), (64, 18), (63, 24), (52, 13), (51, 27), (36, 12), (20, 12)]
+        # ctx is 13 wide so `compacted 59m` fits (seen cut on the Mac)
+        cases = [(120, 55), (78, 13), (77, 30), (64, 17), (63, 24), (52, 13), (51, 27), (36, 12), (20, 12)]
         for width, name in cases:
             with self.subTest(width=width):
                 self.assertEqual(table.widths(table.columns(width), width)["name"], name)
@@ -70,7 +71,7 @@ class LineTest(unittest.TestCase):
     def test_a_row_is_drawn_in_its_columns_and_never_wider_than_the_pane(self):
         cells = table.cells(live(idle="≥1h12m"))
         self.assertEqual(table.line(cells, 78, selected=True),
-                         "▶ w8/t3/p36 web  api gateway r… idle     ≥1h12m 37k 18%      205M  2.1.283")
+                         "▶ w8/t3/p36 web  api gateway … idle     ≥1h12m 37k 18%       205M  2.1.283")
         self.assertEqual(table.line(cells, 51, selected=False), "  w8/t3/p36    api gateway refactor        idle")
         for width in (120, 78, 77, 64, 63, 52, 51, 36, 20):
             with self.subTest(width=width):
@@ -91,7 +92,7 @@ class OldMarkTest(unittest.TestCase):
 
 class HeaderTest(unittest.TestCase):
     def test_the_titles_sit_above_their_columns(self):
-        self.assertEqual(table.header(78), "  place" + " " * 10 + "name" + " " * 11 + "status   idle   ctx" + " " * 10 +
+        self.assertEqual(table.header(78), "  place" + " " * 10 + "name" + " " * 10 + "status   idle   ctx" + " " * 11 +
                          "rss   ver")
         self.assertEqual(table.header(51), "  place" + " " * 8 + "name" + " " * 24 + "status")
 

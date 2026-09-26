@@ -21,7 +21,7 @@ def columns(width):
 
 MARK_WIDTH = 2  # the selection mark `▶ `
 MIN_NAME = 12
-FIXED = {"place": 14, "place_id": 12, "status": 8, "idle": 6, "ctx": 12, "ctx_short": 7, "rss": 5, "ver": 11}
+FIXED = {"place": 14, "place_id": 12, "status": 8, "idle": 6, "ctx": 13, "ctx_short": 7, "rss": 5, "ver": 11}
 
 
 def widths(cols, width):
