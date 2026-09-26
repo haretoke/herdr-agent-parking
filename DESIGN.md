@@ -529,6 +529,7 @@ Record (schema_version 1):
   "workspace_label": "project",
   "label_before": null,
   "layout_hint": {"sibling_pane_id": "wD:p2S", "position": "second", "direction": "right", "ratio": 0.5, "path": []},
+  // path: where the split was at park time, for reference; recreate finds the split in the live layout
   "status": "parked",
   "parked_mode": "keep",
   "status_at_park": "idle",
