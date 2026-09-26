@@ -4,6 +4,7 @@ import stat
 import tempfile
 import unittest
 import unittest.mock
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_parking import records
@@ -77,6 +78,44 @@ class StartParkingTest(RecordsTestCase):
         records.write(self.dir, record(status="parked"))
         saved = json.loads((self.dir / (UUID + ".json")).read_text(encoding="utf-8"))
         self.assertEqual(saved["status"], "parked")
+
+
+class ResumedTest(RecordsTestCase):
+    NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
+
+    def setUp(self):
+        super().setUp()
+        self.resumed = self.dir.parent / "resumed"
+
+    def test_a_resumed_record_moves_to_resumed_with_its_time(self):
+        records.write(self.dir, record(status="parked"))
+        records.mark_resumed(self.dir, self.resumed, UUID, self.NOW)
+        self.assertFalse((self.dir / (UUID + ".json")).exists())
+        moved = json.loads((self.resumed / (UUID + ".json")).read_text(encoding="utf-8"))
+        self.assertEqual((moved["status"], moved["resumed_at"]), ("resumed", "2026-09-27T12:00:00Z"))
+        self.assertEqual(stat.S_IMODE(self.resumed.stat().st_mode), 0o700)
+
+    def test_resumed_records_are_deleted_after_the_retention_only(self):
+        keep_days = 30
+        records.write(self.resumed, record(status="resumed", resumed_at="2026-08-28T12:00:01Z"))
+        records.write(self.resumed, record(session_id=OTHER, status="resumed", resumed_at="2026-08-28T11:59:59Z"))
+        records.write(self.resumed, record(session_id=THIRD, status="resumed", resumed_at="not a time"))
+        deleted = records.purge_resumed(self.resumed, keep_days, self.NOW)
+        self.assertEqual(deleted, [OTHER])
+        self.assertEqual(sorted(p.name for p in self.resumed.iterdir()), sorted([UUID + ".json", THIRD + ".json"]))
+
+    def test_an_unknown_schema_is_never_moved_nor_deleted(self):
+        text = json.dumps({"schema_version": 2, "session_id": UUID, "status": "parked"})
+        self.dir.mkdir(parents=True)
+        (self.dir / (UUID + ".json")).write_text(text, encoding="utf-8")
+        with self.assertRaises(records.Refused):
+            records.mark_resumed(self.dir, self.resumed, UUID, self.NOW)
+        self.assertEqual((self.dir / (UUID + ".json")).read_text(encoding="utf-8"), text)
+        self.resumed.mkdir(parents=True)
+        old = json.dumps({"schema_version": 2, "session_id": OTHER, "resumed_at": "2000-01-01T00:00:00Z"})
+        (self.resumed / (OTHER + ".json")).write_text(old, encoding="utf-8")
+        self.assertEqual(records.purge_resumed(self.resumed, 30, self.NOW), [])
+        self.assertTrue((self.resumed / (OTHER + ".json")).exists())
 
 
 OTHER = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
