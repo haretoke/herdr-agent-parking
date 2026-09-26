@@ -172,12 +172,14 @@ def other_agents(panes):
 
 def _labels(rt, method, key, id_key):
     """`{id: label}` from `workspace.list` or `tab.list`; none when Herdr cannot say (the
-    labels only help to recognize a row)."""
+    labels only help to recognize a row) or the label is only the number."""
     try:
         result = rt.herdr.call(method, {})
     except herdr_api.HerdrError:
         return {}
-    return {item.get(id_key): item.get("label") for item in result.get(key) or []}
+    # A label that is only the item's number is Herdr's default for a new tab, not a name.
+    return {item.get(id_key): item.get("label") for item in result.get(key) or []
+            if item.get("label") and item.get("label") != str(item.get("number"))}
 
 
 def _state_seqs(rt):

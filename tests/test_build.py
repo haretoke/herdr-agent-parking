@@ -56,6 +56,19 @@ class BuildRowsTest(BuildTestCase):
         self.assertEqual(got.others, {"codex": 2})
 
 
+class DefaultLabelTest(BuildTestCase):
+    def test_a_label_that_is_only_the_tab_or_workspace_number_is_left_out(self):
+        # Seen on the Mac: a new tab's label is its number ("1"), which says nothing.
+        panes = pane_list(raw_pane("w1:p2"), raw_pane("w2:p1"))
+        got = self.build({"pane.list": panes,
+                          "tab.list": {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "1", "number": 1},
+                                                                    {"tab_id": "w2:t1", "label": "api", "number": 1}]},
+                          "workspace.list": {"type": "workspace_list",
+                                             "workspaces": [{"workspace_id": "w1", "label": "smoke", "number": 1},
+                                                            {"workspace_id": "w2", "label": "2", "number": 2}]}})
+        self.assertEqual([(r.tab_label, r.workspace_label) for r in got.rows], [(None, "smoke"), ("api", None)])
+
+
 class LabelErrorTest(BuildTestCase):
     def test_labels_that_cannot_be_read_are_left_out(self):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "workspace.list": Error("internal"),
