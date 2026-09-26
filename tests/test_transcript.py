@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +38,45 @@ class FindTest(TranscriptTestCase):
         for bad in ("*", "x", "../x", ""):
             with self.subTest(session_id=bad):
                 self.assertIsNone(transcript.find(self.config, bad))
+
+
+def jsonl(*rows):
+    return "".join(json.dumps(row) + "\n" for row in rows)
+
+
+class TailTest(TranscriptTestCase):
+    def test_a_file_under_the_cap_is_read_whole(self):
+        rows = [{"n": i} for i in range(5)]
+        path = self.put("-a", text=jsonl(*rows))
+        self.assertEqual(transcript.read_tail(path, 10_000), rows)
+
+    def test_a_line_cut_by_the_cap_is_dropped_and_the_rest_kept(self):
+        rows = [{"n": i, "pad": "x" * 50} for i in range(40)]
+        text = jsonl(*rows)
+        path = self.put("-a", text=text)
+        cap = 200
+        got = transcript.read_tail(path, cap)
+        tail = text.encode()[-cap:]
+        expected_count = tail.count(b"\n") - (0 if text.encode()[-cap - 1:-cap] == b"\n" else 1)
+        self.assertEqual(got, rows[-expected_count:])
+        self.assertTrue(all(len(json.dumps(r)) + 1 <= cap for r in got))
+
+    def test_a_cap_that_falls_on_a_line_start_keeps_that_line(self):
+        rows = [{"n": 1}, {"n": 2}, {"n": 3}]
+        text = jsonl(*rows)
+        path = self.put("-a", text=text)
+        cap = len(jsonl(rows[1], rows[2]))
+        self.assertEqual(transcript.read_tail(path, cap), rows[1:])
+
+    def test_a_huge_file_is_read_only_at_its_end(self):
+        path = self.put("-a", text=jsonl(*[{"n": i, "pad": "y" * 500} for i in range(10_000)]))
+        got = transcript.read_tail(path, 2_000)
+        self.assertEqual([r["n"] for r in got], list(range(10_000 - len(got), 10_000)))
+        self.assertLessEqual(len(got), 4)
+
+    def test_lines_that_are_not_json_objects_are_skipped(self):
+        path = self.put("-a", text='{"n": 1}\nnot json\n[1]\n{"n": 2}\n')
+        self.assertEqual(transcript.read_tail(path, 10_000), [{"n": 1}, {"n": 2}])
 
 
 if __name__ == "__main__":
