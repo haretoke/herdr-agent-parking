@@ -539,7 +539,7 @@ server is never restarted.
 - [x] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
 - [x] the subscription list is `pane.agent_detected` without a pane plus one
       `pane.agent_status_changed` per given Claude pane
-- [ ] an `error` reply to the subscription is an exception, not an empty stream
+- [x] an `error` reply to the subscription is an exception, not an empty stream
 - [ ] every command has a timeout and a timeout is an exception
 - [ ] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)

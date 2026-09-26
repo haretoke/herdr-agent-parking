@@ -98,6 +98,16 @@ class SubscribeTest(unittest.TestCase):
         self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
 
 
+class SubscribeErrorTest(unittest.TestCase):
+    def test_an_error_reply_to_the_subscription_raises_instead_of_an_empty_stream(self):
+        fake = FakeHerdr({"events.subscribe": Error("invalid_request", "missing field `pane_id`")})
+        self.addCleanup(fake.close)
+        with self.assertRaises(herdr_api.HerdrError) as raised:
+            herdr_api.Herdr(fake.path).subscribe([{"type": "pane.agent_status_changed"}])
+        self.assertEqual(raised.exception.code, "invalid_request")
+        self.assertIn("pane_id", str(raised.exception))
+
+
 class StatusSubscriptionsTest(unittest.TestCase):
     def test_agent_detected_for_all_panes_and_status_changes_per_claude_pane(self):
         self.assertEqual(herdr_api.status_subscriptions(["w1:p5", "w8:p36"]), [
