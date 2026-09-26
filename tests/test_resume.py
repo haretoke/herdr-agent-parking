@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 
@@ -72,6 +73,34 @@ class NotePrintTest(ResumeTestCase):
         self.park_record(note=None)
         resume.resume(self.resuming(), UUID)
         self.assertNotIn("pane.send_input", self.fake.methods())
+
+
+class AfterStartTest(ResumeTestCase):
+    def resumed_record(self):
+        path = Path(self.environ["HERDR_PLUGIN_STATE_DIR"]) / "resumed" / (UUID + ".json")
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+    def test_the_same_session_restores_the_label_and_moves_the_record(self):
+        for label_before in ("api", None):
+            with self.subTest(label_before=label_before):
+                self.park_record(label_before=label_before)
+                outcome = resume.resume(self.resuming(), UUID)
+                self.assertEqual(outcome.kind, "resumed")
+                [rename] = [r for r in self.fake.requests if r["method"] == "pane.rename"]
+                self.assertEqual(rename["params"], {"pane_id": "w1:p2", "label": label_before})
+                self.assertIsNone(self.saved())
+                self.assertEqual(self.resumed_record()["status"], "resumed")
+
+    def test_another_session_is_resume_failed_with_both_ids(self):
+        other = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
+        self.park_record()
+        outcome = resume.resume(self.resuming(**{"pane.get": [SHELL, pane_reply(session_id=other)]}), UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+        self.assertNotIn("pane.rename", self.fake.methods())
+        saved = self.saved()
+        self.assertEqual(saved["status"], "resume_failed")
+        self.assertIn(UUID, saved["error"])
+        self.assertIn(other, saved["error"])
 
 
 class NameTest(unittest.TestCase):

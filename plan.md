@@ -662,8 +662,8 @@ server is never restarted.
 - [x] the confirmation text lists the tokens `resume_flags` left out (`dropped`)
 - [x] a pane cwd different from the record's sends `pane.send_input` of `cd <quoted>` + Enter first
 - [x] the note is printed with `pane.send_input` of `printf ...` + Enter before the resume; a failure does not stop it
-- [ ] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
-- [ ] a mismatch gives `resume_failed` with both IDs in `error`
+- [x] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
+- [x] a mismatch gives `resume_failed` with both IDs in `error`
 - [ ] `agent_not_ready` gives `resume_pending` and leaves the label
 - [ ] a retry from `resume_pending` with a matching Claude already running only restores the
       label and moves the record

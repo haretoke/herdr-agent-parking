@@ -33,6 +33,15 @@ def resume(rt, session_id):
     rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
                                   "args": ["--resume", session_id] + flags,
                                   "timeout_ms": int(rt.settings["start_timeout_ms"])})
+    started = rt.herdr.pane(pane_id)
+    running = started.session_id if started is not None else None
+    if running != session_id:
+        record.update(status="resume_failed",
+                      error="expected session %s in %s, found %s" % (session_id, pane_id, running))
+        records.write(rt.paths.records, record)
+        return Outcome("resume_failed", record["error"], record)
+    rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": record.get("label_before")})
+    records.mark_resumed(rt.paths.records, rt.paths.resumed, session_id, rt.clock())
     return Outcome("resumed", "", record)
 
 
