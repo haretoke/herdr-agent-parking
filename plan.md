@@ -541,7 +541,7 @@ server is never restarted.
       `pane.agent_status_changed` per given Claude pane
 - [x] an `error` reply to the subscription is an exception, not an empty stream
 - [x] every command has a timeout and a timeout is an exception
-- [ ] the shell-only check is `pid == shell_pid` for the single foreground process,
+- [x] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)
 
 ### transcript

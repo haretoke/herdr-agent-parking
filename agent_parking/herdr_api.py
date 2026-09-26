@@ -147,3 +147,10 @@ def status_subscriptions(pane_ids):
     each Claude pane (`pane.agent_status_changed` requires a pane id; spike 0-6)."""
     return [{"type": "pane.agent_detected"}] + [
         {"type": "pane.agent_status_changed", "pane_id": pane_id} for pane_id in pane_ids]
+
+
+def shell_only(info):
+    """The pane's shell is alone in the foreground: one process, and it is the shell.
+    Judged by pid, never by name (`-zsh` and `zsh` were both seen; spike 0-2)."""
+    return (info.shell_pid is not None and len(info.processes) == 1
+            and info.processes[0].get("pid") == info.shell_pid)

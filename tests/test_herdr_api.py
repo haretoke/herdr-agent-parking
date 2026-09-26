@@ -98,6 +98,23 @@ class SubscribeTest(unittest.TestCase):
         self.assertEqual(fake.requests[0]["params"], {"subscriptions": [{"type": "pane.agent_detected"}]})
 
 
+class ShellOnlyTest(unittest.TestCase):
+    def test_shell_only_is_one_foreground_process_that_is_the_shell_whatever_its_name(self):
+        info = herdr_api.ProcessInfo
+        cases = [
+            (info(5, 5, [{"pid": 5, "name": "-zsh"}]), True),
+            (info(5, 5, [{"pid": 5, "name": "zsh"}]), True),
+            (info(5, 5, [{"pid": 5, "argv0": "bash"}]), True),
+            (info(5, 7, [{"pid": 7, "name": "zsh"}]), False),
+            (info(5, 7, [{"pid": 5, "name": "zsh"}, {"pid": 7, "name": "claude"}]), False),
+            (info(5, None, []), False),
+            (info(None, None, [{"pid": 5}]), False),
+        ]
+        for given, expected in cases:
+            with self.subTest(info=given):
+                self.assertIs(herdr_api.shell_only(given), expected)
+
+
 class TimeoutTest(unittest.TestCase):
     def test_a_reply_slower_than_the_timeout_is_a_timeout_error(self):
         def slow(fake, connection, reader, request):
