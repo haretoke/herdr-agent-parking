@@ -38,7 +38,12 @@ def park(rt, pane_id, note):
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
-    _wait_for_shell(rt, pane_id)
+    if not _wait_for_shell(rt, pane_id):
+        record["status"] = "park_failed"
+        records.write(rt.paths.records, record)
+        return Outcome("park_failed", "Claude did not exit within %s s; the pane is left as it is "
+                                      "(its record stays, so `r` works after a manual /exit)"
+                       % rt.settings["exit_timeout_seconds"], record)
     mode, reason = _close_or_keep(rt, pane_id, tree)
     if mode == "close":
         rt.herdr.call("pane.close", {"pane_id": pane_id})
@@ -86,11 +91,12 @@ def _context(rt, session_id):
 
 def _wait_for_shell(rt, pane_id):
     """Poll until Claude has left `pane_id` (about 4 s in spike 0-2)."""
-    for _ in range(int(rt.settings["exit_timeout_seconds"] / POLL_SECONDS) + 1):
+    for attempt in range(int(rt.settings["exit_timeout_seconds"] / POLL_SECONDS) + 1):
+        if attempt:
+            rt.sleep(POLL_SECONDS)
         pane = rt.herdr.pane(pane_id)
         if pane is None or pane.agent is None:
             return True
-        rt.sleep(POLL_SECONDS)
     return False
 
 

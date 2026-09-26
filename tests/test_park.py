@@ -223,6 +223,18 @@ class OnParkTest(FlowTestCase):
                 self.assertIn(reason, outcome.message)
 
 
+class TimeoutTest(FlowTestCase):
+    def test_claude_still_there_after_the_timeout_is_park_failed_and_the_pane_untouched(self):
+        self.settings["exit_timeout_seconds"] = 1
+        outcome = park.park(self.flow(**{"pane.get": pane_reply()}), "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "park_failed")
+        self.assertIn("did not exit", outcome.message)
+        self.assertEqual(self.saved()["status"], "park_failed")
+        self.assertNotIn("pane.rename", self.fake.methods())
+        self.assertNotIn("pane.close", self.fake.methods())
+        self.assertEqual(sum(self.slept), 1.0)
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row

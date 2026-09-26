@@ -624,7 +624,7 @@ server is never restarted.
 - [x] with `on_park = close`, the last pane of a tab and a pane with something other than
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
       `"keep"` and a reason is returned
-- [ ] a timeout gives `park_failed` and the pane is untouched
+- [x] a timeout gives `park_failed` and the pane is untouched
 - [ ] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
 - [ ] the note is stored; an empty note is `null`
 - [x] the context numbers at park time are stored in `context_at_park`
