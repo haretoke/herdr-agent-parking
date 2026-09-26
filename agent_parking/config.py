@@ -57,6 +57,13 @@ def _optional_text(value):
     return value is None or _text(value)
 
 
+def _optional_directory(value):
+    """Absolute, or starting with the home (`~`, `~/...`); a relative path would land in
+    the plugin root, which Herdr manages."""
+    return value is None or (isinstance(value, str) and (
+        value.startswith("/") or value == "~" or value.startswith("~/")))
+
+
 VALID = {
     "poll_seconds": _positive_number,
     "exit_timeout_seconds": _positive_number,
@@ -67,8 +74,8 @@ VALID = {
     "bulk_idle_minutes": _positive_number,
     "claude_command": _text,
     "resumed_keep_days": _positive_number,
-    "records_dir": _optional_text,
-    "claude_config_dir": _optional_text,
+    "records_dir": _optional_directory,
+    "claude_config_dir": _optional_directory,
     "context_window_by_model": lambda value: isinstance(value, dict),
     "prepare_command": _text,
     "prepare_prompt": _optional_text,

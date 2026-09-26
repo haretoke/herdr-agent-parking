@@ -71,6 +71,19 @@ class LoadTest(unittest.TestCase):
             self.assertTrue(any(key in line for line in self.logged), key)
         self.assertFalse(any("bulk_idle_minutes" in line for line in self.logged))
 
+    def test_directories_must_be_absolute_or_start_with_the_home(self):
+        self.write('{"records_dir": "relative", "claude_config_dir": "x/y"}')
+        loaded = self.load()
+        self.assertIsNone(loaded["records_dir"])
+        self.assertIsNone(loaded["claude_config_dir"])
+        self.assertEqual(len(self.logged), 2)
+        self.logged.clear()
+        self.write('{"records_dir": "/mnt/keep", "claude_config_dir": "~/.claude-alt"}')
+        loaded = self.load()
+        self.assertEqual(loaded["records_dir"], "/mnt/keep")
+        self.assertEqual(loaded["claude_config_dir"], "~/.claude-alt")
+        self.assertEqual(self.logged, [])
+
     def test_an_unknown_key_is_ignored_with_a_reason(self):
         self.write('{"poll_second": 5}')
         self.assertEqual(self.load(), config.DEFAULTS)
