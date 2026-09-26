@@ -607,10 +607,12 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 
 - devcon-herdr does not share `~/.claude` between the Mac and the WSL2 host; it bind
   mounts the WSL2 `~/.claude` into each container. The plugin state directory
-  `~/.local/state/herdr/plugins/<id>` is under the container's home and, as far as
-  known, not a bind mount (devcontainer.json not read) → **records are lost on a
-  container rebuild**. Transcripts stay in `~/.claude`, so the `claude --resume`
-  picker still finds the sessions.
+  `~/.local/state/herdr/plugins/<id>` is under the container's home and is not a bind
+  mount (verified 2026-09-27 in `/proc/self/mountinfo` of the Herdr devcontainer: the
+  mounts under the home are `~/.claude`, `~/.codex`, `~/.codex-devcontainer`, a few
+  `~/.config/*` and `~/.local/share/agent-skills`) → **records are lost on a container
+  rebuild**. Transcripts stay in `~/.claude`, so the `claude --resume` picker still
+  finds the sessions.
 - A rebuild also removes the Herdr server and its panes, so the records would only
   serve recreate. When wanted, `records_dir` can point at a mounted place (for example
   under `~/.claude`); it is not the default because `~/.claude` belongs to Claude.
@@ -630,8 +632,11 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 
 ## Open items
 
-Everything below is unverified and appears as a spike in `plan.md`:
+Still unverified:
 
-- The state directory not being a bind mount in containers (inferred).
 - `old` detection for npm global and Homebrew installs (not available to test).
-- Everything else was settled by the spikes in `plan.md` (0-1 to 0-22).
+- Whether `Compact Instructions` never reaches an automatic summary (one sample).
+- `g` with a TUI client attached (spike 0-4 ran without one; the real-device checks
+  cover it).
+
+Everything else was settled by the spikes in `plan.md` (0-1 to 0-22).
