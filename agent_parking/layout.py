@@ -23,3 +23,17 @@ def _find(node, pane_id, path):
         if found is not None:
             return found
     return None
+
+
+def without(node, pane_id):
+    """The tree with `pane_id` taken out: its sibling takes the place of their split. The
+    dashboard's overlay is a split of its own in the tab's layout (seen on the Mac), so
+    hints are taken as if it were closed. None when nothing is left."""
+    if not isinstance(node, dict):
+        return None
+    if node.get("type") == "pane":
+        return None if node.get("pane_id") == pane_id else node
+    first, second = without(node.get("first"), pane_id), without(node.get("second"), pane_id)
+    if first is None or second is None:
+        return first if second is None else second
+    return dict(node, first=first, second=second)

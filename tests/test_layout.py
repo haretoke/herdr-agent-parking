@@ -30,5 +30,22 @@ class HintTest(unittest.TestCase):
         self.assertIsNone(layout.hint(None, "w1:p1"))
 
 
+class WithoutTest(unittest.TestCase):
+    def test_removing_a_pane_puts_its_sibling_in_the_place_of_their_split(self):
+        # Seen on the Mac: the dashboard overlay is a split of its own in the tab's layout.
+        with_dashboard = {"type": "split", "direction": "right", "ratio": 0.5, "first": TREE, "second": leaf("w1:p3")}
+        self.assertEqual(layout.without(with_dashboard, "w1:p3"), TREE)
+        inner = layout.without(TREE, "w1:pD")
+        self.assertEqual(inner, {"type": "split", "direction": "right", "ratio": 0.3, "first": leaf("w1:pC"),
+                                 "second": leaf("w1:pE")})
+        self.assertEqual(layout.hint(layout.without(with_dashboard, "w1:p3"), "w1:pC")["path"], [])
+
+    def test_nothing_changes_without_that_pane_and_a_lone_pane_leaves_nothing(self):
+        self.assertEqual(layout.without(TREE, "w1:p9"), TREE)
+        self.assertEqual(layout.without(TREE, None), TREE)
+        self.assertIsNone(layout.without(leaf("w1:p3"), "w1:p3"))
+        self.assertIsNone(layout.without(None, "w1:p3"))
+
+
 if __name__ == "__main__":
     unittest.main()
