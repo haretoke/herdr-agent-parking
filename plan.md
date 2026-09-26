@@ -717,8 +717,9 @@ server is never restarted.
 - [x] `config.json` is read from `HERDR_PLUGIN_CONFIG_DIR` only when `HERDR_PLUGIN_ID` is this
       plugin, otherwise from `${XDG_CONFIG_HOME:-~/.config}/herdr/plugins/config/<id>/`
       (what `herdr plugin config-dir <id>` prints), so the shell subcommands see the same file
-- [ ] `open` calls `plugin pane open --plugin <id> --entrypoint dashboard --placement overlay`,
-      `open-tab` calls `--placement tab --workspace <HERDR_WORKSPACE_ID>`
+- [x] `open` sends `plugin.pane.open` (the socket form of `plugin pane open`) for the
+      `dashboard` entrypoint with placement overlay; `open-tab` with placement tab in
+      `HERDR_WORKSPACE_ID`; a refusal exits 1 with Herdr's reason
 - [ ] `list` prints the rows as JSON (with the Claude-only RSS)
 - [ ] `park <pane>`, `compact <pane>` and `resume <uuid>` run the same procedures without
       the dashboard; failures exit 1 with a message
