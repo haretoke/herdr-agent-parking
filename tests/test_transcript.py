@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from agent_parking import transcript
@@ -141,6 +142,25 @@ class ContextTokensTest(unittest.TestCase):
     def test_rows_without_usage_give_no_tokens(self):
         self.assertIsNone(transcript.summarize([user(), {"type": "assistant", "message": {}}]).tokens)
         self.assertIsNone(transcript.summarize([]).tokens)
+
+
+class CompactedTest(unittest.TestCase):
+    def test_compacted_is_a_last_boundary_without_assistant_usage_after_it(self):
+        after_boundary = [user("summary", isCompactSummary=True), user("caveat", isMeta=True),
+                          user("<command-name>/compact</command-name>"), {"type": "attachment"},
+                          {"type": "system", "subtype": "informational"}]
+        rows = [user(), assistant(10, 20, 30), boundary()] + after_boundary
+        self.assertTrue(transcript.summarize(rows).compacted)
+        self.assertFalse(transcript.summarize(rows + [assistant(5)]).compacted)
+        self.assertFalse(transcript.summarize([user(), assistant(1)]).compacted)
+        self.assertFalse(transcript.summarize([]).compacted)
+
+    def test_the_compacted_time_is_the_boundary_timestamp(self):
+        rows = [boundary("2026-09-26T16:00:00Z"), assistant(1), boundary("2026-09-26T16:39:48Z"),
+                user("summary", ts="2026-09-26T16:39:48Z", isCompactSummary=True)]
+        summary = transcript.summarize(rows)
+        self.assertEqual(summary.compacted_at, datetime(2026, 9, 26, 16, 39, 48, tzinfo=timezone.utc))
+        self.assertIsNone(transcript.summarize(rows + [assistant(2)]).compacted_at)
 
 
 if __name__ == "__main__":

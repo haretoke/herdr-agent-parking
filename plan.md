@@ -552,9 +552,9 @@ server is never restarted.
 - [x] the context tokens are the sum of `input_tokens`, `cache_creation_input_tokens` and
       `cache_read_input_tokens` of the last `assistant` line with `message.usage` after
       the last `compact_boundary`
-- [ ] a session is compacted when the last `compact_boundary` has no assistant usage after
+- [x] a session is compacted when the last `compact_boundary` has no assistant usage after
       it; a following `user` line with `isCompactSummary: true` does not change that
-- [ ] the compacted age comes from the boundary's `timestamp`
+- [x] the compacted age comes from the boundary's `timestamp`
 - [ ] the window size comes from `context_window_by_model` by model id prefix, else from
       the statusline file `context-windows.json` by session id, else is unknown
 - [ ] the percentage is truncated (36890 / 200000 → 18) and absent when the window is unknown
