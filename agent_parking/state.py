@@ -43,3 +43,14 @@ def paths(environ, settings):
         records_root = expand_home(settings["records_dir"], environ)
     return Paths(records=records_root / "records", resumed=records_root / "resumed",
                  observed=own / "observed.json", log=own / "dashboard.log")
+
+
+def claude_config_dir(environ, settings):
+    """Where Claude Code keeps `projects/*/<uuid>.jsonl`: the setting, then an absolute
+    `CLAUDE_CONFIG_DIR`, then `~/.claude`."""
+    if settings["claude_config_dir"]:
+        return expand_home(settings["claude_config_dir"], environ)
+    given = environ.get("CLAUDE_CONFIG_DIR", "")
+    if os.path.isabs(given):
+        return Path(given)
+    return Path(home(environ)) / ".claude"

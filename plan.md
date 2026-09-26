@@ -488,7 +488,7 @@ server is never restarted.
       and an unknown key is ignored, each with a logged reason
 - [x] `records_dir` moves only the records; `observed.json` and the log stay in the state directory (`~` expands to
       `HOME`)
-- [ ] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR`, then `~/.claude`
+- [x] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR` (absolute only), then `~/.claude`
 - [ ] `context_window_by_model` is a map of model id prefix to a positive integer; other
       shapes are ignored with a logged reason
 - [ ] `prepare_command`, `prepare_prompt` and `prepare_timeout_seconds` are read with their

@@ -44,5 +44,21 @@ class PathsTest(unittest.TestCase):
                 self.assertEqual(paths.log, Path("/s/dashboard.log"))
 
 
+class ClaudeConfigDirTest(unittest.TestCase):
+    def test_the_setting_then_claude_config_dir_then_the_home_default(self):
+        cases = [
+            ({}, None, Path("/home/u/.claude")),
+            ({"CLAUDE_CONFIG_DIR": "/cfg/claude"}, None, Path("/cfg/claude")),
+            ({"CLAUDE_CONFIG_DIR": ""}, None, Path("/home/u/.claude")),
+            ({"CLAUDE_CONFIG_DIR": "relative"}, None, Path("/home/u/.claude")),
+            ({"CLAUDE_CONFIG_DIR": "/cfg/claude"}, "/set/claude", Path("/set/claude")),
+            ({}, "~/alt-claude", Path("/home/u/alt-claude")),
+        ]
+        for extra, setting, expected in cases:
+            with self.subTest(environ=extra, setting=setting):
+                environ = {"HOME": "/home/u", **extra}
+                self.assertEqual(state.claude_config_dir(environ, {"claude_config_dir": setting}), expected)
+
+
 if __name__ == "__main__":
     unittest.main()
