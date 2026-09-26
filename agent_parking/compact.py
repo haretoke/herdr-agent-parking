@@ -6,7 +6,7 @@ Outcome kinds: refused, blocked, prepared, prepare_failed, compacted, compact_fa
 
 from collections import namedtuple
 
-from . import config, herdr_api, ready, transcript
+from . import config, herdr_api, park, ready, transcript
 
 Outcome = namedtuple("Outcome", "kind message reply")
 
@@ -80,3 +80,12 @@ def run(rt, pane_id, focus):
     if transcript.compacted_since(rt.rows_for(pane.session_id), sent_at):
         return Outcome("compacted", "", None)
     return Outcome("compact_failed", "no new compaction in the transcript within %s s" % timeout, None)
+
+
+def compact_then_park(rt, pane_id, focus, note):
+    """`C`: compact with `focus`, then park with `note` (asked before anything started).
+    A compaction that fails does not park. Returns (compact Outcome, park Outcome or None)."""
+    compacted = run(rt, pane_id, focus)
+    if compacted.kind != "compacted":
+        return compacted, None
+    return compacted, park.park(rt, pane_id, note)

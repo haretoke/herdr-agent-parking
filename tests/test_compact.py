@@ -2,7 +2,7 @@ import unittest
 
 from agent_parking import compact, config
 from tests.fake_herdr import Error
-from tests.flows import FlowTestCase, pane_reply, screen_reply
+from tests.flows import SHELL, FlowTestCase, pane_reply, screen_reply
 
 
 class PrepareTest(FlowTestCase):
@@ -149,6 +149,26 @@ class AgainTest(FlowTestCase):
         rt.rows_for = lambda session_id: [user(SKILL_LINE), said("working on it")]
         compact.prepare(rt, "w1:p2")
         self.assertIn("agent.prompt", self.fake.methods())
+
+
+class CompactThenParkTest(FlowTestCase):
+    def test_a_compaction_is_followed_by_the_park_with_the_note(self):
+        rt = self.flow(**{"pane.get": [pane_reply(), pane_reply(), SHELL]})
+        rt.rows_for = lambda session_id: [boundary("2026-09-27T12:00:05Z")]
+        compacted, parked = compact.compact_then_park(rt, "w1:p2", focus="keep", note="after lunch")
+        self.assertEqual((compacted.kind, parked.kind), ("compacted", "parked"))
+        texts = [r["params"]["text"] for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(texts, ["/compact keep", "/exit"])
+        self.assertEqual(self.saved()["note"], "after lunch")
+
+    def test_a_failed_compaction_does_not_park(self):
+        rt = self.flow()
+        rt.rows_for = lambda session_id: []
+        compacted, parked = compact.compact_then_park(rt, "w1:p2", focus="keep", note="x")
+        self.assertEqual(compacted.kind, "compact_failed")
+        self.assertIsNone(parked)
+        texts = [r["params"]["text"] for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(texts, ["/compact keep"])
 
 
 class ConfirmationTest(unittest.TestCase):
