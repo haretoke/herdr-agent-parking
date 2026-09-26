@@ -8,7 +8,7 @@ import termios
 import time
 import tty
 
-from . import dashboard, herdr_api, idle, inventory
+from . import actions, dashboard, herdr_api, idle, inventory
 
 
 class Terminal:
@@ -163,7 +163,8 @@ def refresher(rt, tracker, own_pane_id):
 
 def run_dashboard(rt, own_pane_id):
     tracker = idle.Tracker.load(rt.paths.observed, rt.clock)
-    board = dashboard.Dashboard(refresh=refresher(rt, tracker, own_pane_id), on_event=tracker.on_event)
+    board = dashboard.Dashboard(refresh=refresher(rt, tracker, own_pane_id),
+                                actions=actions.Actions(rt, tracker), on_event=tracker.on_event)
     stopping = stop_on_signals()
     with Terminal() as terminal:
         run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,
