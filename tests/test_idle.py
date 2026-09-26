@@ -1,4 +1,7 @@
+import json
 import stat
+import subprocess
+import sys
 import tempfile
 import unittest
 import unittest.mock
@@ -165,6 +168,40 @@ class BrokenFileTest(SaveTest):
             with self.assertRaises(OSError):
                 tracker.save(self.path, live_pane_ids={"w1:p1", "w1:p2"})
         self.assertEqual(self.path.read_text(encoding="utf-8"), before)
+
+
+SAVER = """
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from agent_parking import idle
+tracker = idle.Tracker(lambda: datetime(2026, 9, 27, tzinfo=timezone.utc))
+for n in range(40):
+    tracker.poll("w1:p%d" % n, seq=n, status=sys.argv[2])
+for _ in range(300):
+    tracker.save(Path(sys.argv[1]), set(tracker.entries))
+"""
+
+
+class TwoDashboardsTest(unittest.TestCase):
+    def test_two_processes_saving_at_once_always_leave_a_whole_file(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "observed.json"
+        repository = Path(__file__).resolve().parents[1]
+        savers = [subprocess.Popen([sys.executable, "-c", SAVER, str(path), status], cwd=repository)
+                  for status in ("idle", "done")]
+        reads = 0
+        while any(saver.poll() is None for saver in savers):
+            try:
+                text = path.read_text()
+            except FileNotFoundError:
+                continue
+            self.assertEqual(len(json.loads(text)), 40)  # never half a file
+            reads += 1
+        self.assertEqual([saver.wait() for saver in savers], [0, 0])
+        self.assertGreater(reads, 0)
+        self.assertEqual(sorted(p.name for p in Path(directory.name).iterdir()), ["observed.json"])
 
 
 if __name__ == "__main__":
