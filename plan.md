@@ -589,7 +589,7 @@ server is never restarted.
 - [x] a different UUID in the record's pane shows "another session is running here" and keeps the record
 - [x] a pane with a record is `parked`; a record without a pane is a "(no pane)" row
 - [x] Codex and other agents are counted for the footer
-- [ ] control characters in `terminal_title_stripped` are dropped and the name is cut to
+- [x] control characters in `terminal_title_stripped` are dropped and the name is cut to
       the column (CJK counts double width)
 
 ### idle (injectable clock)
