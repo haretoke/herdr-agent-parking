@@ -82,15 +82,7 @@ def resume(rt, session_id, new_workspace=False):
 
 
 def _finish(rt, record, running_in, restore_label_on):
-    """The session runs in `running_in`: give `restore_label_on` its label back and move the
-    record to the resumed ones."""
-    if running_in != record.get("pane_id"):
-        record = records.with_pane(record, running_in)
-        records.write(rt.paths.records, record)
-    if restore_label_on:
-        rt.herdr.call("pane.rename", {"pane_id": restore_label_on, "label": record.get("label_before")})
-    records.mark_resumed(rt.paths.records, rt.paths.resumed, record["session_id"], rt.clock())
-    return Outcome("resumed", "", record)
+    return Outcome("resumed", "", inventory.settle_resumed(rt, record, running_in, restore_label_on))
 
 
 TAIL_LINES = 10

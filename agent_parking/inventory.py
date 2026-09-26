@@ -148,6 +148,18 @@ def reconcile(parked_records, panes):
     return decisions
 
 
+def settle_resumed(rt, record, running_in, restore_label_on):
+    """The session runs in `running_in`: give `restore_label_on` its label back and move the
+    record to the resumed ones. Returns the record as moved."""
+    if running_in != record.get("pane_id"):
+        record = records.with_pane(record, running_in)
+        records.write(rt.paths.records, record)
+    if restore_label_on:
+        rt.herdr.call("pane.rename", {"pane_id": restore_label_on, "label": record.get("label_before")})
+    records.mark_resumed(rt.paths.records, rt.paths.resumed, record["session_id"], rt.clock())
+    return record
+
+
 def other_agents(panes):
     """How many panes run each agent other than Claude (the footer's "codex: n")."""
     counts = {}
