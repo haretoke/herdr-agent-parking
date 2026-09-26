@@ -112,6 +112,24 @@ class EventTest(unittest.TestCase):
         self.assertEqual(tracker.entries, {})
 
 
+class StaleStatusTest(unittest.TestCase):
+    def test_a_status_that_disagrees_with_herdr_under_the_same_seq_is_corrected_and_keeps_its_time(self):
+        # Seen on the Mac: a stale `working` saved in observed.json stayed under an unchanged seq.
+        clock = Clock()
+        tracker = idle.Tracker(clock)
+        tracker.entries["w1:p1"] = idle.Entry(seq=7, status="working", since=NOW, lower_bound=False)
+        clock.advance(minutes=4)
+        entry = tracker.poll("w1:p1", seq=7, status="idle")
+        self.assertEqual((entry.status, entry.since), ("idle", NOW))
+
+    def test_an_event_ahead_of_the_poll_is_not_undone_by_it(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock)
+        tracker.poll("w1:p1", seq=7, status="idle")
+        tracker.event("w1:p1", status="working")
+        self.assertEqual(tracker.poll("w1:p1", seq=7, status="idle").status, "working")
+
+
 class WireEventTest(unittest.TestCase):
     def test_status_events_are_read_under_either_spelling_and_others_ignored(self):
         for name in ("pane.agent_status_changed", "pane_agent_status_changed"):

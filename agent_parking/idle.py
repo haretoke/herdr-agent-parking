@@ -56,6 +56,10 @@ class Tracker:
             if not (entry.from_event and entry.status == status):
                 entry.status, entry.since, entry.lower_bound = status, self.clock(), False
             entry.seq, entry.from_event = seq, False
+        elif not entry.from_event:
+            # The same seq: the time stands, and Herdr's status is right (a stale one was
+            # saved in observed.json on the Mac). An event ahead of its poll is left be.
+            entry.status = status
         return entry
 
     def event(self, pane_id, status):
