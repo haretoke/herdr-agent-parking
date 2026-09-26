@@ -1,6 +1,6 @@
 import unittest
 
-from agent_parking import dashboard, display, table
+from agent_parking import dashboard, display, park, table
 from agent_parking.inventory import Inventory, Row
 
 
@@ -142,6 +142,37 @@ class ParkRefusedTest(unittest.TestCase):
                 self.assertIn(reason, shown.message)
                 self.assertIsNone(shown.dialog)
                 self.assertEqual(actions.calls, [])
+
+
+class ParkTest(unittest.TestCase):
+    def test_s_asks_for_a_note_then_parks_after_showing_the_wait_and_reads_the_list_again(self):
+        refreshes = []
+        actions = FakeActions(park=park.Outcome("parked", "", {}))
+        shown = dashboard.Dashboard(refresh=lambda: refreshes.append(1) or Inventory([live()], {}), actions=actions)
+        shown.refresh()
+        shown.on_input(b"s")
+        lines = shown.lines(78, 24)
+        text = " ".join(line.strip() for line in lines)
+        self.assertIn('park w8:p36 "api gateway refactor"', text)
+        self.assertIn("do not come back on resume.", text)  # wrapped, not cut
+        self.assertEqual(lines[-1], " > ")
+        self.assertTrue(all(display.width(line) <= 78 for line in lines))
+        shown.on_input(b"wiki\r\r")
+        self.assertEqual(actions.calls, [])  # not yet: the loop runs it once the wait is drawn
+        self.assertIn("parking w8:p36", shown.lines(78, 24)[-2])
+        shown.run_pending()
+        self.assertEqual(actions.calls, [("park", "w8:p36", "wiki")])
+        self.assertEqual(len(refreshes), 2)
+        self.assertIn("parked w8:p36", shown.lines(78, 24)[-2])
+
+    def test_esc_in_the_note_parks_nothing(self):
+        actions = FakeActions()
+        shown = board(live(), actions=actions)
+        shown.on_input(b"s")
+        shown.on_input(b"\x1b")
+        self.assertIsNone(shown.dialog)
+        self.assertIsNone(shown.pending)
+        self.assertEqual(actions.calls, [])
 
 
 if __name__ == "__main__":

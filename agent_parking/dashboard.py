@@ -1,12 +1,20 @@
 """The dashboard's screen and keys, free of terminal and socket I/O (the loop that
 drives it is in `terminal`)."""
 
-from . import display, keys, ready, table
+import textwrap
+
+from . import dialogs, display, keys, park, ready, table
 
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
 
 MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
+
+
+def _said(outcome, pane_id):
+    """The message for a flow's outcome."""
+    text = "%s %s" % (outcome.kind.replace("_", " "), pane_id)
+    return text + (": " + outcome.message if outcome.message else "")
 
 
 def _key(row):
@@ -19,6 +27,8 @@ class Dashboard:
         self.actions = actions    # what the keys do (actions.Actions)
         self.message = ""
         self.dialog = None
+        self.on_done = None   # what the open dialog's answer goes to
+        self.pending = None   # (what to show while it runs, the call): run by the loop after a draw
         self._on_event = on_event  # a Herdr event, before the list is read again
         self.rows = []
         self.others = {}
@@ -51,11 +61,19 @@ class Dashboard:
 
     def lines(self, width, height):
         rule = " " + "─" * (width - 2)
-        footer = ([rule] + ([" " + self.message] if self.message else []) +
-                  [" " + ("events: off · " if not self.events_on else "") + KEYS])
+        footer = [rule] + self._footer(width)
         top = [self.title(), rule, table.header(width)]
         body = self._visible_body(width, max(1, height - len(top) - len(footer)))
         return [display.cell(line, width) for line in top + body + footer]
+
+    def _footer(self, width):
+        """The open dialog (wrapped to the width), else the message and the keys."""
+        if self.dialog is not None:
+            return [" " + part for line in self.dialog.lines()
+                    for part in (textwrap.wrap(line, width - 1) if display.width(line) > width - 1 else [line])]
+        message = self.pending[0] if self.pending else self.message
+        return (([" " + message] if message else []) +
+                [" " + ("events: off · " if not self.events_on else "") + KEYS])
 
     def _visible_body(self, width, space):
         """The rows' lines that fit in `space`, scrolled only as far as needed to keep the
@@ -77,6 +95,9 @@ class Dashboard:
 
     def on_input(self, data):
         for key in self.keys.feed(data):
+            if self.dialog is not None:
+                self._answer(key)
+                continue
             self.message = ""
             if key == "q":
                 self.quit = True
@@ -104,7 +125,36 @@ class Dashboard:
         return None
 
     def _park(self):
-        self.message = self._refusal(self._row(), "park") or ""
+        row = self._row()
+        self.message = self._refusal(row, "park") or ""
+        if self.message:
+            return
+        self._ask(dialogs.TextInput(park.confirmation(row), multiline=True),
+                  lambda note: self._later("parking %s…" % row.pane_id,
+                                           lambda: _said(self.actions.park(row.pane_id, note), row.pane_id)))
+
+    def _ask(self, dialog, on_done):
+        self.dialog, self.on_done = dialog, on_done
+
+    def _answer(self, key):
+        result = self.dialog.on_key(key)
+        if result is None:
+            return
+        kind, value = result
+        self.dialog = None
+        if kind == "done":
+            self.on_done(value)
+
+    def _later(self, message, call):
+        """Run `call` (it may wait for Claude) once the loop has drawn `message`; its
+        return value becomes the message."""
+        self.pending = (message, call)
+
+    def run_pending(self):
+        _, call = self.pending
+        self.pending = None
+        self.message = call()
+        self.refresh()
 
     def _go(self):
         row = self._row()
