@@ -91,6 +91,21 @@ class AfterStartTest(ResumeTestCase):
                 self.assertIsNone(self.saved())
                 self.assertEqual(self.resumed_record()["status"], "resumed")
 
+    def test_a_session_herdr_detects_a_moment_after_the_start_still_counts(self):
+        # Seen on the Mac: right after agent.start, pane.get had no agent_session yet.
+        self.park_record()
+        late = [SHELL, pane_reply(session_id=None), pane_reply(session_id=None), pane_reply()]
+        outcome = resume.resume(self.resuming(**{"pane.get": late}), UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertEqual(self.resumed_record()["status"], "resumed")
+
+    def test_a_session_that_never_shows_is_resume_failed_after_the_start_timeout(self):
+        self.park_record()
+        self.settings["start_timeout_ms"] = 3000
+        outcome = resume.resume(self.resuming(**{"pane.get": [SHELL, pane_reply(session_id=None)]}), UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+        self.assertAlmostEqual(sum(self.slept), 3.0)
+
     def test_another_session_is_resume_failed_with_both_ids(self):
         other = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
         self.park_record()

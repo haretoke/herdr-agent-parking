@@ -64,8 +64,7 @@ def resume(rt, session_id, new_workspace=False):
         records.write(rt.paths.records, record)
         return Outcome("resume_pending", "Claude is waiting at a dialog (trust, login); answer it in the "
                                          "pane (g), then press r again", record)
-    started = rt.herdr.pane(pane_id)
-    running = started.session_id if started is not None else None
+    running = _running_session(rt, pane_id)
     if running != session_id:
         record.update(status="resume_failed",
                       error="expected session %s in %s, found %s" % (session_id, pane_id, running))
@@ -79,6 +78,24 @@ def resume(rt, session_id, new_workspace=False):
                       timeout=rt.settings["start_timeout_ms"] / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
         rt.herdr.call("agent.prompt", {"target": pane_id, "text": record["note"]})
     return outcome
+
+
+SESSION_POLL_SECONDS = 0.5
+
+
+def _running_session(rt, pane_id):
+    """The session Herdr sees in the pane after the start. Herdr can detect it a moment
+    after `agent.start` returns (seen on the Mac), so no session yet is asked again until
+    the start timeout; another session is an answer at once."""
+    limit = rt.settings["start_timeout_ms"] / 1000
+    waited = 0.0
+    while True:
+        pane = rt.herdr.pane(pane_id)
+        running = pane.session_id if pane is not None else None
+        if running is not None or waited >= limit:
+            return running
+        rt.sleep(SESSION_POLL_SECONDS)
+        waited += SESSION_POLL_SECONDS
 
 
 def _finish(rt, record, running_in, restore_label_on):
