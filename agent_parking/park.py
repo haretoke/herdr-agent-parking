@@ -34,6 +34,7 @@ def park(rt, pane_id, note):
         "label_before": pane.label, "layout_hint": layout.hint(tree, pane_id),
         "context_at_park": _context(rt, pane.session_id),
         "parked_at": times.iso(rt.clock()),
+        "note": note if note and note.strip() else None,
     }
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)

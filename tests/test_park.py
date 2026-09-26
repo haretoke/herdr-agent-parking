@@ -246,6 +246,15 @@ class BlockedTest(FlowTestCase):
         self.assertNotIn("pane.rename", self.fake.methods())
 
 
+class NoteTest(FlowTestCase):
+    def test_the_note_is_stored_and_an_empty_one_is_null(self):
+        for note, stored in [("LUT の一覧を貼る前で止めた\n次は色域", "LUT の一覧を貼る前で止めた\n次は色域"),
+                             ("", None), ("  \n ", None), (None, None)]:
+            with self.subTest(note=note):
+                park.park(self.flow(), "w1:p2", note=note)
+                self.assertEqual(self.saved()["note"], stored)
+
+
 class ConfirmationTest(unittest.TestCase):
     def test_the_confirmation_names_the_session_and_always_warns_about_lost_work(self):
         from agent_parking.inventory import Row
