@@ -114,6 +114,33 @@ class NotReadyTest(ResumeTestCase):
         self.assertEqual(self.saved()["status"], "resume_pending")
 
 
+class AlreadyRunningTest(ResumeTestCase):
+    def test_a_retry_after_the_dialog_only_finishes_the_resume(self):
+        self.park_record(status="resume_pending")
+        running = pane_reply(label="💤 work")["pane"]
+        rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [running]}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertNotIn("agent.start", self.fake.methods())
+        [rename] = [r for r in self.fake.requests if r["method"] == "pane.rename"]
+        self.assertEqual(rename["params"], {"pane_id": "w1:p2", "label": "api"})
+        self.assertIsNone(self.saved())
+
+
+class RunningElsewhereTest(ResumeTestCase):
+    def test_a_session_already_running_in_another_pane_is_not_started_twice(self):
+        self.park_record()
+        parked_pane = pane_reply(agent=None, session_id=None, label="💤 work")["pane"]
+        elsewhere = pane_reply(pane_id="w1:p7")["pane"]
+        rt = self.resuming(**{"pane.list": {"type": "pane_list", "panes": [parked_pane, elsewhere]}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertNotIn("agent.start", self.fake.methods())
+        [rename] = [r for r in self.fake.requests if r["method"] == "pane.rename"]
+        self.assertEqual(rename["params"], {"pane_id": "w1:p2", "label": "api"})
+        self.assertEqual((outcome.record["pane_id"], outcome.record["pane_id_history"]), ("w1:p7", ["w1:p2"]))
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re

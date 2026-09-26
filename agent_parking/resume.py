@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, herdr_api, records, times
+from . import argv, display, herdr_api, inventory, records, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -18,6 +18,11 @@ def agent_name(session_id):
 
 def resume(rt, session_id):
     record = records.read(rt.paths.records, session_id)
+    [decision] = inventory.reconcile([record], rt.herdr.panes())
+    if decision.kind == "resumed":
+        # Already running (a retry after a startup dialog, or resumed by hand): finish the
+        # bookkeeping and never start a second process on the same transcript (spike 0-14).
+        return _finish(rt, record, decision.pane_id, decision.restore_label_on)
     pane_id = record["pane_id"]
     pane = rt.herdr.pane(pane_id)
     if record.get("cwd") and pane is not None and pane.cwd != record["cwd"]:
@@ -48,8 +53,18 @@ def resume(rt, session_id):
                       error="expected session %s in %s, found %s" % (session_id, pane_id, running))
         records.write(rt.paths.records, record)
         return Outcome("resume_failed", record["error"], record)
-    rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": record.get("label_before")})
-    records.mark_resumed(rt.paths.records, rt.paths.resumed, session_id, rt.clock())
+    return _finish(rt, record, pane_id, pane_id)
+
+
+def _finish(rt, record, running_in, restore_label_on):
+    """The session runs in `running_in`: give `restore_label_on` its label back and move the
+    record to the resumed ones."""
+    if running_in != record.get("pane_id"):
+        record = records.with_pane(record, running_in)
+        records.write(rt.paths.records, record)
+    if restore_label_on:
+        rt.herdr.call("pane.rename", {"pane_id": restore_label_on, "label": record.get("label_before")})
+    records.mark_resumed(rt.paths.records, rt.paths.resumed, record["session_id"], rt.clock())
     return Outcome("resumed", "", record)
 
 
