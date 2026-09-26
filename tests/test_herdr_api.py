@@ -143,6 +143,18 @@ class TimeoutTest(unittest.TestCase):
                 self.assertLess(time.monotonic() - started, 0.8)
 
 
+class LongerTimeoutTest(unittest.TestCase):
+    def test_a_call_can_wait_longer_than_the_default(self):
+        def slow(fake, connection, reader, request):
+            time.sleep(0.4)
+            fake.reply(connection, request, result={"type": "agent_info"})
+
+        fake = FakeHerdr({"agent.start": slow})
+        self.addCleanup(fake.close)
+        herdr = herdr_api.Herdr(fake.path, timeout=0.1)
+        self.assertEqual(herdr.call("agent.start", {}, timeout=2), {"type": "agent_info"})
+
+
 class SubscribeErrorTest(unittest.TestCase):
     def test_an_error_reply_to_the_subscription_raises_instead_of_an_empty_stream(self):
         fake = FakeHerdr({"events.subscribe": Error("invalid_request", "missing field `pane_id`")})

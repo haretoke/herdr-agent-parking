@@ -541,7 +541,7 @@ server is never restarted.
       `pane.agent_status_changed` per given Claude pane
 - [x] an `error` reply to the subscription is an exception, not an empty stream
 - [x] every command has a timeout and a timeout is an exception
-- [ ] a call can be given a longer timeout than the default (for requests that wait inside
+- [x] a call can be given a longer timeout than the default (for requests that wait inside
       Herdr: `agent.start`, `agent.prompt` with `wait`)
 - [x] the shell-only check is `pid == shell_pid` for the single foreground process,
       whatever its name (`-zsh`, `zsh`, `bash`)

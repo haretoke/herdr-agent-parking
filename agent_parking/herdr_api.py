@@ -47,12 +47,12 @@ class Herdr:
             raise HerdrError("not running inside Herdr (HERDR_SOCKET_PATH is not set)", "not_in_herdr")
         return cls(path, timeout)
 
-    def _send(self, method, params):
+    def _send(self, method, params, timeout=None):
         """A connected socket that has sent the request, and a reader for the replies."""
         request = {"id": "agent-parking:" + uuid.uuid4().hex, "method": method, "params": params}
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            client.settimeout(self.timeout)
+            client.settimeout(timeout or self.timeout)
             client.connect(self.socket_path)
             client.sendall(json.dumps(request).encode("utf-8") + b"\n")
             return client, client.makefile("rb")
@@ -60,12 +60,13 @@ class Herdr:
             client.close()
             raise _transport_error(method, error) from error
 
-    def call(self, method, params):
-        """Send one request on its own connection and return its result.
+    def call(self, method, params, timeout=None):
+        """Send one request on its own connection and return its result. `timeout` replaces
+        the default for requests that wait inside Herdr.
 
         Every failure is a HerdrError: Herdr's own code for an error reply, else
-        `unreachable`, `closed` or `invalid_reply`."""
-        client, reader = self._send(method, params)
+        `unreachable`, `closed`, `timeout` or `invalid_reply`."""
+        client, reader = self._send(method, params, timeout)
         try:
             with client, reader:
                 line = reader.readline(MAX_LINE_BYTES + 1)
