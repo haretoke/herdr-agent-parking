@@ -705,7 +705,7 @@ server is never restarted.
 - [ ] `x` deletes the record after confirmation and never touches the transcript
 - [ ] `/` filters by name, cwd and label
 - [x] polling updates status, RSS and ctx, and idle time advances
-- [ ] a dropped event subscription keeps polling and shows "events: off" in the footer
+- [x] a dropped event subscription keeps polling and shows "events: off" in the footer
 - [x] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
 - [x] SIGWINCH redraws
 - [x] an unexpected exception is logged to `dashboard.log` before exit
