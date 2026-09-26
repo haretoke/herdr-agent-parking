@@ -568,7 +568,7 @@ server is never restarted.
 
 ### inventory
 - [x] only `agent == "claude"` panes become rows; the dashboard's own pane (`HERDR_PANE_ID`) is excluded
-- [ ] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
+- [x] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
       cwd, status and the `agent_session` UUID
 - [ ] the Claude process is the foreground group leader (`pid == foreground_process_group_id`)
 - [ ] its argv comes from `process-info`, else from `/proc/<pid>/cmdline` (NUL-separated),
