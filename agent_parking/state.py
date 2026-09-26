@@ -26,26 +26,26 @@ def state_dir(environ):
     Herdr's own value is used only when it belongs to this plugin. Relative
     paths are ignored, as the XDG base directory spec asks.
     """
-    own = environ.get("HERDR_PLUGIN_STATE_DIR", "")
+    return _plugin_dir(environ, "HERDR_PLUGIN_STATE_DIR", "XDG_STATE_HOME", (".local", "state"),
+                       ("herdr", "plugins", PLUGIN_ID))
+
+
+def _plugin_dir(environ, own_name, xdg_name, xdg_default, under_xdg):
+    own = environ.get(own_name, "")
     if environ.get("HERDR_PLUGIN_ID") == PLUGIN_ID and os.path.isabs(own):
         return Path(own)
-    base = environ.get("XDG_STATE_HOME", "")
+    base = environ.get(xdg_name, "")
     if not os.path.isabs(base):
-        base = os.path.join(home(environ), ".local", "state")
-    return Path(base) / "herdr" / "plugins" / PLUGIN_ID
+        base = os.path.join(home(environ), *xdg_default)
+    return Path(base).joinpath(*under_xdg)
 
 
 def config_dir(environ):
     """Where `config.json` lives: the directory Herdr gives this plugin, or the same path
     outside it (what `herdr plugin config-dir <id>` prints), so the shell subcommands read
     the file the dashboard reads."""
-    own = environ.get("HERDR_PLUGIN_CONFIG_DIR", "")
-    if environ.get("HERDR_PLUGIN_ID") == PLUGIN_ID and os.path.isabs(own):
-        return Path(own)
-    base = environ.get("XDG_CONFIG_HOME", "")
-    if not os.path.isabs(base):
-        base = os.path.join(home(environ), ".config")
-    return Path(base) / "herdr" / "plugins" / "config" / PLUGIN_ID
+    return _plugin_dir(environ, "HERDR_PLUGIN_CONFIG_DIR", "XDG_CONFIG_HOME", (".config",),
+                       ("herdr", "plugins", "config", PLUGIN_ID))
 
 
 def paths(environ, settings):
