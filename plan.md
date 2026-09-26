@@ -764,7 +764,12 @@ server is never restarted.
       layout (`[(p1 | p4) | dashboard]`), so the recorded path was `[False]` instead of
       `[]` (fixed below). The replayed flags lacked `--model haiku` because Herdr's own
       restore after the server restart had started that Claude without them (spike 0-3)
-- [ ] Mac local: `on_park = close` → the pane closes → `r` recreates it next to the old neighbour
+- [x] Mac local: `on_park = close` → the pane closes → `r` recreates it next to the old neighbour
+      (2026-09-27, same session, after the overlay fixes): the overlay opened as a split
+      of the active pane (`[(p5 | dashboard) | p4]`); the hint was `sibling w1:p4, first,
+      right, 0.6, path []`; the pane closed; `r` split p4, swapped, and set 0.6 on the
+      split found in the live layout (`[dashboard | (p7 | p4)]`); after the dashboard
+      closed the tab was `[p7 | p4]` at 0.6, as before the park, with the same UUID
 - [ ] Mac local: `R` brings an old Claude up on the new version and `old` disappears
 - [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
 - [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order

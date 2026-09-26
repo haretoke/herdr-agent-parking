@@ -241,7 +241,11 @@ again resumes from step 3 when a focus tag is already there.
    `ver` column). Also `layout.export` of the tab to store, in the record's
    `layout_hint`, the pane's sibling in the split tree (a pane id, or `null` when the
    sibling is a subtree), whether the pane was the `first` or `second` child, the
-   split direction and ratio (used by recreate; stored regardless of `on_park`).
+   split direction and ratio (used by recreate; stored regardless of `on_park`). The
+   tree is taken without the dashboard's own pane: while it is open the overlay is a
+   split of its own in the tab's layout (seen on the Mac, around the active pane or at
+   the root), so it would otherwise be the sibling, push the path one level down, or
+   make the last pane of a tab look like one of two.
 3. RSS from `/proc/<pid>/status` or `ps -o rss= -p` (display only; continue on failure).
 4. Ask for the note.
 5. **Before `/exit`**, write the record (atomic rename, 0600), `status = "parking"`.
@@ -319,9 +323,13 @@ starts in the record's `cwd`: when the pane's cwd differs, `pane.send_input <P>`
    in the recorded direction: `pane split <sibling> --direction <dir> --cwd <cwd>
    --no-focus`. When the parked pane was the `first` child, swap the new pane into the
    first place (`pane.swap {source_pane_id: <new>, target_pane_id: <sibling>}`). Then
-   set the recorded ratio on that split (`layout.set_split_ratio`, `path` = booleans,
-   `true` for `second`). This restores the exact position and size (spike 0-15:
-   identical rects). When the sibling was a subtree (`null`), or is gone, the position
+   set the recorded ratio on the split that holds the new pane, found in the layout as
+   it is now (`layout.export`, then `layout.set_split_ratio` with that path; booleans,
+   `true` for `second`): the dashboard's overlay may add a split around it that was not
+   there at park time. This restores the exact position and size (spike 0-15:
+   identical rects; on the Mac the tab came back to the same split and ratio once the
+   dashboard closed). The dashboard's own pane is never the one split. When the
+   sibling was a subtree (`null`), or is gone, the position
    cannot be restored with right/down splits: split any pane of the tab to the right
    (`pane split <pane> --direction right --cwd <cwd> --no-focus`), an approximation.
    `layout.apply` is not used: it rebuilds the whole tab and kills its live panes.
