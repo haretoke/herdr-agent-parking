@@ -323,7 +323,12 @@ server is never restarted.
       `idle` / `done` / `working` event could still record a hand-made `/exit`; the
       hook alone at exit time cannot. The optional extension, if built, keeps that
       last-seen map
-- [ ] `ps -o rss= -p <pid>` units on macOS (KB) and in a Linux container (KB)
+- [x] `ps -o rss= -p <pid>` units on macOS (KB) and in a Linux container (KB)
+      (2026-09-27): the macOS `ps(1)` page gives `rss` "in 1024 byte units". In the
+      Herdr devcontainer (Debian 13, procps `/usr/bin/ps`) `ps -o rss= -p 1` printed 48
+      and `/proc/1/status` said `VmRSS: 48 kB`, so both are KiB. Slim Linux images can
+      lack procps, so on Linux the plugin reads `VmRSS` from `/proc/<pid>/status`
+      (no dependency) and uses `ps` only where `/proc` is missing (macOS)
 - [ ] `old` detection: `os.readlink` of the running process's `argv[0]`
       (`~/.local/bin/claude`) gives the current `versions/<v>`, compared with
       `process-info`'s `name` (the version at launch). What happens with npm global or
@@ -427,7 +432,8 @@ server is never restarted.
 - [ ] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
       cwd, status and the `agent_session` UUID
 - [ ] the Claude process's pid, argv and version come from `process-info`, empty when absent
-- [ ] RSS is read from `ps` in KB, and the row survives a failing `ps`
+- [ ] RSS is read in KiB from `VmRSS` in `/proc/<pid>/status` when `/proc` exists, else
+      from `ps -o rss=`, and the row survives when both fail
 - [ ] RSS is the sum over every foreground pid, with the Claude-only value kept
 - [ ] the version is compared with the `readlink` target of `argv[0]`: `old` when different,
       no badge when equal or unknown; `claude_command` is the fallback

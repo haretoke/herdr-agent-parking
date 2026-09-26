@@ -92,7 +92,7 @@ Every Claude pane on this server, with these columns:
 | status | `agent_status` (working / idle / done / blocked / unknown); `parked` for a parked session |
 | idle | The plugin's tracking (below). Time that began before tracking started is shown as a lower bound with `≥` |
 | ctx | From the transcript (below): `37k 18%`, `37k`, or `compacted 2h`. Empty when the transcript cannot be read |
-| rss | `ps -o rss= -p` over every `pid` in `pane process-info`'s `foreground_processes`, summed (MCP servers and `caffeinate` sit in the same foreground group as Claude; parking frees the whole group). The Claude-only value is kept in the JSON output. Empty for parked sessions |
+| rss | `VmRSS` from `/proc/<pid>/status` on Linux, else `ps -o rss= -p` (both KiB, spike 0-9), over every `pid` in `pane process-info`'s `foreground_processes`, summed (MCP servers and `caffeinate` sit in the same foreground group as Claude; parking frees the whole group). The Claude-only value is kept in the JSON output. Empty for parked sessions |
 | ver | The Claude process's `name` in `process-info` (measured: `"2.1.283"`, the basename of the executable `~/.local/share/claude/versions/2.1.283`). The current version comes from `os.readlink` of the running process's `argv[0]` (`~/.local/bin/claude`), not from `PATH`, because the plugin runs in the Herdr server's environment. `old` when they differ. Where `readlink` does not apply, fall back to the `claude_command` setting; without that, no badge |
 | parked | Records show 💤, the park time and the first line of the note |
 
@@ -224,7 +224,7 @@ again resumes from step 3 when a focus tag is already there.
    process's `pid`, `argv`, `name` (version) and `cwd`. Also `pane layout --pane <P>`
    to store the neighbour pane, the split direction and ratio in the record's
    `layout_hint` (used by recreate; stored regardless of `on_park`).
-3. `ps -o rss= -p` for RSS (display only; continue on failure).
+3. RSS from `/proc/<pid>/status` or `ps -o rss= -p` (display only; continue on failure).
 4. Ask for the note.
 5. **Before `/exit`**, write the record (atomic rename, 0600), `status = "parking"`.
 6. `agent prompt <P> "/exit"`.
