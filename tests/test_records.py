@@ -111,6 +111,19 @@ class VanishingTest(RecordsTestCase):
             self.assertEqual([r["session_id"] for r in records.list_records(self.dir)], [UUID])
 
 
+class ForgetTest(RecordsTestCase):
+    def test_forget_deletes_the_record_or_its_broken_file_and_nothing_else(self):
+        other = "5e0c1f2a-0000-4000-8000-000000000001"
+        records.write(self.dir, record())
+        records.write(self.dir, record(session_id=other))
+        (self.dir / "broken").mkdir()
+        (self.dir / "broken" / (other + ".json")).write_text("{")
+        records.forget(self.dir, UUID)
+        records.forget(self.dir, other)
+        self.assertEqual(sorted(p.name for p in self.dir.rglob("*") if p.is_file()), [])
+        records.forget(self.dir, UUID)  # already gone: nothing to do
+
+
 class ResumedTest(RecordsTestCase):
     NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
 

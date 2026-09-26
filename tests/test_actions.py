@@ -1,7 +1,9 @@
+import os
 import unittest
 import unittest.mock
 
-from agent_parking import actions, idle, park
+from agent_parking import actions, idle, park, records
+from tests.flows import UUID
 from tests.flows import FlowRuntimeTestCase
 
 
@@ -25,6 +27,19 @@ class FlowsTest(ActionsTestCase):
         with unittest.mock.patch.object(park, "park", return_value="outcome") as flow:
             self.assertEqual(acting.park("w1:p2", "wiki"), "outcome")
         flow.assert_called_once_with(acting.rt, "w1:p2", "wiki")
+
+
+class ForgetTest(ActionsTestCase):
+    def test_forget_deletes_the_record_and_leaves_the_transcript(self):
+        acting = self.actions()
+        records.write(acting.rt.paths.records, {"schema_version": 1, "session_id": UUID, "status": "parked"})
+        transcript = self.tmp.name + "/.claude/projects/-repo/%s.jsonl" % UUID
+        os.makedirs(os.path.dirname(transcript))
+        with open(transcript, "w") as f:
+            f.write("{}\n")
+        acting.forget(UUID)
+        self.assertIsNone(records.read(acting.rt.paths.records, UUID))
+        self.assertTrue(os.path.exists(transcript))
 
 
 if __name__ == "__main__":

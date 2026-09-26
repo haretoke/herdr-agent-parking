@@ -63,6 +63,14 @@ def discard_parking(directory, session_id):
         path.unlink()
 
 
+def forget(directory, session_id):
+    """`x`: delete the record of `session_id` (or its file set aside in `broken/`). Only
+    the plugin's own files; Claude's transcript is never touched."""
+    name = checked_uuid(session_id) + ".json"
+    for path in (directory / name, directory / "broken" / name):
+        path.unlink(missing_ok=True)
+
+
 def _read(path):
     """The JSON object in `path`, or None when it is not one."""
     try:
