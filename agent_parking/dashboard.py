@@ -17,6 +17,13 @@ def _said(outcome, pane_id):
     return text + (": " + outcome.message if outcome.message else "")
 
 
+def _bulk_said(results):
+    parked = [pane_id for pane_id, outcome in results if outcome.kind == "parked"]
+    failed = ["%s: %s" % (pane_id, outcome.message or outcome.kind)
+              for pane_id, outcome in results if outcome.kind != "parked"]
+    return "; ".join(["parked %d of %d" % (len(parked), len(results))] + failed)
+
+
 def _key(row):
     return row.session_id or row.pane_id
 
@@ -136,6 +143,9 @@ class Dashboard:
                 self._compact()
             elif key == "C":
                 self._compact_then_park()
+            elif key == "S":
+                self._ask(dialogs.TextInput(["park every session idle for at least (minutes):"],
+                                            initial=str(self.actions.bulk_minutes())), self._bulk_targets)
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)
@@ -294,6 +304,32 @@ class Dashboard:
                 self._later("compacting %s…" % row.pane_id, lambda: finish(reply.focus))
 
         self._ask(dialogs.Confirm(lines, {"enter": "yes", "e": "edit"}), chosen)
+
+    def _bulk_targets(self, text):
+        """`S` after the threshold: the sessions it parks and the others with the reason,
+        one note for all, then a confirmation."""
+        try:
+            minutes = int(text.strip())
+        except ValueError:
+            self.message = "not a number: %s" % text
+            return
+        running = [row for row in self.rows if row.record is None]
+        targets, skipped = park.bulk_targets(running, self.actions.idle_entries(), self.actions.now(), minutes)
+        if not targets:
+            self.message = "no session idle for %dm or more" % minutes
+            return
+        lines = (["park the sessions idle for %dm or more:" % minutes] +
+                 ["[x] %s  %s  %s" % (table.cells(row)["place_id"], row.name or "", row.idle) for row in targets] +
+                 ["[ ] %s  %s  (%s, skipped)" % (table.cells(row)["place_id"], row.name or "", reason)
+                  for row, reason in skipped] +
+                 ["note for all (empty for none; a blank line or Ctrl-D ends it):"])
+        self._ask(dialogs.TextInput(lines, multiline=True), lambda note: self._confirm_bulk(targets, note))
+
+    def _confirm_bulk(self, targets, note):
+        pane_ids = [row.pane_id for row in targets]
+        self._ask(dialogs.Confirm(["Enter to park %d sessions, Esc to cancel" % len(pane_ids)], {"enter": "yes"}),
+                  lambda _: self._later("parking %d sessions, one after another…" % len(pane_ids),
+                                        lambda: _bulk_said(self.actions.bulk_park(pane_ids, note))))
 
     def _set_filter(self, text):
         chosen = self._row()

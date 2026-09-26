@@ -1,7 +1,7 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from agent_parking import compact, dashboard, display, park, recreate, resume, table, transcript
+from agent_parking import compact, dashboard, display, idle, park, recreate, resume, table, transcript
 from agent_parking.inventory import Inventory, Row
 
 
@@ -399,6 +399,48 @@ class CompactThenParkTest(unittest.TestCase):
         shown.on_input(b"C")
         self.assertIsNone(shown.dialog)
         self.assertIn("working", shown.message)
+
+
+class BulkParkTest(unittest.TestCase):
+    def setUp(self):
+        def since(minutes):
+            return idle.Entry(seq=1, status="idle", since=NOW - timedelta(minutes=minutes), lower_bound=False)
+        self.rows = [live("w8:p1", name="api", status="idle"), live("w8:p2", name="docs", status="done"),
+                     live("w8:p3", name="infra", status="blocked"), live("w8:p4", name="fresh", status="idle"),
+                     live("w8:p5", name="old", status="parked", record={})]
+        entries = {"w8:p1": since(72), "w8:p2": since(185), "w8:p3": since(300), "w8:p4": since(12)}
+        parked = park.Outcome("parked", "", {})
+        self.actions = FakeActions(now=NOW, idle_entries=entries, bulk_minutes=60,
+                                   bulk_park=[("w8:p1", parked), ("w8:p2", park.Outcome("refused", "typing", None))])
+
+    def test_S_edits_the_threshold_lists_targets_and_reasons_takes_one_note_confirms_then_parks(self):
+        shown = board(*self.rows, actions=self.actions)
+        shown.on_input(b"S")
+        self.assertEqual(shown.lines(78, 30)[-1], " > 60")
+        shown.on_input(b"\r")
+        text = "\n".join(shown.dialog.lines())
+        self.assertIn("[x] w8/t3/p1", text)
+        self.assertIn("[x] w8/t3/p2", text)
+        self.assertIn("[ ] w8/t3/p3", text)
+        self.assertIn("blocked", text)
+        self.assertIn("idle 12m", text)
+        self.assertNotIn("p5", text)
+        shown.on_input(b"wiki\r\r")
+        self.assertIn("Enter to park 2 sessions", shown.lines(78, 30)[-1])
+        shown.on_input(b"\r")
+        shown.run_pending()
+        self.assertEqual([c for c in self.actions.calls if c[0] == "bulk_park"],
+                         [("bulk_park", ["w8:p1", "w8:p2"], "wiki")])
+        self.assertIn("parked 1 of 2", shown.message)
+        self.assertIn("w8:p2: typing", shown.message)
+
+    def test_a_threshold_that_leaves_nothing_or_is_not_a_number_says_so(self):
+        shown = board(*self.rows, actions=self.actions)
+        shown.on_input(b"S\x15999\r")
+        self.assertIsNone(shown.dialog)
+        self.assertIn("no session idle for 999m", shown.message)
+        shown.on_input(b"S\x15soon\r")
+        self.assertIn("not a number", shown.message)
 
 
 if __name__ == "__main__":
