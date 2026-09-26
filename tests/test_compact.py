@@ -23,5 +23,21 @@ class PrepareTest(FlowTestCase):
                 self.assertNotIn("agent.prompt", self.fake.methods())
 
 
+class PreparePromptTest(FlowTestCase):
+    def test_a_set_prepare_prompt_is_sent_instead(self):
+        self.settings["prepare_prompt"] = "Save state, then give a focus."
+        compact.prepare(self.flow(), "w1:p2")
+        [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(prompt["params"]["text"], "Save state, then give a focus.")
+
+
+class WaitTest(FlowTestCase):
+    def test_the_preparation_is_awaited_in_the_same_request(self):
+        self.settings["prepare_timeout_seconds"] = 900
+        compact.prepare(self.flow(), "w1:p2")
+        [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
+        self.assertEqual(prompt["params"]["wait"], {"until": ["idle", "done"], "timeout_ms": 900_000})
+
+
 if __name__ == "__main__":
     unittest.main()

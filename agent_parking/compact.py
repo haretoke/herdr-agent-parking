@@ -17,5 +17,8 @@ def prepare(rt, pane_id):
     if refusal:
         return Outcome("refused", refusal, None)
     preparation = config.preparation(rt.settings)
-    rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first})
+    # The wait rides on the prompt request, so no status change can slip in between
+    # (it may take minutes: the preparation can commit and push).
+    rt.herdr.call("agent.prompt", {"target": pane_id, "text": preparation.first, "wait": {
+        "until": ["idle", "done"], "timeout_ms": int(rt.settings["prepare_timeout_seconds"] * 1000)}})
     return Outcome("prepared", "", None)
