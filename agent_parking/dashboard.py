@@ -27,6 +27,7 @@ class Dashboard:
         self.actions = actions    # what the keys do (actions.Actions)
         self.message = ""
         self.dialog = None
+        self.filter = ""
         self.on_done = None   # what the open dialog's answer goes to
         self.pending = None   # (what to show while it runs, the call): run by the loop after a draw
         self._on_event = on_event  # a Herdr event, before the list is read again
@@ -55,8 +56,12 @@ class Dashboard:
         self.selected = max(0, min(self.selected, len(keys) - 1))
 
     def visible(self):
-        """The rows shown and selectable."""
-        return self.rows
+        """The rows shown and selectable: those matching the filter (`/`) in their name,
+        cwd or labels, ignoring case."""
+        wanted = self.filter.lower()
+        return [row for row in self.rows if not wanted or any(
+            wanted in (text or "").lower()
+            for text in (row.name, row.cwd, row.label, row.tab_label, row.workspace_label))]
 
     def title(self):
         running = [row for row in self.rows if row.record is None]
@@ -65,6 +70,8 @@ class Dashboard:
         if memory:
             parts.append(table.memory(memory))
         parts.extend("%s: %d (not managed)" % (agent, count) for agent, count in sorted(self.others.items()))
+        if self.filter:
+            parts.append("filter: " + self.filter)
         return " " + " · ".join(parts)
 
     def lines(self, width, height):
@@ -121,6 +128,9 @@ class Dashboard:
                 self._forget()
             elif key == "n":
                 self._edit_note()
+            elif key == "/":
+                self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
+                          self._set_filter)
 
     def _row(self):
         rows = self.visible()
@@ -172,6 +182,11 @@ class Dashboard:
         self._ask(dialogs.TextInput(prompt, initial=row.record.get("note") or "", multiline=True),
                   lambda note: self._later("saving the note…", lambda: self.actions.set_note(row.session_id, note)
                                            or "note saved"))
+
+    def _set_filter(self, text):
+        chosen = self._row()
+        self.filter = text.strip()
+        self._keep(_key(chosen) if chosen else None)
 
     def _ask(self, dialog, on_done):
         self.dialog, self.on_done = dialog, on_done

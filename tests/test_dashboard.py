@@ -212,5 +212,26 @@ class NoteTest(unittest.TestCase):
         self.assertIsNone(shown.dialog)
 
 
+class FilterTest(unittest.TestCase):
+    def test_slash_filters_by_name_cwd_and_labels_ignoring_case(self):
+        rows = [live("w8:p1", name="API gateway", cwd="/w/one", label=None),
+                live("w8:p2", name="docs", cwd="/w/api-docs", label=None),
+                live("w8:p3", name="infra", cwd="/w/infra", label=None, tab_label="Api"),
+                live("w8:p4", name="release", cwd="/w/rel", label=None)]
+        shown = board(*rows)
+        shown.on_input(b"jjj/api\r")
+        self.assertEqual([row.pane_id for row in shown.visible()], ["w8:p1", "w8:p2", "w8:p3"])
+        self.assertIn("filter: api", shown.lines(78, 24)[0])
+        self.assertEqual(shown.selected, 2)
+        shown.on_input(b"/\x15\r")  # Ctrl-U clears it
+        self.assertEqual(len(shown.visible()), 4)
+        self.assertNotIn("filter", shown.lines(78, 24)[0])
+
+    def test_esc_keeps_the_filter_as_it_was(self):
+        shown = board(live("w8:p1", name="api"), live("w8:p2", name="docs"))
+        shown.on_input(b"/docs\r/x\x1b")
+        self.assertEqual([row.pane_id for row in shown.visible()], ["w8:p2"])
+
+
 if __name__ == "__main__":
     unittest.main()
