@@ -515,7 +515,13 @@ server is never restarted.
       `--name` / `-n` / `--fork-session` with their values are removed; other flags
       (`--effort medium`, `--model x`, `--permission-mode auto`) keep their order
 - [x] both `--resume=<id>` and `-r <id>` are removed
-- [ ] a value-taking flag at the end without its value does not crash
+- [x] a value-taking flag at the end without its value does not crash
+- [ ] a positional argument (an initial prompt, `claude "fix the bug"`) is not replayed, since
+      a resume would send it again; it is reported in `dropped`. Values stay with their flag:
+      one-value flags (`--model x`), variadic ones (`--add-dir a b`, until the next flag) and
+      optional-value ones (`--worktree name`, `--debug api`) as `claude --help` lists them;
+      the value of an unknown flag is not assumed, so it is dropped and reported too
+- [ ] `--from-pr [value]` and `--teleport [session]` pick a session too and are removed
 
 ### herdr_api
 - [ ] `HERDR_BIN_PATH` is used when set, otherwise `herdr` on `PATH`

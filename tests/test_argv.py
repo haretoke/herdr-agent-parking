@@ -32,5 +32,17 @@ class ResumeFlagsTest(unittest.TestCase):
         self.assertEqual(argv.resume_flags([CLAUDE, "--model=x", "-r=" + UUID]).flags, ["--model=x"])
 
 
+    def test_a_value_taking_flag_at_the_end_without_its_value_does_not_crash(self):
+        for given, expected in [
+            ([CLAUDE, "--model", "x", "--name"], ["--model", "x"]),
+            ([CLAUDE, "--session-id"], []),
+            ([CLAUDE, "-n"], []),
+            ([CLAUDE], []),
+            ([], []),
+        ]:
+            with self.subTest(argv=given):
+                self.assertEqual(argv.resume_flags(given).flags, expected)
+
+
 if __name__ == "__main__":
     unittest.main()
