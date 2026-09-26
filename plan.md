@@ -500,7 +500,7 @@ server is never restarted.
 
 ### records
 - [x] a record is written under its UUID, directories 0700 and files 0600
-- [ ] a non-UUID session_id is rejected (path separators, `..`, empty)
+- [x] a non-UUID session_id is rejected (path separators, `..`, empty)
 - [ ] writes are atomic renames; a crash midway keeps the old record
 - [ ] broken JSON is moved to `records/broken/` and reported as a broken record
 - [ ] an unknown `schema_version` is neither read, modified nor deleted

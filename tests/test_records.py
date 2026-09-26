@@ -33,6 +33,14 @@ class WriteTest(RecordsTestCase):
         self.assertEqual(stat.S_IMODE(self.dir.stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
 
+    def test_a_session_id_that_is_not_a_canonical_uuid_is_rejected_before_any_path(self):
+        for bad in ["", "..", "../x", "a/b", UUID.upper(), UUID + ".json", UUID[:-1],
+                    "2716af66e4d84950818597da891f78a9", " " + UUID, None, 42]:
+            with self.subTest(session_id=bad):
+                with self.assertRaises(ValueError):
+                    records.write(self.dir, record(session_id=bad))
+        self.assertFalse(self.dir.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
