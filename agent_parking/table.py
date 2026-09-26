@@ -41,7 +41,10 @@ def line(cells, width, selected):
     """One row of the table at `width`, cut to the width when the name's minimum overflows it."""
     cols = columns(width)
     sizes = widths(cols, width)
-    text = ("▶ " if selected else "  ") + " ".join(_pad(cells[c], sizes[c]) for c in cols)
+    shown = dict(cells)
+    if "ver" not in cols:
+        shown["status"] += cells["old"]
+    text = ("▶ " if selected else "  ") + " ".join(_pad(shown[c], sizes[c]) for c in cols)
     return display.cell(text.rstrip(), width)
 
 
@@ -82,4 +85,4 @@ def cells(row, idle):
     return {"place": place, "place_id": place_id, "name": row.name or "", "status": row.status or "",
             "idle": idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
             "rss": "—" if row.record is not None else _memory(row.rss_kb),
-            "ver": (row.version or "") + (" old" if row.old else "")}
+            "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else ""}

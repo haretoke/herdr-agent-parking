@@ -39,7 +39,7 @@ class CellsTest(unittest.TestCase):
         cells = table.cells(live(), idle="≥1h12m")
         self.assertEqual(cells, {"place": "w8/t3/p36 web", "place_id": "w8/t3/p36", "name": "api gateway refactor",
                                  "status": "idle", "idle": "≥1h12m", "ctx": "37k 18%", "ctx_short": "37k",
-                                 "rss": "205M", "ver": "2.1.283"})
+                                 "rss": "205M", "ver": "2.1.283", "old": ""})
 
     def test_the_place_label_is_the_pane_then_the_tab_then_the_workspace_label(self):
         self.assertEqual(table.cells(live(label=None), "")["place"], "w8/t3/p36 2")
@@ -75,6 +75,18 @@ class LineTest(unittest.TestCase):
         for width in (120, 78, 77, 64, 63, 52, 51, 36, 20):
             with self.subTest(width=width):
                 self.assertLessEqual(display.width(table.line(cells, width, selected=False)), width)
+
+
+class OldMarkTest(unittest.TestCase):
+    def test_an_old_session_keeps_a_mark_beside_its_status_when_ver_is_dropped(self):
+        cells = table.cells(live(version="2.1.281", old=True), "12m")
+        self.assertIn(" idle ", table.line(cells, 78, selected=False))
+        self.assertIn("2.1.281 old", table.line(cells, 78, selected=False))
+        for width in (77, 52, 51):
+            with self.subTest(width=width):
+                self.assertIn(" idle!", table.line(cells, width, selected=False))
+        current = table.cells(live(), "12m")
+        self.assertNotIn("!", table.line(current, 60, selected=False))
 
 
 if __name__ == "__main__":
