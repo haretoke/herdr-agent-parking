@@ -200,8 +200,9 @@ Conditions: `idle` or `done`, and the input box is empty (the same check as park
    Claude answers `Unknown command: /prepare-compact` locally and `agent prompt`
    returns `agent_prompt_stalled` (spike 0-18); the flow then sends the built-in text
    and notes it in the confirmation box.
-2. `agent wait --until idle` with a long timeout (`prepare_timeout_seconds`, default
-   600), because the preparation may commit and push.
+2. The wait rides on the same `agent.prompt` request (`wait: {until: [idle, done, blocked],
+   timeout_ms}` from `prepare_timeout_seconds`, default 600, because the preparation may
+   commit and push), so no status change slips in between. `blocked` ends the flow.
 3. Find the line the plugin sent in the transcript and take the focus tag from the
    assistant text after it (`<compact-focus>...</compact-focus>`).
 4. Show a confirmation with a summary of the preparation report and the focus; the
@@ -242,7 +243,10 @@ again resumes from step 3 when a focus tag is already there.
    disappears (the shell is back). Measured: about 4 seconds.
 8. Then follow `on_park` ("Parked panes" below).
    - `keep` (default): `pane rename <P> "💤 <name>"` (format `parked_label_format`).
-     The previous `label` goes to the record's `label_before`.
+     The previous `label` goes to the record's `label_before`, except when an earlier
+     record of the same session is still there and the pane still shows the label park
+     gave it (resumed by hand, then parked again): then that record's `label_before`
+     is kept.
    - `close`: check that the foreground is only the shell (`pid == shell_pid`), then
      `pane close <P>`. The last pane of a tab is not closed: it is treated as `keep`
      with a reason (the tab is never closed).
@@ -364,7 +368,9 @@ does not handle it (the `claude --resume` picker is the way back). Candidates:
 - Python 3.9 or later, standard library only (tests run under `/usr/bin/python3` 3.9
   and `python3` 3.12). 3.9 has no TOML reader, so the config is JSON.
 - Every Herdr call goes over the socket at `HERDR_SOCKET_PATH` (one request per
-  connection, plus one long `events.subscribe` connection), like image-viewer. Socket
+  connection, plus one long `events.subscribe` connection), like image-viewer. Requests
+  that wait inside Herdr (`agent.start`, the preparation and `/compact` prompts) get a
+  socket timeout of their Herdr-side wait plus 30 s, so Herdr's own timeout answers first. Socket
   replies have the CLI's JSON shape (`result`, or `error {code, message}`). There is no
   socket `pane.run`: a shell command is `pane.send_input {text, keys: ["Enter"]}`
   (verified). `HERDR_SOCKET_PATH` is injected in plugin panes and in every pane shell,
