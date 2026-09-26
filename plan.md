@@ -230,8 +230,26 @@ server is never restarted.
         session hands `CLAUDE_CODE_*` to its pane shells, and a Claude started there
         shows "Transcript saving is off" and cannot be resumed. The throwaway server
         has to start with every `CLAUDE*` and `HERDR_*` variable unset
-- [ ] from an overlay plugin pane, `agent prompt` / `agent start` / `pane rename` /
+      - Isolation caveat: `herdr plugin link` writes to the plugin registry under
+        `~/.config/herdr`, which every session shares (`herdr --session <s> plugin list`
+        showed the user's plugins). From spike 0-3 on, the throwaway server runs with
+        its own `XDG_CONFIG_HOME` (a short path such as `~/.cache/hps`, because the
+        socket path has to fit `sun_path`; a scratch path under `/private/tmp/...` was
+        too long), so probe plugins never enter the user's registry
+- [x] from an overlay plugin pane, `agent prompt` / `agent start` / `pane rename` /
       `pane run` work against another pane
+      (2026-09-27, Mac local, isolated throwaway session): a probe plugin
+      (`placement = "overlay"`, `python3 probe.py`, targets passed with
+      `plugin pane open --env`) drove three panes of the same tab and logged each call.
+      All returned rc 0 and took effect: `pane rename` set the label, `pane run` ran
+      `echo` in the shell pane, `agent prompt ... --wait` got Claude to answer (4.6 s),
+      and `agent start probe-start --kind claude -- --model haiku` started Claude in an
+      empty pane (3.9 s, idle, `agent_session` reported). The overlay pane got its own
+      `HERDR_PANE_ID` (`w1:p4`), cwd = plugin root, `HERDR_BIN_PATH`,
+      `HERDR_SOCKET_PATH`, `HERDR_SESSION`, the `HERDR_PLUGIN_*` set and
+      `HERDR_PLUGIN_CONTEXT_JSON` whose `focused_pane_id` was the pane under the overlay
+      (`w1:p1`). When `probe.py` exited the overlay closed and focus went back to
+      `w1:p1`
 - [ ] from inside the overlay, socket `pane.focus {pane_id}` onto pane X in another tab,
       then exit the dashboard: does focus stay on X or does the overlay's "restore the
       previous focus" take it back? If it does, `g` is limited to tab / zoomed placements
