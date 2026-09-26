@@ -5,6 +5,7 @@ import os
 import re
 from datetime import timedelta
 
+from . import storage
 from .times import iso, parse as parse_time
 
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -24,29 +25,16 @@ def checked_uuid(value):
     return value
 
 
-def _private_dir(directory):
-    directory.mkdir(parents=True, exist_ok=True)
-    os.chmod(directory, 0o700)  # mkdir's mode is filtered by the umask
-
-
 def write(directory, record):
     """Write `record` as `<directory>/<session_id>.json`, readable by the owner only.
 
     The file is replaced atomically: a failure midway keeps the previous record."""
     name = checked_uuid(record.get("session_id")) + ".json"
-    _private_dir(directory)
+    storage.private_dir(directory)
     path = directory / name
     if path.exists() and not _ours(_read(path)):
         raise Refused("%s has a schema this version does not know" % path.name)
-    tmp = directory / (".%s.%d.tmp" % (name, os.getpid()))
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(record, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, path)
-    except BaseException:
-        tmp.unlink(missing_ok=True)
-        raise
+    storage.write_json(path, record)
     return path
 
 
@@ -89,7 +77,7 @@ def list_records(directory):
     for path in _record_files(directory):
         loaded = _read(path)
         if loaded is None:
-            _private_dir(directory / "broken")
+            storage.private_dir(directory / "broken")
             os.replace(path, directory / "broken" / path.name)
         elif _ours(loaded):
             listed.append(loaded)
