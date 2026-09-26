@@ -3,7 +3,7 @@ drives it is in `terminal`)."""
 
 import textwrap
 
-from . import dialogs, display, keys, park, ready, table
+from . import dialogs, display, keys, park, ready, resume, table
 
 KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
         "/ filter  ? help  q quit")
@@ -128,6 +128,8 @@ class Dashboard:
                 self._forget()
             elif key == "n":
                 self._edit_note()
+            elif key == "r":
+                self._resume()
             elif key == "/":
                 self._ask(dialogs.TextInput(["filter by name, cwd or label (empty shows all):"], initial=self.filter),
                           self._set_filter)
@@ -182,6 +184,16 @@ class Dashboard:
         self._ask(dialogs.TextInput(prompt, initial=row.record.get("note") or "", multiline=True),
                   lambda note: self._later("saving the note…", lambda: self.actions.set_note(row.session_id, note)
                                            or "note saved"))
+
+    def _resume(self):
+        row = self._parked_row()
+        if row is None:
+            return
+        lines = resume.confirmation(row.record, self.actions.now())
+        self._ask(dialogs.Confirm(lines, {"enter": "yes"}),
+                  lambda _: self._later("resuming %s…" % (row.pane_id or row.session_id[:8]),
+                                        lambda: _said(self.actions.resume(row.session_id, False),
+                                                      row.pane_id or "(new pane)")))
 
     def _set_filter(self, text):
         chosen = self._row()

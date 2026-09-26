@@ -1,6 +1,7 @@
 import unittest
+from datetime import datetime, timezone
 
-from agent_parking import dashboard, display, park, table
+from agent_parking import dashboard, display, park, resume, table
 from agent_parking.inventory import Inventory, Row
 
 
@@ -231,6 +232,37 @@ class FilterTest(unittest.TestCase):
         shown = board(live("w8:p1", name="api"), live("w8:p2", name="docs"))
         shown.on_input(b"/docs\r/x\x1b")
         self.assertEqual([row.pane_id for row in shown.visible()], ["w8:p2"])
+
+
+UUID = "2716af66-e4d8-4950-8185-97da891f78a9"
+NOW = datetime(2026, 9, 27, 12, 0, 0, tzinfo=timezone.utc)
+RECORD = {"session_id": UUID, "pane_id": "w8:p36", "title": "api", "cwd": "/repo",
+          "argv": ["claude", "--effort", "medium"], "note": "wiki\ntable", "parked_at": "2026-09-25T12:00:00Z"}
+
+
+def acted(actions):
+    return [call for call in actions.calls if call[0] != "now"]
+
+
+class ResumeTest(unittest.TestCase):
+    def test_r_shows_the_whole_note_and_the_command_then_enter_resumes(self):
+        actions = FakeActions(resume=resume.Outcome("resumed", "", RECORD), now=NOW)
+        shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
+        shown.on_input(b"r")
+        text = "\n".join(shown.lines(78, 30))
+        for part in ("parked 2d ago", "claude --resume 2716af66 --effort medium", "  wiki", "  table",
+                     "Enter to resume"):
+            self.assertIn(part, text)
+        shown.on_input(b"\r")
+        shown.run_pending()
+        self.assertEqual(acted(actions), [("resume", UUID, False)])
+        self.assertIn("resumed w8:p36", shown.message)
+
+    def test_esc_returns_to_the_list(self):
+        actions = FakeActions(now=NOW)
+        shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
+        shown.on_input(b"r\x1b")
+        self.assertEqual((shown.dialog, shown.pending, acted(actions)), (None, None, []))
 
 
 if __name__ == "__main__":
