@@ -28,5 +28,20 @@ class SiblingSecondTest(FlowTestCase):
         ])
 
 
+class SiblingFirstTest(FlowTestCase):
+    def test_a_first_child_is_swapped_into_place_before_the_ratio(self):
+        record = dict(RECORD, layout_hint={"sibling_pane_id": "w1:p8", "position": "first",
+                                           "direction": "right", "ratio": 0.3, "path": []})
+        rt = self.flow(**{"pane.split": SPLIT, "pane.swap": {"type": "pane_swap"},
+                          "layout.set_split_ratio": {"type": "ok"}})
+        recreate.place(rt, record, [pane("w1:p8")])
+        calls = [(r["method"], r["params"]) for r in self.fake.requests]
+        self.assertEqual(calls, [
+            ("pane.split", {"target_pane_id": "w1:p8", "direction": "right", "cwd": "/repo", "focus": False}),
+            ("pane.swap", {"source_pane_id": "w1:p12", "target_pane_id": "w1:p8"}),
+            ("layout.set_split_ratio", {"tab_id": "w1:t1", "path": [], "ratio": 0.3}),
+        ])
+
+
 if __name__ == "__main__":
     unittest.main()

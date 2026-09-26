@@ -19,6 +19,9 @@ def place(rt, record, panes):
     sibling = existing.get(hint.get("sibling_pane_id"))
     if sibling is not None:
         new = _split(rt, sibling.pane_id, hint["direction"], record["cwd"])
+        if hint["position"] == "first":
+            # Splits only go right or down; the swap puts the new pane on the left or top.
+            rt.herdr.call("pane.swap", {"source_pane_id": new, "target_pane_id": sibling.pane_id})
         rt.herdr.call("layout.set_split_ratio", {"tab_id": sibling.tab_id, "path": hint["path"],
                                                  "ratio": hint["ratio"]})
         return Placed(new, "")
