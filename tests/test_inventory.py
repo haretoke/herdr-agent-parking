@@ -49,5 +49,21 @@ class ClaudeProcessTest(unittest.TestCase):
         self.assertIsNone(inventory.claude_process(ProcessInfo(5, 9, [{"pid": 7}])))
 
 
+class FakeSystem:
+    def __init__(self, cmdlines=None):
+        self.cmdlines = cmdlines or {}
+
+    def cmdline(self, pid):
+        return self.cmdlines.get(pid)
+
+
+class ArgvTest(unittest.TestCase):
+    def test_argv_from_process_info_then_proc_cmdline_then_empty(self):
+        linux = FakeSystem({7: ["claude", "--resume", "review-all"]})
+        self.assertEqual(inventory.argv_of({"pid": 7, "argv": ["/b/claude", "-c"]}, linux), ["/b/claude", "-c"])
+        self.assertEqual(inventory.argv_of({"pid": 7, "name": "claude"}, linux), ["claude", "--resume", "review-all"])
+        self.assertEqual(inventory.argv_of({"pid": 9, "name": "claude"}, linux), [])
+
+
 if __name__ == "__main__":
     unittest.main()

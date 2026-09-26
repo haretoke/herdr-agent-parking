@@ -571,7 +571,7 @@ server is never restarted.
 - [x] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
       cwd, status and the `agent_session` UUID
 - [x] the Claude process is the foreground group leader (`pid == foreground_process_group_id`)
-- [ ] its argv comes from `process-info`, else from `/proc/<pid>/cmdline` (NUL-separated),
+- [x] its argv comes from `process-info`, else from `/proc/<pid>/cmdline` (NUL-separated),
       else is empty
 - [ ] its running version is the basename of `readlink /proc/<pid>/exe` when `/proc`
       exists, else `process-info`'s `name` when it looks like a version, else unknown

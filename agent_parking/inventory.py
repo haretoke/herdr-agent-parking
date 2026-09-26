@@ -39,3 +39,9 @@ def claude_process(info):
         if info.group_id is not None and process.get("pid") == info.group_id:
             return process
     return None
+
+
+def argv_of(process, system):
+    """The Claude process's argv: from Herdr (macOS), else `/proc/<pid>/cmdline` (Herdr 0.9.1
+    gives none on Linux; spike 0-10), else empty."""
+    return process.get("argv") or system.cmdline(process.get("pid")) or []
