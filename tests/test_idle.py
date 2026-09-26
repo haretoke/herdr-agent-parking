@@ -109,6 +109,25 @@ class EventTest(unittest.TestCase):
         self.assertEqual(tracker.entries, {})
 
 
+class WireEventTest(unittest.TestCase):
+    def test_status_events_are_read_under_either_spelling_and_others_ignored(self):
+        for name in ("pane.agent_status_changed", "pane_agent_status_changed"):
+            with self.subTest(name=name):
+                clock = Clock()
+                tracker = idle.Tracker(clock)
+                tracker.poll("w1:p1", seq=18, status="idle")
+                clock.advance(seconds=4)
+                tracker.on_event({"event": name, "data": {"pane_id": "w1:p1", "agent_status": "working"}})
+                self.assertEqual((tracker.entries["w1:p1"].status, tracker.entries["w1:p1"].since),
+                                 ("working", NOW + timedelta(seconds=4)))
+        tracker = idle.Tracker(Clock())
+        tracker.poll("w1:p1", seq=18, status="idle")
+        for event in ({"event": "pane_agent_detected", "data": {"pane_id": "w1:p1", "agent": "claude"}},
+                      {"event": "pane.agent_status_changed"}, {}):
+            tracker.on_event(event)
+        self.assertEqual(tracker.entries["w1:p1"].status, "idle")
+
+
 class TextTest(unittest.TestCase):
     def test_idle_time_text_with_a_lower_bound_mark_and_none_while_working(self):
         entry = idle.Entry

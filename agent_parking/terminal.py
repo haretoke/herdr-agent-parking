@@ -153,7 +153,8 @@ def stop_on_signals():
 
 def run_dashboard(rt, own_pane_id):
     tracker = idle.Tracker.load(rt.paths.observed, rt.clock)
-    board = dashboard.Dashboard(refresh=lambda: inventory.build(rt, tracker, own_pane_id))
+    board = dashboard.Dashboard(refresh=lambda: inventory.build(rt, tracker, own_pane_id),
+                                on_event=tracker.on_event)
     stopping = stop_on_signals()
     with Terminal() as terminal:
         run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,

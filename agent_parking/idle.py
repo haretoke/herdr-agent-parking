@@ -65,6 +65,15 @@ class Tracker:
         if entry is not None and status != entry.status:
             entry.status, entry.since, entry.lower_bound, entry.from_event = status, self.clock(), False, True
 
+    def on_event(self, event):
+        """An `events.subscribe` line: status changes go to `event`, the rest is ignored.
+        The kind is read as `pane.agent_status_changed` (the schema) or
+        `pane_agent_status_changed` (seen on the wire, spike 0-6)."""
+        kind = (event.get("event") or "").replace(".", "_")
+        data = event.get("data") if isinstance(event.get("data"), dict) else {}
+        if kind == "pane_agent_status_changed" and data.get("pane_id") and data.get("agent_status"):
+            self.event(data["pane_id"], data["agent_status"])
+
     def _first(self, seq, status, summary):
         """A pane seen for the first time starts at its last conversation line (nothing
         else is written while it sits idle; spike 0-19), else now as a lower bound."""
