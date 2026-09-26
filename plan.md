@@ -208,8 +208,28 @@ server is never restarted.
       `w1:p5`, so closed IDs are not reused across a restart either. Records can
       trust `pane_id` after a server restart; cwd + label matching stays a fallback for
       closed panes only
-- [ ] start `claude` in a throwaway pane and `/exit`; after a restart, what the parked
+- [x] start `claude` in a throwaway pane and `/exit`; after a restart, what the parked
       pane is (empty shell, label, `agent_session`)
+      (2026-09-27, Mac local, Herdr 0.9.1, Claude Code 2.1.283): two panes in one tab,
+      `w1:p1` with a running Claude (`claude --model haiku`, one prompt answered) and
+      `w1:p2` labelled `💤 parked-label` whose Claude answered one prompt and then got
+      `/exit`. Before the restart `session.json` held `agent_session` only for `w1:p1`;
+      `w1:p2` kept its label and nothing else. After `server stop` and a restart:
+      - `w1:p2` came back as an empty shell (one foreground process, `pid == shell_pid`),
+        label and cwd intact, `agent_session` None, and its screen held only a fresh
+        prompt. The `Resume this session with: claude --resume <uuid>` line Claude
+        printed on `/exit` was gone: the scrollback does not survive a restart, so the
+        plugin's record is the only trace of a parked session after one.
+      - `w1:p1` was resumed by Herdr on its own as `claude --resume <uuid>` (same UUID,
+        `agent_session` reported again, status idle). The launch flags were dropped
+        (`--model haiku` was not in the new argv); the model stayed Haiku because the
+        session remembers it, but other flags (`--settings`, `--add-dir`,
+        `--mcp-config`, ...) would be lost. So a session parked after a Herdr restore
+        has an argv without its original flags, and the record cannot restore them.
+      - Environment caveat for later spikes: a server started from inside a Claude
+        session hands `CLAUDE_CODE_*` to its pane shells, and a Claude started there
+        shows "Transcript saving is off" and cannot be resumed. The throwaway server
+        has to start with every `CLAUDE*` and `HERDR_*` variable unset
 - [ ] from an overlay plugin pane, `agent prompt` / `agent start` / `pane rename` /
       `pane run` work against another pane
 - [ ] from inside the overlay, socket `pane.focus {pane_id}` onto pane X in another tab,
