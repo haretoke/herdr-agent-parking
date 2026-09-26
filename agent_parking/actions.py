@@ -1,7 +1,7 @@
 """What the dashboard's keys do, on the real Herdr and records (the dashboard itself only
 decides when; tests give it a fake)."""
 
-from . import park, records, resume
+from . import compact, park, records, resume
 
 
 class Actions:
@@ -36,3 +36,12 @@ class Actions:
 
     def swap(self, pane_id):
         return resume.swap(self.rt, pane_id)
+
+    def prepare(self, pane_id):
+        return compact.prepare(self.rt, pane_id)
+
+    def compact(self, pane_id, focus):
+        return compact.run(self.rt, pane_id, focus)
+
+    def compact_then_park(self, pane_id, focus, note):
+        return compact.compact_then_park(self.rt, pane_id, focus, note)

@@ -2,7 +2,7 @@ import os
 import unittest
 import unittest.mock
 
-from agent_parking import actions, idle, park, records, resume
+from agent_parking import actions, compact, idle, park, records, resume
 from tests.flows import UUID
 from tests.flows import FlowRuntimeTestCase
 
@@ -69,6 +69,20 @@ class SwapTest(ActionsTestCase):
         with unittest.mock.patch.object(resume, "swap", return_value=("parked", "resumed")) as flow:
             self.assertEqual(acting.swap("w1:p2"), ("parked", "resumed"))
         flow.assert_called_once_with(acting.rt, "w1:p2")
+
+
+class CompactTest(ActionsTestCase):
+    def test_prepare_compact_and_compact_then_park_run_their_flows(self):
+        acting = self.actions()
+        with unittest.mock.patch.object(compact, "prepare", return_value="prepared") as prepare, \
+                unittest.mock.patch.object(compact, "run", return_value="compacted") as run, \
+                unittest.mock.patch.object(compact, "compact_then_park", return_value="both") as both:
+            self.assertEqual(acting.prepare("w1:p2"), "prepared")
+            self.assertEqual(acting.compact("w1:p2", "port map"), "compacted")
+            self.assertEqual(acting.compact_then_park("w1:p2", "port map", "wiki"), "both")
+        prepare.assert_called_once_with(acting.rt, "w1:p2")
+        run.assert_called_once_with(acting.rt, "w1:p2", "port map")
+        both.assert_called_once_with(acting.rt, "w1:p2", "port map", "wiki")
 
 
 if __name__ == "__main__":
