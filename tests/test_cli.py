@@ -6,7 +6,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
-from agent_parking import cli, park, recreate, resume, state
+from agent_parking import cli, compact, park, recreate, resume, state, transcript
 from tests.fake_herdr import Error, FakeHerdr
 
 
@@ -150,6 +150,38 @@ class ResumeCommandTest(ShellCommandTestCase):
             self.assertEqual(code, 1)
             self.run_cli(["resume", UUID, "--new-workspace"])
         self.assertEqual(flow.call_args[1], {"new_workspace": True})
+
+
+REPLY = transcript.Reply(found=True, text="Saved the port map.\n<compact-focus>port map</compact-focus>",
+                         focus="port map")
+
+
+class CompactCommandTest(ShellCommandTestCase):
+    def patched(self, prepared):
+        prepare = unittest.mock.patch.object(compact, "prepare", return_value=prepared)
+        run = unittest.mock.patch.object(compact, "run", return_value=compact.Outcome("compacted", "", None))
+        return prepare, run
+
+    def test_compact_prepares_prints_the_report_and_compacts_with_the_proposed_or_given_focus(self):
+        prepare, run = self.patched(compact.Outcome("prepared", "", REPLY))
+        with prepare, run as flow:
+            code, out, _ = self.run_cli(["compact", "w1:p2"])
+            self.assertEqual(flow.call_args[0][1:], ("w1:p2", "port map"))
+            self.run_cli(["compact", "w1:p2", "--focus", "the TODO list"])
+            self.assertEqual(flow.call_args[0][1:], ("w1:p2", "the TODO list"))
+        self.assertEqual(code, 0)
+        self.assertIn("Saved the port map.", out)
+        self.assertIn("focus: port map", out)
+        self.assertNotIn("Enter to compact", out)
+        self.assertTrue(out.strip().endswith("compacted w1:p2"))
+
+    def test_a_preparation_that_stops_compacts_nothing_and_exits_1(self):
+        prepare, run = self.patched(compact.Outcome("blocked", "Claude stopped at a dialog", None))
+        with prepare, run as flow:
+            code, _, err = self.run_cli(["compact", "w1:p2"])
+        self.assertEqual(code, 1)
+        self.assertIn("blocked w1:p2: Claude stopped at a dialog", err)
+        flow.assert_not_called()
 
 
 if __name__ == "__main__":

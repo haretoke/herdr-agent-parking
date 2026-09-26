@@ -9,7 +9,7 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import (config, display, herdr_api, idle, inventory, logfile, park, records, recreate, resume, runtime,
+from . import (compact, config, display, herdr_api, idle, inventory, logfile, park, records, recreate, resume, runtime,
                state, system, terminal, transcript)
 
 DONE = ("parked", "compacted", "resumed")
@@ -54,6 +54,9 @@ def main(args, environ):
     parking = commands.add_parser("park", help="park the Claude in a pane")
     parking.add_argument("pane_id")
     parking.add_argument("--note", default=None)
+    compacting = commands.add_parser("compact", help="prepare, print the report, then compact the Claude in a pane")
+    compacting.add_argument("pane_id")
+    compacting.add_argument("--focus", default=None, help="compact with this focus instead of the proposed one")
     resuming = commands.add_parser("resume", help="resume a parked session by its UUID")
     resuming.add_argument("session_id")
     resuming.add_argument("--new-workspace", action="store_true",
@@ -65,10 +68,24 @@ def main(args, environ):
         return _open(environ, tab=parsed.command == "open-tab")
     if parsed.command == "park":
         return _procedure(environ, lambda rt: park.park(rt, parsed.pane_id, parsed.note), parsed.pane_id)
+    if parsed.command == "compact":
+        return _procedure(environ, lambda rt: _compact(rt, parsed.pane_id, parsed.focus), parsed.pane_id)
     if parsed.command == "resume":
         return _procedure(environ, lambda rt: resume.resume(rt, parsed.session_id, new_workspace=parsed.new_workspace),
                           parsed.session_id)
     return _list(environ)
+
+
+def _compact(rt, pane_id, focus):
+    """The dashboard's `c` without its confirmation: the report and the focus are printed,
+    then `/compact` goes with the proposed focus, or `--focus` when given."""
+    prepared = compact.prepare(rt, pane_id)
+    if prepared.kind != "prepared":
+        return prepared
+    reply = prepared.reply if focus is None else prepared.reply._replace(focus=focus)
+    for line in ([prepared.message] if prepared.message else []) + compact.confirmation(reply)[:-1]:
+        print(line)
+    return compact.run(rt, pane_id, reply.focus)
 
 
 def _procedure(environ, run, subject):
