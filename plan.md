@@ -675,7 +675,7 @@ server is never restarted.
 - [x] a pane with another command in the foreground is refused
 - [x] only with `send_note_as_prompt = true` is `agent prompt <P> <note>` sent after `agent wait --until idle`
 - [x] before `r`, a matching UUID running elsewhere makes the record `resumed` without starting a second process
-- [ ] swap parks then resumes in the same pane, and a refused park does not resume
+- [x] swap parks then resumes in the same pane, and a refused park does not resume
 - [ ] swap asks for confirmation when the running version equals the current one
 
 ### recreate (fake herdr)

@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from agent_parking import records, resume
-from tests.flows import NOW, SHELL, SHELL_PROCESS, UUID, FlowTestCase, pane_reply
+from tests.flows import NOW, PROCESS, SHELL, SHELL_PROCESS, UUID, FlowTestCase, pane_reply, screen_reply
 
 PARKED = {"schema_version": 1, "session_id": UUID, "status": "parked", "pane_id": "w1:p2",
           "pane_id_history": [], "tab_id": "w1:t1", "workspace_id": "w1", "title": "work", "cwd": "/repo",
@@ -188,6 +188,27 @@ class NoteAsPromptTest(ResumeTestCase):
                 self.assertLess(methods.index("agent.wait"), methods.index("agent.prompt"))
                 [wait] = [r["params"] for r in self.fake.requests if r["method"] == "agent.wait"]
                 self.assertEqual(wait["until"], ["idle", "done"])
+
+
+class SwapTest(ResumeTestCase):
+    def test_swap_parks_and_resumes_in_the_same_pane(self):
+        rt = self.resuming(**{"pane.get": [pane_reply(), SHELL, SHELL, pane_reply()],
+                              "agent.read": screen_reply("❯"),
+                              "pane.process_info": [PROCESS, SHELL_PROCESS, SHELL_PROCESS],
+                              "agent.prompt": {"type": "ok"}})
+        parked, resumed = resume.swap(rt, "w1:p2")
+        self.assertEqual((parked.kind, resumed.kind), ("parked", "resumed"))
+        methods = self.fake.methods()
+        self.assertLess(methods.index("agent.prompt"), methods.index("agent.start"))
+        [start] = [r["params"] for r in self.fake.requests if r["method"] == "agent.start"]
+        self.assertEqual((start["pane_id"], start["args"][:2]), ("w1:p2", ["--resume", UUID]))
+
+    def test_a_refused_park_does_not_resume(self):
+        rt = self.resuming(**{"pane.get": pane_reply(status="working")})
+        parked, resumed = resume.swap(rt, "w1:p2")
+        self.assertEqual(parked.kind, "refused")
+        self.assertIsNone(resumed)
+        self.assertNotIn("agent.start", self.fake.methods())
 
 
 class NameTest(unittest.TestCase):

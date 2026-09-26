@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, herdr_api, inventory, records, times
+from . import argv, display, herdr_api, inventory, park, records, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -116,3 +116,13 @@ def confirmation(record, now):
         lines.extend("  " + line for line in record["note"].splitlines())
     lines.append("Enter to resume, e to edit the note, Esc to cancel")
     return [line.rstrip() for line in lines]
+
+
+def swap(rt, pane_id):
+    """`R`: park the Claude in `pane_id` and resume it at once, so it restarts on the
+    current `claude`. A park that does not complete does not resume.
+    Returns (park Outcome, resume Outcome or None)."""
+    parked = park.park(rt, pane_id, note=None)
+    if parked.kind != "parked":
+        return parked, None
+    return parked, resume(rt, parked.record["session_id"])
