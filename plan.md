@@ -1,0 +1,475 @@
+# herdr-agent-parking plan
+
+Herdr plugin that lists the Claude Code panes on this server, stops waiting sessions
+with `/exit` (park) and starts them again in the same pane with `claude --resume <UUID>`
+(resume), with an optional prepared `/compact` before parking. Records are keyed by
+the session UUID; pane / tab / cwd are hints. The design is in `DESIGN.md`.
+
+Same shape as herdr-image-viewer: `herdr-plugin.toml`, a Python package, `tests/`,
+`scripts/test.sh` (`/usr/bin/python3` 3.9 and `python3`), MIT, distributed through
+devcon-herdr's plugin lock.
+
+## Decisions
+
+- Plugin id `haretoke.agent-parking`, public GitHub repository
+  `haretoke/herdr-agent-parking`, package `agent_parking`, MIT. Code, tests and history
+  contain no personal paths, hostnames or secrets. The name is agent-neutral; v1
+  manages Claude Code only.
+- The dashboard's default placement is `overlay`; the `open-tab` action opens it as a
+  tab for people who keep it open.
+- Documents are in English, like herdr-image-viewer.
+- Codex is out of scope (shared daemon; `/exit` only disconnects).
+- The resume key is the UUID. Names are never used (`/clear` carries the name over and
+  makes duplicates).
+- Only `idle` or `done` panes with an empty input box can be parked or compacted.
+- The record is written before `/exit` is sent (Herdr's `agent_session` becomes None
+  when Claude exits).
+- Parked panes are kept by default (`on_park = "keep"`): the empty shell gets the label
+  `💤 {title}` with `pane rename` (labels survive the exit) and the label is restored
+  on resume. `on_park = "close"` closes the pane and resumes through recreate; the last
+  pane of a tab is never closed.
+- Resume is `herdr agent start <name> --kind claude --pane <P> -- --resume <UUID> <flags>`,
+  `<flags>` being the park-time argv minus resume and naming flags.
+- Without the pane, recreate from the record's `layout_hint` / tab / workspace / cwd.
+- The note is optional, stored in the record, shown in the list and in the resume
+  confirmation, echoed into the pane's scrollback before the resume, and not sent as a
+  prompt by default (`send_note_as_prompt = false`).
+- Idle time is tracked by the dashboard from `state_change_seq` (Herdr has no time);
+  time before tracking began is a lower bound shown with `≥`.
+- The ctx column comes from the transcript: tokens always, a percentage when the
+  window size is known (`context_window_by_model` or the optional statusline file),
+  `compacted <age>` when the last `compact_boundary` has no assistant usage after it.
+- `c` compacts (prepare → wait → focus tag → confirm → `/compact <focus>` → boundary),
+  `C` compacts then parks, `s` only parks. `S` uses the idle threshold only and includes
+  `≥` rows.
+- `R` (swap) asks for confirmation when the running version equals the current one.
+- RSS is the sum of the foreground process group; the Claude-only value is kept in JSON.
+- Codex panes are counted in the footer, not listed.
+- Shell-only foreground is `pid == shell_pid`, never the process name (both `-zsh` and
+  `zsh` were observed).
+- No new Claude hook in the main flow; sessions exited by hand are an optional extension.
+- Standard library only; config is JSON (`HERDR_PLUGIN_CONFIG_DIR/config.json`).
+- State lives in `HERDR_PLUGIN_STATE_DIR` (only when `HERDR_PLUGIN_ID` is this plugin,
+  otherwise `${XDG_STATE_HOME:-$HOME/.local/state}/herdr/plugins/<id>`); never in the
+  plugin root. `records_dir` may move the records (default: the state directory; lost
+  on a container rebuild).
+- The `prepare-compact` skill ships in `skills/prepare-compact/SKILL.md` and is
+  distributed by devcon-herdr's skill mirror; public users copy it by hand (README).
+
+## Limits (initial values, tuned after the real-device checks)
+
+| Name | Value |
+|---|---|
+| list refresh | 2 s |
+| wait for the shell after `/exit` | 20 s (measured about 4 s) |
+| `agent start` timeout | 30000 ms (Herdr's default) |
+| parked pane treatment | `keep` (option `close`) |
+| label format | `💤 {title}`, 80 characters (Herdr's cap) |
+| bulk park threshold | 60 min |
+| resumed records kept | 30 days |
+| record schema_version | 1 |
+| `pane read` tail for diagnostics | 10 lines |
+| preparation wait | 600 s |
+| wait for the new `compact_boundary` | 300 s |
+| transcript tail read | 1 MiB per read, cached by mtime and size |
+
+## Herdr and Claude facts this design relies on (Herdr 0.9.1, Claude Code 2.1.283)
+
+Verified on a real device (Mac local, 2026-09-26/27) and in the v0.9.1 documentation.
+
+- `pane list` / `pane get` / `agent get` return `agent`, `agent_status`,
+  `agent_session {kind:"id", value}`, `cwd`, `workspace_id`, `tab_id`,
+  `terminal_title_stripped`. `agent get` and `agent list` carry `state_change_seq`
+  (a counter). **No time.** The `pane.agent_status_changed` event has none either
+  (`pane_id`, `workspace_id`, `agent_status`, `title`, `state_labels`).
+- `agent list` prints JSON as is (`--json` is a usage error).
+- `agent_session` becomes None when Claude exits (device). A `pane rename` label stays
+  (device).
+- `pane process-info --pane <P>` returns
+  `foreground_processes[] {pid, argv, argv0, cmdline, cwd, name}` and `shell_pid`. At a
+  shell prompt the list holds the shell itself (`-zsh` on one device, `zsh` on
+  another), so "shell only" is `pid == shell_pid`. Claude's `name` is the executable's
+  basename, measured `"2.1.283"` (`~/.local/bin/claude` → `~/.local/share/claude/versions/2.1.283`).
+  No RSS → `ps -o rss= -p`. MCP servers and `caffeinate` share the foreground group.
+- `agent prompt <P> "/exit"` ends Claude; the shell is back in about 4 s (device).
+  `blocked` returns `agent_blocked` without sending (docs).
+- `agent start <name> --kind claude --pane <P> [--timeout MS] -- <args>` starts in a pane
+  whose shell owns the foreground and waits until ready; a trust dialog gives
+  `agent_not_ready` (device). Names match `[a-z][a-z0-9_-]{0,31}` and are unique among
+  live agents (docs). Resuming this way fires `SessionStart source=resume` with the
+  same UUID and re-registers `agent_session` (device).
+- `claude --session-id <existing UUID>` exits with "Session ID ... is already in use"
+  (device). `/compact` keeps the UUID; `/clear` mints a new one and carries the
+  `session_title` over (device).
+- `pane split <P> --direction right|down [--ratio FLOAT] [--cwd PATH] [--no-focus]`,
+  `tab create [--workspace W] [--cwd PATH] [--label TEXT] [--no-focus]` (result has
+  `root_pane.pane_id`), `workspace create [--cwd PATH] [--label TEXT] [--no-focus]`
+  (docs; `tab create` on a device).
+- The `pane focus` CLI only takes `--direction`. Focusing a given pane is the socket
+  method `pane.focus` with `{pane_id}` (API schema). Whether focus survives closing an
+  overlay is a spike.
+- `pane.exited` appears to mean the pane's root process (the shell) exited, not the
+  foreground child; Claude's exit shows as `pane.agent_status_changed` or as `agent`
+  disappearing from `pane get`.
+- Plugin panes: `placement` is `overlay` (default) / `popup` / `split` / `tab` / `zoomed`
+  (docs). A popup has no `HERDR_PANE_ID` and is session-modal. A pane process gets
+  `HERDR_SOCKET_PATH`, `HERDR_BIN_PATH`, `HERDR_PLUGIN_ID`, `HERDR_PLUGIN_ROOT`,
+  `HERDR_PLUGIN_CONFIG_DIR`, `HERDR_PLUGIN_STATE_DIR`, `HERDR_PLUGIN_CONTEXT_JSON` and
+  its own `HERDR_PANE_ID`, and starts in the plugin root (docs; image-viewer spike).
+  Every `herdr` command is available to a plugin (docs).
+- `[[actions]]` `contexts` are `global` / `workspace` / `tab` / `pane` / `selection`
+  (API schema). Keys are bound by the user with `[[keys.command]] type = "plugin_action"`;
+  the manifest has no key field.
+- `[[startup]]` runs once after the API is ready and exits; `[[events]]` starts a
+  command per event; there is no scheduler (docs).
+- `events.subscribe` keeps the socket open and streams `pane.agent_status_changed`,
+  `pane.closed`, `pane.exited` and others (docs; API schema EventKind).
+- `herdr plugin config-dir <id>` is `~/.config/herdr/plugins/config/<id>` (device);
+  state is `~/.local/state/herdr/plugins/<id>` (image-viewer spike). In containers
+  neither is believed to be a bind mount: devcon-herdr's comments say only `~/.claude`
+  is mounted; devcontainer.json was not read.
+- `session.resume_agents_on_restore` (default true) restores only panes with an
+  `agent_session` (docs). Parked panes are not among them.
+- Claude's statusline `used_percentage` is
+  `(input_tokens + cache_creation_input_tokens + cache_read_input_tokens) / context_window_size`,
+  truncated (36,890 / 200,000 → 18); output tokens are not counted (device, docs).
+  The statusline stdin JSON carries `session_id` and
+  `context_window.context_window_size`; right after a compaction `current_usage` and
+  `used_percentage` are null until the next API call (device, docs).
+- Transcripts are `<claude_config_dir>/projects/<slug>/<uuid>.jsonl`. `assistant`
+  lines carry `message.model` and `message.usage` with the three input fields (device).
+  A compaction writes a `type: "system"`, `subtype: "compact_boundary"` line with
+  `timestamp` and `compactMetadata {trigger, preTokens, postTokens}`, followed by the
+  summary as a `type: "user"` line with `isCompactSummary: true` (device). The window
+  size is not in the transcript; the docs say 200000 by default and 1000000 for
+  extended-context models (haiku 200k; an Opus 5.5 session used 279k).
+- Claude's `Stop` hook stdin carries `background_tasks`, `session_crons` and
+  `permission_mode`; `SessionStart` carries `session_title`; hooks see `HERDR_PANE_ID`
+  and `CLAUDE_CODE_SESSION_ID` (device). Not used by v1, noted for the extension.
+
+## Structure
+
+- `records`: reading and writing records (UUID validation, schema_version, atomic
+  rename, 0600, setting broken JSON aside, moving to `resumed/`, expiry).
+- `config`: `config.json` with defaults; invalid values fall back to the default and
+  are logged.
+- `state`: the state and config directories (the same rule as image-viewer's `state`).
+- `herdr_api`: one-shot commands through `HERDR_BIN_PATH` (`pane list/get/process-info/
+  layout/rename/run/read/split/close`, `agent list/get/read/prompt/start/wait`,
+  `tab list/create/focus`, `workspace list/create`), the socket `pane.focus`, and the
+  socket `events.subscribe`. Missing keys are handled here.
+- `transcript`: locating a session's transcript by glob, tail reading with a cache,
+  the context numbers, the compacted state and its age, the window size resolution,
+  and the focus tag after a given prompt.
+- `inventory`: rows from `pane list` + `agent list` + `process-info` + `ps` +
+  `transcript`; excludes non-Claude panes and the dashboard; the `old` badge
+  (`readlink` of the running `argv[0]`, fallback `claude_command`); reconciliation of
+  records against every Claude pane.
+- `idle`: idle tracking (`observed.json`, `state_change_seq`, lower-bound flag,
+  injectable clock).
+- `park`: the park procedure (checks → `layout_hint` → record → `/exit` → wait for the
+  shell → label or close).
+- `compact`: the compact flow (prepare → wait → focus tag → confirmation → `/compact` →
+  boundary), retry, `blocked`.
+- `resume`: the resume procedure (pane check → note → `cd` → `agent start` → UUID check
+  → label → record move), recreate, `agent_not_ready`.
+- `argv`: pure function removing resume and naming flags from a launch argv.
+- `dashboard`: the pane process; drawing, keys, confirmations, note input, polling and
+  the event stream in one `select` loop.
+- `cli`: `dashboard`, `open` (action: overlay), `open-tab` (action: tab), `list`
+  (rows as JSON for scripts), `park <pane>`, `compact <pane>`, `resume <uuid>`
+  (usable without the dashboard).
+- `skills/prepare-compact/SKILL.md`: the preparation skill (English).
+- `herdr-plugin.toml`: the `dashboard` pane (overlay), the `open` / `open-tab` actions,
+  `min_herdr_version = "0.9.1"`, platforms linux and macos.
+
+## Tests
+
+Mark a test `[x]` when it passes. Structural and behavioral changes are committed
+separately. Mocked Herdr behavior never replaces the real-device checks at the end.
+
+### 0. spike (manual, record the findings here before the TDD steps)
+
+Use a throwaway session: start `herdr --session parking-spike server`, run every
+command with `--session parking-spike`, and finish with
+`herdr session stop parking-spike` and `herdr session delete parking-spike`. The main
+server is never restarted.
+
+- [ ] in the throwaway session, `pane split` / `tab create --cwd` / `workspace create --cwd`,
+      then `herdr --session parking-spike server stop` and a restart: record how pane IDs,
+      tab IDs, `pane rename` labels and cwd come back (if IDs change, matching relies on
+      cwd + label)
+- [ ] start `claude` in a throwaway pane and `/exit`; after a restart, what the parked
+      pane is (empty shell, label, `agent_session`)
+- [ ] from an overlay plugin pane, `agent prompt` / `agent start` / `pane rename` /
+      `pane run` work against another pane
+- [ ] from inside the overlay, socket `pane.focus {pane_id}` onto pane X in another tab,
+      then exit the dashboard: does focus stay on X or does the overlay's "restore the
+      previous focus" take it back? If it does, `g` is limited to tab / zoomed placements
+      or sends `pane.focus` from a detached process after exit
+- [ ] what `[[events]]` `pane.exited` reports (root shell or foreground child)
+- [ ] with the dashboard open as a tab, a status change of a Claude in another tab is
+      seen both through `events.subscribe` (`pane.agent_status_changed`) and through
+      `state_change_seq` in `agent list`
+- [ ] `agent start ... -- --resume <UUID> --effort medium` shows the extra flags as is in
+      `process-info` (a swap round trip neither adds nor drops argv)
+- [ ] right after Claude exits, whether `HERDR_PLUGIN_EVENT_JSON` of an
+      `[[events]] on = "pane.agent_status_changed"` / `"pane.exited"` hook still holds
+      `agent_session` (if so, the "exited by hand" extension is possible; optional)
+- [ ] `ps -o rss= -p <pid>` units on macOS (KB) and in a Linux container (KB)
+- [ ] `old` detection: `os.readlink` of the running process's `argv[0]`
+      (`~/.local/bin/claude`) gives the current `versions/<v>`, compared with
+      `process-info`'s `name` (the version at launch). What happens with npm global or
+      Homebrew installs; otherwise resolve `claude_command` on `PATH`, and without that
+      no badge (the plugin runs in the Herdr server's environment, so a container's
+      `PATH` may not hold the user's `claude`)
+- [ ] `ps -o rss=` for the Claude pid alone versus the sum over `foreground_processes`
+      (MCP servers, `caffeinate`; 4 processes measured in one group)
+- [ ] after `pane run <P> "printf ..."` shows the note, `agent start` does not return
+      `agent_not_ready` (the shell stays in the foreground)
+- [ ] `agent prompt <P> "/exit"` with a half-typed line in Claude's input box (is
+      `/exit` appended and submitted with it?), and how `agent read` tells an empty input
+      box (the shape of the prompt line). As the alternative, exiting by keys
+      (`agent send-keys <P> C-c C-c`; the first Ctrl+C clears the input box): its
+      reliability and the SessionEnd `reason` (other than `prompt_input_exit`?)
+- [ ] `claude --resume <UUID>` while the same UUID runs in another pane (an error like
+      `--session-id`, a second process, or a fork?)
+- [ ] for `on_park = close`: whether `pane layout` yields the neighbour and the split
+      direction and ratio; whether `pane split` has left / up; whether `--ratio` restores
+      the size; how close a recreate gets in nested splits (3 or more panes)
+- [ ] whether `pane close` on the last pane of a tab closes the tab (the reason to keep
+      that pane even with `on_park = close`)
+- [ ] whether a parked session can be compacted headless
+      (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the documented list of
+      slash commands available with `-p`). If it works, parked sessions can be compacted
+      later (future extension)
+- [ ] what happens when `/prepare-compact` is sent where the skill is not installed
+      (how an unknown slash command is handled)
+- [ ] whether a resume or hook activity alone, without any user action, appends lines to
+      the transcript (if not, the time of the last conversation line can feed idle time;
+      if so, which line types are usable)
+- [ ] whether `Compact Instructions` in `CLAUDE.md` also applies to automatic compaction
+- [ ] how to tell that `agent prompt "/compact <focus>"` finished: the `working → idle`
+      transition or the new boundary line
+- [ ] the lag between `Stop` and the transcript when the preparation reply is read (is
+      the assistant text already written?)
+
+### state / config
+- [ ] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
+      plugin, otherwise `${XDG_STATE_HOME:-$HOME/.local/state}/herdr/plugins/<id>`
+      (a relative path is ignored)
+- [ ] a missing, empty, broken or mistyped `config.json` gives the defaults and a logged reason
+- [ ] `records_dir` moves only the records; `observed.json` and the log stay in the state directory
+- [ ] `claude_config_dir` defaults to `$CLAUDE_CONFIG_DIR`, then `~/.claude`
+- [ ] `context_window_by_model` is a map of model id prefix to a positive integer; other
+      shapes are ignored with a logged reason
+- [ ] `prepare_command`, `prepare_prompt` and `prepare_timeout_seconds` are read with their
+      defaults; a set `prepare_prompt` takes precedence over `prepare_command`
+
+### records
+- [ ] a record is written under its UUID, directories 0700 and files 0600
+- [ ] a non-UUID session_id is rejected (path separators, `..`, empty)
+- [ ] writes are atomic renames; a crash midway keeps the old record
+- [ ] broken JSON is moved to `records/broken/` and reported as a broken record
+- [ ] an unknown `schema_version` is neither read, modified nor deleted
+- [ ] a record in `parking` is never overwritten (a second park of the same UUID)
+- [ ] resumed records move to `resumed/` and are deleted after the retention (boundary ±1 s)
+- [ ] a note with newlines and control characters round-trips unchanged
+- [ ] moving `pane_id` keeps the old ID in `pane_id_history`
+
+### argv
+- [ ] the executable and `--resume` / `-r` / `--continue` / `-c` / `--session-id` /
+      `--name` / `-n` / `--fork-session` with their values are removed; other flags
+      (`--effort medium`, `--model x`, `--permission-mode auto`) keep their order
+- [ ] both `--resume=<id>` and `-r <id>` are removed
+- [ ] a value-taking flag at the end without its value does not crash
+
+### herdr_api
+- [ ] `HERDR_BIN_PATH` is used when set, otherwise `herdr` on `PATH`
+- [ ] non-JSON output, an `error` reply and a non-zero exit are distinct exceptions
+- [ ] replies missing keys (`agent_session`, `foreground_processes`) come back as None without crashing
+- [ ] `events.subscribe` waits for the first reply, then yields events, and ends on EOF
+- [ ] every command has a timeout and a timeout is an exception
+- [ ] the shell-only check is `pid == shell_pid` for the single foreground process,
+      whatever its name (`-zsh`, `zsh`, `bash`)
+
+### transcript
+- [ ] the transcript of a UUID is found by globbing `<claude_config_dir>/projects/*/<uuid>.jsonl`;
+      none or several give no result
+- [ ] the tail read never loads more than the cap and handles a line split at the cap
+- [ ] the result is cached by mtime and size and re-read when either changes
+- [ ] the context tokens are the sum of `input_tokens`, `cache_creation_input_tokens` and
+      `cache_read_input_tokens` of the last `assistant` line with `message.usage` after
+      the last `compact_boundary`
+- [ ] a session is compacted when the last `compact_boundary` has no assistant usage after
+      it; a following `user` line with `isCompactSummary: true` does not change that
+- [ ] the compacted age comes from the boundary's `timestamp`
+- [ ] the window size comes from `context_window_by_model` by model id prefix, else from
+      the statusline file `context-windows.json` by session id, else is unknown
+- [ ] the percentage is truncated (36890 / 200000 → 18) and absent when the window is unknown
+- [ ] a missing, unreadable or empty transcript gives an empty ctx
+- [ ] the focus tag `<compact-focus>...</compact-focus>` is taken from the assistant text
+      after the line whose user text equals the sent prompt; none gives an empty focus
+- [ ] a new `compact_boundary` after a given time is detected
+
+### inventory
+- [ ] only `agent == "claude"` panes become rows; the dashboard's own pane (`HERDR_PANE_ID`) is excluded
+- [ ] a row has place (workspace / tab / pane and labels), name (`terminal_title_stripped`),
+      cwd, status and the `agent_session` UUID
+- [ ] the Claude process's pid, argv and version come from `process-info`, empty when absent
+- [ ] RSS is read from `ps` in KB, and the row survives a failing `ps`
+- [ ] RSS is the sum over every foreground pid, with the Claude-only value kept
+- [ ] the version is compared with the `readlink` target of `argv[0]`: `old` when different,
+      no badge when equal or unknown; `claude_command` is the fallback
+- [ ] ctx shows `37k 18%`, `37k`, or `compacted 2h`, and is empty without a transcript
+- [ ] a record whose `pane_id` hosts a Claude with the same `agent_session.value` becomes
+      `resumed` and its label is restored (resumed by hand)
+- [ ] a record whose UUID runs in another pane becomes `resumed`, `pane_id` moves, the old
+      ID goes to `pane_id_history`, and the original pane's label is restored
+- [ ] a different UUID in the record's pane shows "another session is running here" and keeps the record
+- [ ] a pane with a record is `parked`; a record without a pane is a "(no pane)" row
+- [ ] Codex and other agents are counted for the footer
+- [ ] control characters in `terminal_title_stripped` are dropped and the name is cut to
+      the column (CJK counts double width)
+
+### idle (injectable clock)
+- [ ] a row seen for the first time gets `since = now` and `lower_bound = true`
+- [ ] a changed `state_change_seq` updates `since` and clears `lower_bound`
+- [ ] tracking of a vanished pane is dropped at the next save
+- [ ] `observed.json` is written by atomic rename and a broken file starts empty
+- [ ] idle times render as `12m`, `3h05m`, `2d`, with `≥` for lower bounds
+- [ ] a change delivered by an event and by polling does not count twice on one row
+
+### park (fake herdr)
+- [ ] only `idle` and `done` panes can be parked; `working` / `blocked` / `unknown` are refused with a reason
+- [ ] a Claude pane without `agent_session` is refused with "integration required"
+- [ ] a pane with a half-typed line is refused and no `/exit` is sent
+- [ ] the park confirmation always carries the warning about lost background tasks
+- [ ] the record is written before `/exit` is sent (order of the fake herdr calls)
+- [ ] `/exit` is sent with `agent prompt <P> "/exit"`
+- [ ] the shell is awaited by polling `pane get`; then the label becomes `💤 <name>` and
+      `label_before` keeps the previous label
+- [ ] `layout_hint` (neighbour, direction, ratio) from `pane layout` is stored before the
+      park, whatever `on_park` is
+- [ ] by default (`on_park` unset) the pane is not closed
+- [ ] with `on_park = close`, `pane close <P>` is called after the shell is back and
+      `parked_mode` is `"close"`
+- [ ] with `on_park = close`, the last pane of a tab and a pane with something other than
+      the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
+      `"keep"` and a reason is returned
+- [ ] a timeout gives `park_failed` and the pane is untouched
+- [ ] `agent_blocked` from `agent prompt` is a refusal: no `park_failed`, the record is removed
+- [ ] the note is stored; an empty note is `null`
+- [ ] the context numbers at park time are stored in `context_at_park`
+- [ ] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
+      continues after one failure, and reports the results
+- [ ] the label format is configurable, cut at 80 characters, and free of control characters
+
+### compact (fake herdr, fake transcript)
+- [ ] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
+      other states and a half-typed line are refused
+- [ ] with `prepare_prompt` set, that text is sent instead of `prepare_command`
+- [ ] the flow waits with `agent wait --until idle --timeout <prepare_timeout_seconds>`
+- [ ] the focus tag is taken from the assistant text after the sent prompt
+- [ ] the confirmation shows the report summary and the focus, and the focus can be edited
+- [ ] `/compact <focus>` is sent as one line (newlines become spaces); an empty focus sends `/compact`
+- [ ] the flow completes when a new `compact_boundary` appears; the row turns `compacted`
+- [ ] a preparation that becomes `blocked` stops the flow with a message to go to the pane
+- [ ] `c` again with a focus tag already present continues from the focus extraction
+- [ ] no focus tag gives an empty focus in the confirmation
+- [ ] a boundary that does not appear within `compact_timeout_seconds` gives `compact_failed`
+- [ ] `C` asks for the note first, runs the compact flow, then the park procedure; a failed
+      compact does not park
+
+### resume (fake herdr)
+- [ ] with the pane present and the shell alone in the foreground,
+      `agent start <name> --kind claude --pane <P> --timeout <ms> -- --resume <UUID> <flags>` is called
+- [ ] `<name>` matches `[a-z][a-z0-9_-]{0,31}` and derives from the UUID
+- [ ] a pane cwd different from the record's runs `pane run <P> "cd <quoted>"` first
+- [ ] the note is printed with `pane run <P> "printf ..."` before the resume; a failure does not stop it
+- [ ] after success, a matching `agent_session.value` restores the label and moves the record to `resumed/`
+- [ ] a mismatch gives `resume_failed` with both IDs in `error`
+- [ ] `agent_not_ready` gives `resume_pending` and leaves the label
+- [ ] a retry from `resume_pending` with a matching Claude already running only restores the
+      label and moves the record
+- [ ] a timeout gives `resume_failed` with the last 10 lines of `pane read` as the reason
+- [ ] a pane with another command in the foreground is refused
+- [ ] only with `send_note_as_prompt = true` is `agent prompt <P> <note>` sent after `agent wait --until idle`
+- [ ] before `r`, a matching UUID running elsewhere makes the record `resumed` without starting a second process
+- [ ] swap parks then resumes in the same pane, and a refused park does not resume
+- [ ] swap asks for confirmation when the running version equals the current one
+
+### recreate (fake herdr)
+- [ ] with the `layout_hint` neighbour present, `pane split <neighbour> --direction <dir> --ratio <r> --cwd <cwd> --no-focus`
+- [ ] without the neighbour but with the tab, `pane split --direction right --cwd <cwd> --no-focus` on a pane of that tab
+- [ ] without the tab but with the workspace, `tab create --workspace <W> --cwd <cwd> --label <tab_label> --no-focus`
+- [ ] without the workspace, after confirmation, `workspace create --cwd <cwd> --label <label> --no-focus`
+- [ ] without the cwd, stop with a reason
+- [ ] the new pane ID is written and the old one goes to `pane_id_history`
+- [ ] an empty pane with a `💤` label in the same tab is proposed instead of a new pane
+
+### dashboard (PTY, fake herdr, injectable clock)
+- [ ] the list is drawn at start and column widths fit the terminal width
+- [ ] j/k and the arrows move the selection and stop at the ends
+- [ ] `s` parks through the confirmation and the note input, and the list refreshes
+- [ ] `s` on a `working` row shows a reason and does nothing
+- [ ] `c` runs the compact flow with its confirmation; `C` asks for the note first
+- [ ] `r` shows the full note and the resume command, Enter resumes, Esc returns
+- [ ] `R` parks and resumes in one go, with the same-version confirmation
+- [ ] `g` moves to the pane and closes the dashboard
+- [ ] `S` edits the threshold, lists the targets with exclusion reasons, takes one note, confirms, then parks
+- [ ] `n` rewrites the note
+- [ ] `x` deletes the record after confirmation and never touches the transcript
+- [ ] `/` filters by name, cwd and label
+- [ ] polling updates status, RSS and ctx, and idle time advances
+- [ ] a dropped event subscription keeps polling and shows "events: off" in the footer
+- [ ] q, SIGTERM, SIGHUP and EOF exit and restore the TTY
+- [ ] SIGWINCH redraws
+- [ ] an unexpected exception is logged to `dashboard.log` before exit
+- [ ] a second dashboard at the same time does not corrupt `observed.json`
+
+### cli
+- [ ] `dashboard` starts the pane process
+- [ ] `open` calls `plugin pane open --plugin <id> --entrypoint dashboard --placement overlay`,
+      `open-tab` calls `--placement tab --workspace <HERDR_WORKSPACE_ID>`
+- [ ] `list` prints the rows as JSON (with the Claude-only RSS)
+- [ ] `park <pane>`, `compact <pane>` and `resume <uuid>` run the same procedures without
+      the dashboard; failures exit 1 with a message
+- [ ] the manifest declares the `dashboard` pane and the `open` / `open-tab` actions, and
+      `herdr plugin link` of the clone lists both (Mac)
+
+### skill
+- [ ] `skills/prepare-compact/SKILL.md` exists (English): save state worth keeping to memory
+      or the relevant files; check and report the commit and push state; clean up temporary
+      processes and files; check that nothing that would hurt to lose is left; end with one
+      line `<compact-focus>...</compact-focus>` for `/compact`; never run `/compact` itself
+- [ ] the README explains copying the skill for public users and recommends a
+      `Compact Instructions` section in `CLAUDE.md`
+
+### integration (devcon-herdr)
+- [ ] `devcon-herdr plugins update` locks this plugin's latest release
+- [ ] the locked commit is installed on the Mac and in a container, and nothing happens when current
+- [ ] a locally linked plugin is reported and left alone
+- [ ] the skill mirror carries `prepare-compact` to the Mac and the containers
+
+### real devices
+- [ ] Mac local: park an idle Claude → the label appears → `r` resumes in the same pane and
+      `agent_session` is the same UUID
+- [ ] Mac local: close the parked pane, then `r` → recreated in the same tab and resumed
+- [ ] Mac local: `on_park = close` → the pane closes → `r` recreates it next to the old neighbour
+- [ ] Mac local: `R` brings an old Claude up on the new version and `old` disappears
+- [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
+- [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
+- [ ] Mac local: `c` prepares, shows the focus, compacts, and the row turns `compacted`
+- [ ] Mac local: `C` compacts then parks, and the resumed session starts from the summary
+- [ ] Mac local: ctx matches the statusline (tokens and percentage) for a haiku session and
+      an Opus session with the window configured
+- [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
+      Claudes, parks and resumes; records are in the container's state directory
+- [ ] after a Herdr server restart (throwaway session): parked panes and the "(no pane)"
+      matching behave as the spike recorded
+
+## Open items
+
+See "Open items" in `DESIGN.md`: everything unverified is a spike above, none of it a
+decision still pending.
