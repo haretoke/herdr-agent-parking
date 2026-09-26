@@ -4,6 +4,8 @@ Narrow panes drop the lowest-priority columns first and give the space to the na
 (decided with Fable, 2026-09-27; see DESIGN.md, "UI and keys").
 """
 
+from . import display
+
 
 def columns(width):
     """The columns drawn at `width`: all from 78; without ver and rss at 64-77; ctx as
@@ -28,6 +30,19 @@ def widths(cols, width):
     fixed = {c: FIXED[c] for c in cols if c != "name"}
     rest = width - MARK_WIDTH - sum(fixed.values()) - (len(cols) - 1)
     return dict(fixed, name=max(MIN_NAME, rest))
+
+
+def _pad(text, columns):
+    text = display.cell(text, columns)
+    return text + " " * (columns - display.width(text))
+
+
+def line(cells, width, selected):
+    """One row of the table at `width`, cut to the width when the name's minimum overflows it."""
+    cols = columns(width)
+    sizes = widths(cols, width)
+    text = ("▶ " if selected else "  ") + " ".join(_pad(cells[c], sizes[c]) for c in cols)
+    return display.cell(text.rstrip(), width)
 
 
 PARKED_MARK = "💤"

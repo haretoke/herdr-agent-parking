@@ -1,6 +1,6 @@
 import unittest
 
-from agent_parking import table
+from agent_parking import display, table
 from agent_parking.inventory import Row
 
 FULL = ("place", "name", "status", "idle", "ctx", "rss", "ver")
@@ -64,6 +64,17 @@ class CellsTest(unittest.TestCase):
         self.assertEqual(table.cells(live(rss_kb=1_300_000), "")["rss"], "1.2G")
         self.assertEqual(table.cells(live(rss_kb=None), "")["rss"], "")
         self.assertEqual(table.cells(live(version="2.1.281", old=True), "")["ver"], "2.1.281 old")
+
+
+class LineTest(unittest.TestCase):
+    def test_a_row_is_drawn_in_its_columns_and_never_wider_than_the_pane(self):
+        cells = table.cells(live(), "≥1h12m")
+        self.assertEqual(table.line(cells, 78, selected=True),
+                         "▶ w8/t3/p36 web  api gateway r… idle     ≥1h12m 37k 18%      205M  2.1.283")
+        self.assertEqual(table.line(cells, 51, selected=False), "  w8/t3/p36    api gateway refactor        idle")
+        for width in (120, 78, 77, 64, 63, 52, 51, 36, 20):
+            with self.subTest(width=width):
+                self.assertLessEqual(display.width(table.line(cells, width, selected=False)), width)
 
 
 if __name__ == "__main__":
