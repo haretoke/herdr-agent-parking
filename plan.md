@@ -781,7 +781,14 @@ server is never restarted.
       starting, so the resume refused (a new pane now gets up to 10 s for its shell)
 - [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
 - [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
-- [ ] Mac local: `c` prepares, shows the focus, compacts, and the row turns `compacted`
+- [x] Mac local: `c` prepares, shows the focus, compacts, and the row turns `compacted`
+      (2026-09-27, haiku, the user-level `prepare-compact` skill): `c` showed the wait,
+      haiku ran `/prepare-compact` (about a minute), the confirmation showed the end of
+      its report; Enter sent `/compact`, `compacted w1:p9` came back in about 40 s and
+      the ctx column said `compacted 0m`. Three findings, fixed with tests: haiku gave
+      `/compact <focus>` in a code block and no tag (that line is now the fallback
+      focus); the idle column stayed `—` (the events of the wait arrived together, see
+      below); a report line exactly as wide as the pane lost its last character
 - [ ] Mac local: `C` compacts then parks, and the resumed session starts from the summary
 - [ ] Mac local: ctx matches the statusline (tokens and percentage) for a haiku session and
       an Opus session with the window configured
