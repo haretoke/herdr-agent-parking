@@ -1,0 +1,28 @@
+id = "haretoke.agent-parking"
+name = "Agent parking"
+version = "0.1.0"
+min_herdr_version = "0.9.1"
+description = "Park idle Claude Code sessions to free their memory and resume them in place, with notes and compaction"
+platforms = ["linux", "macos"]
+
+# Commands run in the plugin root, so `-m` finds the package there.
+# The overlay covers the active pane and gives focus and zoom back when it closes.
+[[panes]]
+id = "dashboard"
+title = "Agent parking"
+placement = "overlay"
+command = ["python3", "-m", "agent_parking", "dashboard"]
+
+[[actions]]
+id = "open"
+title = "Open agent parking"
+description = "Show the Claude sessions of this server over the active pane"
+contexts = ["global"]
+command = ["python3", "-m", "agent_parking", "open"]
+
+[[actions]]
+id = "open-tab"
+title = "Open agent parking in a tab"
+description = "Keep the dashboard open in its own tab (idle times are tracked while it runs)"
+contexts = ["global"]
+command = ["python3", "-m", "agent_parking", "open-tab"]
