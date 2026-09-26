@@ -171,6 +171,25 @@ class BusyPaneTest(ResumeTestCase):
         self.assertEqual(self.saved()["status"], "parked")
 
 
+class NoteAsPromptTest(ResumeTestCase):
+    def test_the_note_is_sent_only_when_the_setting_asks_for_it(self):
+        for enabled in (False, True):
+            with self.subTest(send_note_as_prompt=enabled):
+                self.settings["send_note_as_prompt"] = enabled
+                self.park_record(note="continue with the colour spaces")
+                resume.resume(self.resuming(**{"agent.wait": {"type": "agent_info"},
+                                               "agent.prompt": {"type": "agent_prompted"}}), UUID)
+                prompts = [r["params"] for r in self.fake.requests if r["method"] == "agent.prompt"]
+                if not enabled:
+                    self.assertEqual(prompts, [])
+                    continue
+                self.assertEqual(prompts, [{"target": "w1:p2", "text": "continue with the colour spaces"}])
+                methods = self.fake.methods()
+                self.assertLess(methods.index("agent.wait"), methods.index("agent.prompt"))
+                [wait] = [r["params"] for r in self.fake.requests if r["method"] == "agent.wait"]
+                self.assertEqual(wait["until"], ["idle", "done"])
+
+
 class NameTest(unittest.TestCase):
     def test_the_agent_name_is_valid_for_herdr_and_comes_from_the_uuid(self):
         import re

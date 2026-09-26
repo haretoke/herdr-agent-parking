@@ -60,7 +60,14 @@ def resume(rt, session_id):
                       error="expected session %s in %s, found %s" % (session_id, pane_id, running))
         records.write(rt.paths.records, record)
         return Outcome("resume_failed", record["error"], record)
-    return _finish(rt, record, pane_id, pane_id)
+    outcome = _finish(rt, record, pane_id, pane_id)
+    if rt.settings["send_note_as_prompt"] and record.get("note"):
+        # Only once Claude is ready: a prompt typed over a dialog would land in it.
+        rt.herdr.call("agent.wait", {"target": pane_id, "until": ["idle", "done"],
+                                     "timeout_ms": int(rt.settings["start_timeout_ms"])},
+                      timeout=rt.settings["start_timeout_ms"] / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
+        rt.herdr.call("agent.prompt", {"target": pane_id, "text": record["note"]})
+    return outcome
 
 
 def _finish(rt, record, running_in, restore_label_on):
