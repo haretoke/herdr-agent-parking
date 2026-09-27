@@ -142,6 +142,20 @@ class NotReadyTest(ResumeTestCase):
         self.assertEqual(self.saved()["status"], "resume_pending")
 
 
+class NoConversationTest(ResumeTestCase):
+    def test_a_record_whose_session_has_no_transcript_is_refused_before_anything_starts(self):
+        # Seen on the Mac: claude --resume said No conversation found, after a 30 s wait.
+        self.park_record()
+        rt = self.resuming()
+        rt.has_transcript = lambda session_id: False
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("no conversation", outcome.message)
+        self.assertIn("x", outcome.message)
+        self.assertNotIn("agent.start", self.fake.methods())
+        self.assertEqual(self.saved()["status"], "parked")
+
+
 class AlreadyRunningTest(ResumeTestCase):
     def test_a_retry_after_the_dialog_only_finishes_the_resume(self):
         self.park_record(status="resume_pending")
