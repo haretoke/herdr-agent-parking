@@ -742,10 +742,20 @@ server is never restarted.
       `Compact Instructions` section in `CLAUDE.md`
 
 ### integration (devcon-herdr)
-- [ ] `devcon-herdr plugins update` locks this plugin's latest release
-- [ ] the locked commit is installed on the Mac and in a container, and nothing happens when current
-- [ ] a locally linked plugin is reported and left alone
-- [ ] the skill mirror carries `prepare-compact` to the Mac and the containers
+- [x] `devcon-herdr plugins update` locks this plugin's latest release
+      (2026-09-27, devcon-herdr 08bfa7a: the lock gained `haretoke.agent-parking` v0.1.0
+      at 228c926 next to the other three, which stayed at their latest releases)
+- [x] the locked commit is installed on the Mac and in a container, and nothing happens when current
+      (2026-09-27: installed from `haretoke/herdr-agent-parking@228c926` into the Mac's own
+      Herdr and into `kaitori-poc-app-1` (Python 3.13, the package imports); a second
+      `plugins update` on the Mac changed nothing and exited 0)
+- [x] a locally linked plugin is reported and left alone
+      (devcon-herdr's tests cover it for agent parking; on the Mac run the linked image
+      viewer printed "linked from a local path on Mac; leaving it alone")
+- [x] the skill mirror carries `prepare-compact` to the Mac and the containers
+      (Mac: mirrored to `~/.local/share/devcon-herdr/skills/prepare-compact`, the user's own
+      `~/.claude/skills/prepare-compact` kept with a warning; container: linked for Claude
+      only, `~/.claude/skills/prepare-compact` → the container's mirror)
 
 ### real devices
 - [x] Mac local: park an idle Claude → the label appears → `r` resumes in the same pane and
