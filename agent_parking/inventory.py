@@ -78,12 +78,12 @@ def running_version(process, system):
     return candidate if candidate and VERSION.fullmatch(candidate) else None
 
 
-def memory(info, system):
-    """(RSS of the whole foreground group, RSS of Claude alone) in KiB. Parking frees the
-    group: Claude plus its stdio MCP servers and `caffeinate` (spike 0-11)."""
-    known = {p.get("pid"): system.rss_kb(p.get("pid")) for p in info.processes}
-    values = [v for v in known.values() if v is not None]
-    return (sum(values) if values else None, known.get(info.group_id))
+def memory(info, rss):
+    """(RSS of the whole foreground group, RSS of Claude alone) in KiB, from `rss`
+    (`{pid: KiB}`). Parking frees the group: Claude plus its stdio MCP servers and
+    `caffeinate` (spike 0-11)."""
+    known = [rss[p.get("pid")] for p in info.processes if p.get("pid") in rss]
+    return (sum(known) if known else None, rss.get(info.group_id))
 
 
 def _version_of(executable, system):
@@ -258,7 +258,10 @@ def _add_process(rt, found):
         info = rt.herdr.process_info(found.pane_id)
     except herdr_api.HerdrError:
         return
-    found.rss_kb, found.claude_rss_kb = memory(info, rt.system)
+    pids = [p.get("pid") for p in info.processes]
+    found.rss_kb, found.claude_rss_kb = memory(info, {pid: kib for pid, kib in
+                                                      ((pid, rt.system.rss_kb(pid)) for pid in pids)
+                                                      if kib is not None})
     process = claude_process(info)
     if process is None:
         return
