@@ -781,7 +781,15 @@ server is never restarted.
       two defects, both fixed with tests: the swap closed the pane and recreated it next
       door (a swap now always keeps its pane), and the recreated pane's shell was still
       starting, so the resume refused (a new pane now gets up to 10 s for its shell)
-- [ ] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
+- [x] Mac local: a folder with a trust dialog gives `resume_pending`, and `r` after answering completes
+      (2026-09-27, haiku; without touching `~/.claude.json`: a session made in a new folder
+      `tr-x`, whose record's cwd was then set to the untrusted `tr/x`, the same transcript
+      folder name): the first run found that at the trust dialog `agent.start` returns
+      and the pane says `blocked` with no session, so the resume waited 30 s and failed;
+      fixed with a test (blocked without a session right after the start is pending).
+      Then `r` answered `resume pending` in a few seconds; after `Yes, I trust this
+      folder` in the pane, Claude resumed the same UUID and the next refresh settled the
+      record by itself (moved to `resumed/`, label back), so `r` was not even needed
 - [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
       (2026-09-27, with the threshold edited to 5 minutes instead of waiting an hour):
       the list marked the rows idle 12m and 9m and skipped the one idle 1m with its

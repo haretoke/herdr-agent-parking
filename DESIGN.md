@@ -308,10 +308,13 @@ be read before step 6.
    configurable).
 10. With `send_note_as_prompt = true`: `agent wait <P> --until idle --timeout ...`,
     then `agent prompt <P> "<note>"`.
-11. When `agent start` returns `agent_not_ready` (a trust dialog, for example), the
-    record becomes `status = "resume_pending"` and the dashboard says "answer in the
-    pane, then press r again". The label is not restored. The next `r` retries from
-    step 3 (when a matching Claude is already running, only steps 7 onwards).
+11. When `agent start` returns `agent_not_ready` (a trust dialog, for example), or
+    returns with Claude `blocked` and no session yet (what Herdr 0.9.1 did at the
+    trust dialog on the Mac), the record becomes `status = "resume_pending"` and the
+    dashboard says "answer in the pane, then press r again". The label is not
+    restored. The next `r` retries from step 3 (when a matching Claude is already
+    running, only steps 7 onwards); on the Mac the dashboard's next refresh settled it
+    already, as soon as the answered Claude showed the session.
 
 `claude --resume <UUID>` finds sessions of other directories too, but the resume
 starts in the record's `cwd`: when the pane's cwd differs, `pane.send_input <P>` of
@@ -588,7 +591,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | The preparation reply has no focus tag | The focus is empty in the confirmation and can be typed |
 | The new `compact_boundary` line does not appear in time | `compact_failed` is shown; nothing else is changed. `C` does not park |
 | Another command is running in the resume pane | Refused. `g` to look |
-| `agent start` returns `agent_not_ready` (trust dialog, first time in a folder) | `resume_pending`; answer the dialog, then `r` |
+| `agent start` returns `agent_not_ready`, or returns with Claude `blocked` (trust dialog, first time in a folder) | `resume_pending`; answer the dialog, then `r` (the next refresh usually settles it first) |
 | `agent start` times out | `resume_failed`; the last 10 lines of `pane read` are shown |
 | `agent_session` after the resume is a different UUID | Warn; the record is not `resumed` (`resume_failed`, both IDs in `error`) |
 | The same UUID resumed in two panes | There is one record, so the second is "already resumed". Right before `r` every Claude pane is matched again; if the UUID runs elsewhere, no second process is started, the record becomes `resumed` and the pane is pointed out |
