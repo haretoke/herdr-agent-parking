@@ -174,6 +174,8 @@ class Dashboard:
             return "cannot %s: already parked" % action
         if row.status not in ready.READY_STATUSES:
             return "cannot %s: Claude is %s" % (action, row.status or "unknown")
+        if not row.has_transcript:
+            return "cannot %s: this Claude has no conversation yet (nothing to resume); /exit it instead" % action
         return None
 
     def _park(self):

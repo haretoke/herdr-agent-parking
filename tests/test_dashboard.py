@@ -145,6 +145,16 @@ class ParkRefusedTest(unittest.TestCase):
                 self.assertEqual(actions.calls, [])
 
 
+    def test_a_session_without_a_conversation_is_refused_by_every_key_that_would_park_or_compact(self):
+        for key in (b"s", b"c", b"C", b"R"):
+            with self.subTest(key=key):
+                actions = FakeActions()
+                shown = board(live(has_transcript=False), actions=actions)
+                shown.on_input(key)
+                self.assertIn("no conversation yet", shown.message)
+                self.assertEqual((shown.dialog, shown.pending, actions.calls), (None, None, []))
+
+
 class ParkTest(unittest.TestCase):
     def test_s_asks_for_a_note_then_parks_after_showing_the_wait_and_reads_the_list_again(self):
         refreshes = []
