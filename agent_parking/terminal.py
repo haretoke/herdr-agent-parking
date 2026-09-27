@@ -8,7 +8,7 @@ import termios
 import time
 import tty
 
-from . import actions, dashboard, herdr_api, idle, inventory, transcript
+from . import actions, dashboard, herdr_api, idle, inventory, presence, transcript
 
 
 class Terminal:
@@ -191,7 +191,15 @@ def run_dashboard(rt, own_pane_id):
     board = dashboard.Dashboard(refresh=refresher(rt, tracker, own_pane_id),
                                 actions=actions.Actions(rt, tracker), on_event=tracker.on_event)
     stopping = stop_on_signals()
-    with Terminal() as terminal:
-        run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,
-            subscribe=lambda pane_ids: rt.herdr.subscribe(herdr_api.status_subscriptions(pane_ids)))
+    if own_pane_id:
+        # `open` finds this dashboard here and moves it instead of opening a second one.
+        presence.announce(rt.paths.dashboard, own_pane_id, os.getpid(),
+                          rt.environ.get("AGENT_PARKING_PLACEMENT") or "overlay")
+    try:
+        with Terminal() as terminal:
+            run(board, terminal, rt.settings["poll_seconds"], stopping=stopping,
+                subscribe=lambda pane_ids: rt.herdr.subscribe(herdr_api.status_subscriptions(pane_ids)))
+    finally:
+        if own_pane_id:
+            presence.release(rt.paths.dashboard, own_pane_id)
     return 0

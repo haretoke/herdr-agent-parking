@@ -1,6 +1,7 @@
 """The dashboard as a process in a pseudo-terminal, against a fake Herdr socket."""
 
 import fcntl
+import json
 import os
 import select
 import signal
@@ -42,7 +43,7 @@ class DashboardProcessTestCase(unittest.TestCase):
         self.state_dir = self.home / "state"
         self.output = b""
 
-    def start(self, herdr_script, rows=24, cols=80):
+    def start(self, herdr_script, rows=24, cols=80, **extra_env):
         """The dashboard on the slave side of a pty. subprocess instead of pty.fork: forking
         a process that runs the fake server's threads is unsafe."""
         self.herdr = FakeHerdr(herdr_script)
@@ -52,6 +53,7 @@ class DashboardProcessTestCase(unittest.TestCase):
         env = {"PATH": "/usr/bin:/bin", "HOME": str(self.home), "HERDR_SOCKET_PATH": self.herdr.path,
                "HERDR_PANE_ID": "w1:p9", "HERDR_PLUGIN_ID": state.PLUGIN_ID,
                "HERDR_PLUGIN_STATE_DIR": str(self.state_dir)}
+        env.update(extra_env)
         process = subprocess.Popen([sys.executable, "-m", "agent_parking", "dashboard"], stdin=slave,
                                    stdout=slave, stderr=slave, cwd=REPOSITORY, env=env, start_new_session=True)
         os.close(slave)
@@ -165,6 +167,19 @@ class CrashTest(DashboardProcessTestCase):
         self.assertIn("PermissionError", log.read_text())
         self.assertIn("Traceback", log.read_text())
         self.assertEqual(log.stat().st_mode & 0o777, 0o600)
+
+
+class AnnounceTest(DashboardProcessTestCase):
+    def test_the_dashboard_announces_its_pane_while_it_runs_and_withdraws_it_on_q(self):
+        process, master = self.start(script(claude_pane()), AGENT_PARKING_PLACEMENT="tab")
+        self.wait_for(master, b"api gateway")
+        announced = json.loads((self.state_dir / "dashboard.json").read_text())
+        self.assertEqual(announced, {"pane_id": "w1:p9", "pid": process.pid, "placement": "tab"})
+
+        os.write(master, b"q")
+
+        self.assertEqual(self.wait_exit(process, master), 0)
+        self.assertFalse((self.state_dir / "dashboard.json").exists())
 
 
 if __name__ == "__main__":
