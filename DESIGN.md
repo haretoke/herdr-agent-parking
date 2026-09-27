@@ -488,7 +488,10 @@ Bulk park:
 - Dialogs open under the list in place of the keys; long lines wrap. An action that
   waits for Claude (park, the preparation, `/compact`, resume, `S`) first shows what it
   waits for, then runs; keys typed during the wait are dropped, so a `q` or Enter meant
-  for the wait does not act on what follows. Escape sequences other than the arrows
+  for the wait does not act on what follows. A stop signal (the pane closed, SIGTERM)
+  during such a wait ends the dashboard once the action is over, never in the middle
+  of it: a park cut between its record and `/exit` would leave a `parking` record that
+  nothing settles. Escape sequences other than the arrows
   (Delete, Home, F-keys) are consumed whole and never type characters.
 - Keys: two `[[actions]]` (`open`: overlay, `open-tab`: tab), `contexts = ["global"]`.
   Users bind them in `config.toml` with

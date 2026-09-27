@@ -817,8 +817,12 @@ server is never restarted.
       and hands over every complete line at each wake
 - [ ] Mac local: polling nine sessions every 2 s stays light (one `ps` per pid on macOS;
       one `ps -o pid=,rss= -p a,b,c` per refresh if it shows)
-- [ ] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
+- [x] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
       returns; decide whether the stop signal should interrupt it
+      (decided 2026-09-27 with the user: the action finishes, then the dashboard exits.
+      Interrupting a park between its record and `/exit`, or its wait for the shell,
+      would leave a `parking` record that nothing settles; Claude goes on preparing or
+      compacting whether the dashboard waits or not)
 - [x] after a Herdr server restart (throwaway session): a parked pane keeps its record
       and label and `r` resumes it in the same pane ID (spike 0-1, 0-2)
       (2026-09-27): `w1:pE` parked with a note, the server stopped and started again;
