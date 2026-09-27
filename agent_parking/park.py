@@ -45,7 +45,8 @@ def park(rt, pane_id, note, keep=False):
         "status": "parking", "pane_id": pane_id, "pane_id_history": [],
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         "cwd": (background or {}).get("cwd") or process.get("cwd") or pane.cwd,
-        "argv": argv,
+        # A view's own arguments (`agents`, `attach <id>`) are no flags of the session.
+        "argv": argv[:1] if background else argv,
         "env": env,
         "claude_version": inventory.running_version(process, rt.system) if process else None,
         "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),

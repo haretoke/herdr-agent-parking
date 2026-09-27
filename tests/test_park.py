@@ -58,6 +58,8 @@ class BackgroundSessionTest(FlowTestCase):
         self.assertEqual(outcome.kind, "parked")
         self.assertEqual([call[1] for call in rt.system.stop_calls], ["2716af66"])
         self.assertNotIn("agent.prompt", self.fake.methods())
+        # The client's own `attach 2716af66` are no flags for `claude --resume`.
+        self.assertEqual(self.saved()["argv"], ["/home/u/.local/bin/claude"])
 
     def test_a_view_that_stays_after_the_stop_is_left_with_exit(self):
         # `claude agents` showing the session (the container's w1:p1W) is agent view itself:
