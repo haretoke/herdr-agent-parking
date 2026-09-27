@@ -220,6 +220,16 @@ class ExitTest(FlowTestCase):
         [prompt] = [r for r in self.fake.requests if r["method"] == "agent.prompt"]
         self.assertEqual(prompt["params"], {"target": "w1:p2", "text": "/exit"})
 
+    def test_the_box_is_emptied_first_since_a_blank_left_there_makes_exit_a_message(self):
+        # Seen in a container: Claude got ' /exit' and answered it as a message; a typed
+        # space does not show on the screen (seen on the Mac), so the box read as empty.
+        # Ctrl+U empties the line and does nothing to an empty one (seen on the Mac).
+        park.park(self.flow(), "w1:p2", note=None)
+        sent = [(r["method"], r["params"]) for r in self.fake.requests
+                if r["method"] in ("pane.send_keys", "agent.prompt")]
+        self.assertEqual(sent[:2], [("pane.send_keys", {"pane_id": "w1:p2", "keys": ["ctrl+u"]}),
+                                    ("agent.prompt", {"target": "w1:p2", "text": "/exit"})])
+
 
 class LabelTest(FlowTestCase):
     def test_after_the_shell_is_back_the_pane_is_labelled_and_the_old_label_kept(self):
@@ -423,7 +433,8 @@ class WorktreeTest(FlowTestCase):
                           "pane.send_keys": {"type": "ok"}})
         outcome = park.park(rt, "w1:p2", note=None)
         self.assertEqual(outcome.kind, "parked")
-        [keys] = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_keys"]
+        [keys] = [r["params"] for r in self.fake.requests
+                  if r["method"] == "pane.send_keys" and r["params"]["keys"] != ["ctrl+u"]]
         self.assertEqual(keys, {"pane_id": "w1:p2", "keys": ["enter"]})
 
     def test_nothing_is_pressed_unless_keep_is_the_selected_answer(self):
@@ -436,7 +447,8 @@ class WorktreeTest(FlowTestCase):
                 outcome = park.park(rt, "w1:p2", note=None)
                 self.assertEqual(outcome.kind, "park_failed")
                 self.assertIn("keep its worktree", outcome.message)
-                self.assertNotIn("pane.send_keys", self.fake.methods())
+                self.assertNotIn(["enter"], [r["params"]["keys"] for r in self.fake.requests
+                                             if r["method"] == "pane.send_keys"])
                 self.assertEqual(self.slept, [])
                 self.assertEqual(self.saved()["status"], "park_failed")
 

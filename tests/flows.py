@@ -63,7 +63,7 @@ SHELL_PROCESS = {"type": "process_info", "process_info": {
 
 class FlowTestCase(FlowRuntimeTestCase):
     def flow(self, **overrides):
-        script = {"pane.get": [pane_reply(), SHELL], "agent.read": screen_reply("❯"),
+        script = {"pane.get": [pane_reply(), SHELL], "agent.read": screen_reply("❯"), "pane.send_keys": {"type": "ok"},
                   "pane.process_info": [PROCESS, SHELL_PROCESS], "agent.prompt": {"type": "ok"},
                   "pane.rename": {"type": "pane_info"}}
         script.update(overrides)

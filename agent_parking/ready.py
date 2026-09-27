@@ -28,3 +28,11 @@ def check(rt, pane_id, action):
     if box != "empty":
         return pane, "could not find Claude's input box on its screen; look at the pane first (g)"
     return pane, None
+
+
+def empty_box(rt, pane_id):
+    """Empty Claude's input box before a command is typed there. A blank left in it does not
+    show on the screen (a typed space, seen on the Mac), so `check` reads the box as empty,
+    and the command after it goes as a message (Claude got ' /exit' in a container). Ctrl+U
+    empties the line and does nothing to an empty one (seen on the Mac)."""
+    rt.herdr.call("pane.send_keys", {"pane_id": pane_id, "keys": ["ctrl+u"]})

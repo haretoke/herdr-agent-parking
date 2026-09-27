@@ -98,6 +98,7 @@ def _end(rt, pane_id, session_id, background, command, env):
         return Outcome("park_failed", "`claude stop %s` failed; the session runs on as it was"
                        % background["id"], None)
     try:
+        ready.empty_box(rt, pane_id)
         rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
     except herdr_api.HerdrError as error:
         records.discard_parking(rt.paths.records, session_id)
