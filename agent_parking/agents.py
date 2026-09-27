@@ -33,3 +33,13 @@ def not_idle(entry):
     if entry.get("waitingFor"):
         return "Claude waits for a %s in the background; answer it first (g)" % entry["waitingFor"]
     return "Claude is %s in the background; only idle sessions park" % (entry.get("status") or "unknown")
+
+
+def why_not_stop(entry, title):
+    """Why the background session `entry` is not stopped from a pane titled `title`, or None.
+    A view titles its pane after the session it shows, while Herdr may keep the id of one it
+    showed before: another name there means the id is stale."""
+    if entry.get("name") and title != entry["name"]:
+        return ('the pane shows "%s", not "%s" that Herdr names for it; look at the pane (g)'
+                % (title or "", entry["name"]))
+    return not_idle(entry)

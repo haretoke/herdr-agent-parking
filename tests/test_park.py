@@ -94,6 +94,16 @@ class BackgroundSessionTest(FlowTestCase):
                 self.assertEqual(rt.system.stop_calls, [])
                 self.assertIsNone(self.saved())
 
+    def test_a_pane_titled_after_another_session_is_not_stopped_on_a_stale_id(self):
+        # Herdr keeps the id of the session a view showed before (the agent view case);
+        # the pane's title is the name of the session it shows now ("sitemap" in the container).
+        rt = self.flow(**{"pane.get": pane_reply()})
+        rt.system.agents = [dict(BACKGROUND_ENTRY, name="sitemap")]
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn('"sitemap"', outcome.message)
+        self.assertEqual(rt.system.stop_calls, [])
+
     def test_a_failed_stop_leaves_the_session_as_it_was_and_no_record(self):
         rt = self.flow(**{"pane.get": pane_reply()})
         rt.system.agents = [dict(BACKGROUND_ENTRY)]
