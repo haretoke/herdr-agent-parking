@@ -60,7 +60,7 @@ The keys are named after parking where Claude has a word of its own (`resume`), 
 
 | Key | What it does |
 |---|---|
-| `s` | Park: record how to resume, send `/exit`, close the pane (the last pane of a tab stays, labelled `💤 …`). Asks for a note first |
+| `s` | Park: record how to resume, send `/exit`, close the pane, and its tab when it was alone there (the last pane of a workspace stays, labelled `💤 …`). Asks for a note first |
 | `r` | Unpark: resume a parked session in its pane (`claude --resume <id>` with the flags it had). A closed pane is recreated where it was |
 | `R` | Tune-up: park and unpark at once, to restart on the current `claude` |
 | `c` | Compact: Claude prepares (`/prepare-compact`), you check its report and the focus, then `/compact <focus>` |
@@ -118,7 +118,7 @@ haretoke.agent-parking`). Every key is optional:
 
 | Key | Default | |
 |---|---|---|
-| `on_park` | `"close"` | Closes the pane after the park, except the last pane of a tab (closing it closes the tab); `r` recreates it. `"keep"` leaves every pane as a shell labelled `💤 …` |
+| `on_park` | `"close"` | Closes the pane after the park, and Herdr closes its tab when it was the only pane there; the last pane of a workspace stays (closing it would close the workspace). `r` recreates the pane, or a tab of the same name at the end of the tabs. `"keep"` leaves every pane as a shell labelled `💤 …` |
 | `parked_label_format` | `"💤 {title}"` | The label of a parked pane |
 | `bulk_idle_minutes` | `60` | `S`'s starting threshold |
 | `send_note_as_prompt` | `false` | Send the note as the first prompt after a resume (once Claude is idle) |

@@ -25,7 +25,8 @@ devcon-herdr's plugin lock.
 - The record is written before `/exit` is sent (Herdr's `agent_session` becomes None
   when Claude exits).
 - Parked panes are closed by default (`on_park = "close"`, since v0.1.12) and resume
-  through recreate; the last pane of a tab is never closed. A kept pane (that one, or
+  through recreate. A pane alone in its tab takes the tab with it (since v0.1.13; v0.1.12
+  kept it); the last pane of a workspace is never closed. A kept pane (that one, or
   every pane with `on_park = "keep"`) gets the label `💤 {title}` with `pane rename`
   (labels survive the exit) and the label is restored on resume.
 - Resume is `herdr agent start <name> --kind claude --pane <P> -- --resume <UUID> <flags>`,
@@ -435,10 +436,16 @@ server is never restarted.
 - [x] whether `pane close` on the last pane of a tab closes the tab (the reason to keep
       that pane even with `on_park = close`)
       (2026-09-27): yes. Closing the only pane of a new tab removed the tab from
-      `tab list`. `on_park = close` keeps such a pane, as designed.
+      `tab list`. v0.1.12 kept such a pane; since v0.1.13 only the last pane of a
+      workspace is kept.
       Again on a throwaway Herdr (2026-09-27): the workspace stays when it has other
       tabs; closing the last pane of its only tab removes the workspace; a tab made
       again with `tab create` goes to the end of the tab order (A, C, B)
+- [x] for v0.1.13, on a throwaway Herdr (2026-09-27): `tab.list` without arguments lists
+      the tabs of every workspace with `workspace_id` and `label` (an unnamed tab's label
+      is its number, `"1"`). Run against it: park's workspace check said alone for the
+      only pane of a workspace and not alone for a pane in a second tab; that pane closed
+      with its tab, and recreate with `tab_label = "docs"` opened a tab `docs` at the end
 - [x] where a pane label shows (Herdr 0.9.1 source, 2026-09-27): on the pane's top
       border only (`border_label`: a reported title first, then the label), and
       `pane_borders = true` means `auto`, which draws borders only in a tab with two
@@ -674,7 +681,13 @@ server is never restarted.
       `parked_mode` is `"close"`
 - [x] with `on_park = close`, the last pane of a tab and a pane with something other than
       the shell (`pid != shell_pid`) in the foreground are not closed; `parked_mode` is
-      `"keep"` and a reason is returned
+      `"keep"` and a reason is returned (v0.1.12)
+- [x] by default (v0.1.13) a pane alone in its tab is closed when its workspace has another
+      pane (`pane.list` read after the exit); the last pane of a workspace is kept, panes of
+      other workspaces and the dashboard's own pane do not count, and a failing
+      `pane.list` keeps the pane
+- [x] the tab's name (`tab.list`, not a name that is only its number) is recorded as
+      `tab_label` for the tab recreate opens
 - [x] a timeout gives `park_failed` and the pane is untouched
 - [x] requests that wait inside Herdr (`agent.start`, the preparation and `/compact` prompts)
       use a socket timeout longer than their Herdr-side wait
@@ -797,6 +810,9 @@ server is never restarted.
 - [ ] the close default (v0.1.12) on real devices beyond the Mac check with `on_park = close`:
       in the container, and on a pane showing a background session (`claude stop`, then
       the agent view left, then the pane closed)
+- [ ] v0.1.13 on a real device: a pane alone in its tab closes with the tab, `r` opens a
+      tab of the same name, and the last pane of a workspace stays (also with the
+      dashboard's overlay over it)
 - [ ] not checked: whether `claude agents --json` and `claude stop` are scoped by
       `CLAUDE_CONFIG_DIR` (the list was the same with the alt account's
       `CLAUDE_SECURESTORAGE_CONFIG_DIR`); both run with the pane's own account variables

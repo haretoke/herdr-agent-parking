@@ -29,10 +29,13 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
 - `on_park` defaults to `close` (changed in v0.1.12; it was `keep`): a kept shell shows
   its `💤 {title}` label only on the pane border, and Herdr draws borders only in a tab
   with two panes or more (`pane_borders = true` is `auto`), so the shell looked like any
-  other and could be closed by hand anyway. The last pane of a tab is still kept: closing
-  it closes the tab, and the workspace too when that was its only tab (seen on a
-  throwaway Herdr), while a recreated tab comes back at the end of the tab order. The
-  tab is not renamed for a kept pane (the user's call).
+  other and could be closed by hand anyway. v0.1.12 still kept the last pane of a tab;
+  v0.1.13 keeps only the last pane of a workspace (the user's wish, first misread as
+  "of a tab"). Closing a tab's only pane closes the tab, and closing the last pane of a
+  workspace's only tab closes the workspace (seen on a throwaway Herdr). A recreated
+  tab comes back at the end of the tab order, with the name park recorded
+  (`tab_label`; a name that is only the tab's number is not kept). The tab is not
+  renamed for a kept pane (the user's call).
 - Defaults approved as proposed: label format `💤 {title}` (configurable); the note is
   also echoed into the pane's scrollback before a resume; `send_note_as_prompt` stays a
   setting, default `false`; `records_dir` defaults to the plugin state directory
@@ -82,7 +85,7 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
 | Term | Meaning |
 |---|---|
 | Claude pane | A pane whose `agent == "claude"` in `pane list`; `agent_session.value` is the session UUID |
-| park | Send `/exit` to an idle/done Claude pane, write a record, and close the pane (the last pane of a tab is kept with a marked label; `on_park = keep` keeps every pane) |
+| park | Send `/exit` to an idle/done Claude pane, write a record, and close the pane, which closes its tab when it was alone there (the last pane of a workspace is kept with a marked label; `on_park = keep` keeps every pane) |
 | record | The JSON for a parked session, keyed by the session UUID |
 | resume | Start `claude --resume <UUID>` in the original pane from the record (key `r`, unpark) |
 | recreate | When the original pane is gone, create a pane from the record's tab / cwd and resume there |
@@ -262,7 +265,8 @@ again resumes from step 3 when a focus tag is already there.
    tree is taken without the dashboard's own pane: while it is open the overlay is a
    split of its own in the tab's layout (seen on the Mac, around the active pane or at
    the root), so it would otherwise be the sibling, push the path one level down, or
-   make the last pane of a tab look like one of two.
+   make the last pane of a tab look like one of two. The tab's name goes to `tab_label`
+   (`tab.list`), for the tab recreate opens when the tab closed with the pane.
 3. RSS from `/proc/<pid>/status` or `ps -o rss= -p` (display only; continue on failure).
 4. Ask for the note.
 5. **Before `/exit`**, write the record (atomic rename, 0600), `status = "parking"`.
@@ -270,14 +274,15 @@ again resumes from step 3 when a focus tag is already there.
 7. Poll `pane get <P>` up to `exit_timeout_seconds` (default 20) until `agent`
    disappears (the shell is back). Measured: about 4 seconds.
 8. Then follow `on_park` ("Parked panes" below).
-   - `keep` (default): `pane rename <P> "💤 <name>"` (format `parked_label_format`).
+   - `keep`: `pane rename <P> "💤 <name>"` (format `parked_label_format`).
      The previous `label` goes to the record's `label_before`, except when an earlier
      record of the same session is still there and the pane still shows the label park
      gave it (resumed by hand, then parked again): then that record's `label_before`
      is kept.
-   - `close`: check that the foreground is only the shell (`pid == shell_pid`), then
-     `pane close <P>`. The last pane of a tab is not closed: it is treated as `keep`
-     with a reason (the tab is never closed).
+   - `close` (default): check that the foreground is only the shell (`pid == shell_pid`),
+     then `pane close <P>`; Herdr closes the tab with its only pane. The last pane of a
+     workspace (`pane.list` read then, the dashboard's own pane not counted) is not
+     closed: it is treated as `keep` with a reason (the workspace is never closed).
    The record becomes `status = "parked"`; the treatment actually applied is stored in
    `parked_mode`.
 9. On timeout the record becomes `status = "park_failed"` with the reason shown. The
@@ -291,7 +296,9 @@ be read before step 6.
 - **`close` (default)**: the pane is closed once the shell is back. The trace is the
   plugin's record; resume goes through "recreate" from the dashboard. No empty shells
   pile up, and the position comes back through `layout_hint` (exact when the neighbour
-  was a single pane). The last pane of a tab is kept as with `keep`.
+  was a single pane). A pane alone in its tab takes the tab with it, and `r` opens a
+  tab of the same name at the end of the tabs. The last pane of a workspace is kept as
+  with `keep`.
 - **`keep`**: the pane stays as an empty shell with the `💤 <name>` label. Its position
   in the layout does not change and resume happens in the same pane. The label shows
   only on the pane border, which Herdr draws only in a tab with two panes or more.
@@ -567,7 +574,7 @@ Record (schema_version 1):
   "pane_id": "wD:p2T",
   "pane_id_history": [],
   "tab_id": "wD:tY",
-  "tab_label": "2",
+  "tab_label": "notes",
   "workspace_id": "wD",
   "workspace_label": "project",
   "label_before": null,
@@ -600,7 +607,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | `poll_seconds` | 2 | List refresh interval |
 | `exit_timeout_seconds` | 20 | How long to wait for the shell after `/exit` |
 | `start_timeout_ms` | 30000 | `--timeout` for `agent start` |
-| `on_park` | `"close"` | What happens to the parked pane: `close` (close it, recreate on resume; the last pane of a tab is kept) or `keep` (empty shell and label) |
+| `on_park` | `"close"` | What happens to the parked pane: `close` (close it, and its tab when it was alone there; recreate on resume; the last pane of a workspace is kept) or `keep` (empty shell and label) |
 | `parked_label_format` | `"💤 {title}"` | Label of a parked pane; `{title}` and `{short_id}` are available; cut at 80 characters |
 | `send_note_as_prompt` | false | Send the note as the first prompt after a resume |
 | `bulk_idle_minutes` | 60 | Default threshold for `S` |
@@ -635,7 +642,8 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | The same UUID resumed in two panes | There is one record, so the second is "already resumed". Right before `r` every Claude pane is matched again; if the UUID runs elsewhere, no second process is started, the record becomes `resumed` and the pane is pointed out |
 | The cwd is gone | No recreate; the reason is shown (`claude --resume` itself works from any directory, so the README describes starting it by hand elsewhere) |
 | The pane already has a label | Kept in `label_before`, overwritten while parked, restored on resume |
-| `on_park = close` (the default) and the pane is the last one of its tab | Not closed, treated as `keep` (`parked_mode = "keep"`); the tab is never closed |
+| `on_park = close` (the default) and the pane is the last one of its workspace | Not closed, treated as `keep` (`parked_mode = "keep"`); the workspace is never closed |
+| `on_park = close` and Herdr cannot list the panes | Not closed, treated as `keep` |
 | `on_park = close` and something else is in the foreground after the shell is back | Not closed, treated as `keep`, with a reason |
 | The record's pane is gone | "(no pane)" → recreate. A server restart alone does not cause this: pane IDs survive it (spike 0-1) |
 | Two dashboards (overlay and tab) | `observed.json`: the last writer wins (atomic rename). Records are one file per UUID, so no collision. Parking the same row twice: the second `agent prompt` fails because Claude is gone, and a record in `parking` is never overwritten |
@@ -687,8 +695,8 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
   box; nothing read is stored.
 - The plugin runs as the user and can call every `herdr` command. It closes or deletes
   only what it made (labels, recreated panes) and, with `on_park = close` (the default),
-  the pane it parked (shell-only foreground, not the last pane of a tab). Other panes and tabs are
-  never closed.
+  the pane it parked (shell-only foreground, not the last pane of a workspace), with its
+  tab when it was alone there. Other panes and workspaces are never closed.
 
 ## Herdr server restarts
 
