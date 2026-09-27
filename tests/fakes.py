@@ -9,6 +9,7 @@ class FakeSystem:
         self.rss = {}
         self.links = {}
         self.found = {}
+        self.rss_calls = []
 
     def realpath(self, path):
         return self.links.get(path, path)
@@ -18,6 +19,10 @@ class FakeSystem:
 
     def rss_kb(self, pid):
         return self.rss.get(pid)
+
+    def rss_many(self, pids):
+        self.rss_calls.append(list(pids))
+        return {pid: self.rss[pid] for pid in pids if pid in self.rss}
 
     def cmdline(self, pid):
         return self.cmdlines.get(pid)

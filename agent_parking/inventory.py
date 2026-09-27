@@ -199,10 +199,14 @@ def build(rt, tracker, own_pane_id):
     workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
     tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
     seqs = _state_seqs(rt)
+    claude = claude_panes(panes, own_pane_id)
+    infos = {pane.pane_id: _process_info(rt, pane.pane_id) for pane in claude}
+    # One read for every process of every pane (one `ps` on macOS, not one per pid).
+    rss = rt.system.rss_many([p.get("pid") for info in infos.values() if info for p in info.processes])
     rows = []
-    for pane in claude_panes(panes, own_pane_id):
+    for pane in claude:
         found = row(pane, workspace_labels, tab_labels)
-        _add_process(rt, found)
+        _add_process(rt, found, infos[pane.pane_id], rss)
         summary = rt.summary_for(found.session_id) if found.session_id else None
         found.ctx = _ctx(rt, summary, found.session_id, now)
         entry = tracker.poll(found.pane_id, seqs.get(found.pane_id), found.status, summary)
@@ -251,17 +255,20 @@ def _record_row(rt, record, pane, now):
                idle=display.age((now - parked_at).total_seconds()) if parked_at else "")
 
 
-def _add_process(rt, found):
-    """Memory and version from the pane's foreground processes (none when the pane went
-    away since the list was read)."""
+def _process_info(rt, pane_id):
+    """The pane's foreground processes, or None when the pane went away since the list
+    was read."""
     try:
-        info = rt.herdr.process_info(found.pane_id)
+        return rt.herdr.process_info(pane_id)
     except herdr_api.HerdrError:
+        return None
+
+
+def _add_process(rt, found, info, rss):
+    """Memory and version from the pane's foreground processes (`rss`: `{pid: KiB}`)."""
+    if info is None:
         return
-    pids = [p.get("pid") for p in info.processes]
-    found.rss_kb, found.claude_rss_kb = memory(info, {pid: kib for pid, kib in
-                                                      ((pid, rt.system.rss_kb(pid)) for pid in pids)
-                                                      if kib is not None})
+    found.rss_kb, found.claude_rss_kb = memory(info, rss)
     process = claude_process(info)
     if process is None:
         return

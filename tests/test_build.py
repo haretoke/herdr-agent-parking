@@ -87,6 +87,14 @@ class ProcessTest(BuildTestCase):
         self.assertEqual(row.current_version, "2.1.290")
 
 
+    def test_the_memory_of_every_pane_is_read_in_one_go(self):
+        system = FakeSystem(proc=False)
+        system.rss = {200: 200_000, 201: 10_000}
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p3")), "pane.process_info": PROCESS},
+                         system=system)
+        self.assertEqual([r.rss_kb for r in got.rows], [210_000, 210_000])
+        self.assertEqual(system.rss_calls, [[200, 201, 200, 201]])
+
     def test_a_pane_whose_processes_cannot_be_read_keeps_its_row(self):
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": Error("pane_not_found")})
         self.assertEqual([(r.pane_id, r.rss_kb, r.version) for r in got.rows], [("w1:p2", None, None)])
