@@ -109,6 +109,7 @@ def _pending(rt, record):
 SESSION_POLL_SECONDS = 0.5
 AT_DIALOG = object()
 EXITED = object()
+TYPED_GRACE_SECONDS = 3
 
 
 def _running_session(rt, pane_id, typed=False):
@@ -118,7 +119,8 @@ def _running_session(rt, pane_id, typed=False):
     `blocked` without a session: `agent.start` returns at the trust dialog (seen on the
     Mac) instead of failing with `agent_not_ready`. A `typed` command has nothing that
     waits for its start: EXITED once the shell is back after something else ran (Claude
-    refused and exited, seen in a container)."""
+    refused and exited, seen in a container), or when the shell alone stays for
+    TYPED_GRACE_SECONDS (a start missed between two looks)."""
     limit = rt.settings["start_timeout_ms"] / 1000
     waited = 0.0
     started = False
@@ -129,7 +131,7 @@ def _running_session(rt, pane_id, typed=False):
             return AT_DIALOG
         if running is None and typed:
             shell = herdr_api.shell_only(rt.herdr.process_info(pane_id))
-            if shell and started:
+            if shell and (started or waited >= TYPED_GRACE_SECONDS):
                 return EXITED
             started = started or not shell
         if running is not None or waited >= limit:

@@ -184,6 +184,16 @@ class TypedStartExitTest(ResumeTestCase):
         self.assertLess(sum(self.slept), 3)
         self.assertEqual(self.saved()["status"], "resume_failed")
 
+    def test_a_typed_command_that_never_leaves_the_shell_fails_after_a_short_grace(self):
+        # A claude that starts and exits between two looks, or a line the shell did not run.
+        self.park_record(env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
+        rt = self.resuming(**{"pane.get": [SHELL], "pane.process_info": SHELL_PROCESS,
+                              "pane.read": {"type": "pane_read", "read": {"text": "$ env … claude --resume …\n$ "}}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+        self.assertIn("claude --resume", outcome.message)
+        self.assertAlmostEqual(sum(self.slept), resume.TYPED_GRACE_SECONDS)
+
 
 class NoConversationTest(ResumeTestCase):
     def test_a_record_whose_session_has_no_transcript_is_refused_before_anything_starts(self):
