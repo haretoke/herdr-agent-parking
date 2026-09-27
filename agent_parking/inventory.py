@@ -111,6 +111,17 @@ def _version_of(executable, system):
     return name if name and VERSION.fullmatch(name) else None
 
 
+def claude_executable(argv0, settings, system, environ):
+    """The `claude` to run for a Claude started as `argv0`: argv0 itself when it is a path
+    (macOS), else `claude_command` on `PATH`, else `~/.local/bin/claude` (the plugin runs in
+    the Herdr server's environment, whose PATH may lack it)."""
+    if argv0 and "/" in argv0:
+        return argv0
+    home = environ.get("HOME") or os.path.expanduser("~")
+    return (system.which(settings["claude_command"], environ.get("PATH", ""))
+            or os.path.join(home, ".local", "bin", "claude"))
+
+
 def current_version(argv0, settings, system, environ):
     """The version a new `claude` would start: where the running `argv[0]` points now
     when it is a path (macOS), else `claude_command` on `PATH`, else `~/.local/bin/claude`

@@ -66,7 +66,9 @@ class BackgroundSessionTest(FlowTestCase):
         outcome = park.park(rt, "w1:p2", note=None)
         self.assertEqual(outcome.kind, "refused")
         self.assertIn("claude stop 2716af66", outcome.message)
-        self.assertEqual(rt.system.agents_calls, [("claude", {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"})])
+        # The Claude the pane runs: the plugin's PATH may not have `claude`.
+        self.assertEqual(rt.system.agents_calls, [("/home/u/.local/bin/claude",
+                                                   {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"})])
         self.assertNotIn("agent.prompt", self.fake.methods())
 
     def test_a_stopped_background_session_resumed_as_its_own_claude_is_parked(self):
