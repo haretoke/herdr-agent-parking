@@ -5,7 +5,7 @@ import textwrap
 
 from . import compact, dialogs, display, keys, park, ready, recreate, resume, table
 
-KEYS = ("s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  "
+KEYS = ("s park  c compact  C compact+park  r unpark  R tune-up  g go  S idlestop  n note  x void  "
         "/ filter  ? help  q quit")
 
 MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
@@ -13,14 +13,14 @@ MOVES = {"j": 1, "down": 1, "k": -1, "up": -1}
 HELP = ["keys (any key closes this):",
         "  s   park: exit Claude after recording how to resume it (asks for a note)",
         "  c   compact: Claude prepares, you confirm the focus, then /compact",
-        "  C   compact, then park (the note first)",
-        "  r   resume a parked session in its pane (recreated when gone)",
-        "  R   swap: park and resume at once, to restart on the current claude",
-        "  g   go to the pane and close the dashboard",
-        "  S   park every session idle for at least a threshold",
-        "  n   edit a parked session's note",
-        "  x   forget a parked session's record (the transcript stays)",
-        "  /   filter by name, cwd or label",
+        "  C   compact+park: compact, then park (the note first)",
+        "  r   unpark: resume a parked session in its pane (recreated when gone)",
+        "  R   tune-up: park and unpark at once, to restart on the current claude",
+        "  g   go: go to the pane and close the dashboard",
+        "  S   idlestop: park every session idle for at least a threshold",
+        "  n   note: edit a parked session's note",
+        "  x   void: forget a parked session's record (the transcript stays)",
+        "  /   filter: by name, cwd or label",
         "  i   show or hide the detail line",
         "  j k ↓ ↑   move",
         "  q   close"]

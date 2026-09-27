@@ -42,10 +42,17 @@ class ScreenTest(unittest.TestCase):
         self.assertEqual(lines[3], table.line(table.cells(first), 78, selected=True))
         self.assertEqual(lines[4], table.line(table.cells(second), 78, selected=False))
         self.assertEqual(lines[5], lines[1])
-        self.assertTrue(lines[6].startswith(" s park  c compact  C compact+park  r resume"), lines[6])
+        self.assertTrue(lines[6].startswith(" s park  c compact  C compact+park  r unpark"), lines[6])
         self.assertEqual(len(lines), 7)
         for line in lines:
             self.assertLessEqual(display.width(line), 78)
+
+
+    def test_the_footer_names_the_keys_with_parking_words_and_no_threshold(self):
+        footer = board(live()).lines(200, 20)[-1]
+        for part in ("r unpark  R tune-up", "S idlestop  n note  x void"):
+            self.assertIn(part, footer)
+        self.assertNotIn("60m", footer)
 
 
 class DetailTest(unittest.TestCase):
@@ -463,6 +470,15 @@ class HelpTest(unittest.TestCase):
         shown.on_input(b"j")
         self.assertIsNone(shown.dialog)
         self.assertEqual(shown.selected, 0)  # the key only closed the help
+
+    def test_the_help_gives_each_parking_name_with_what_it_does_in_plain_words(self):
+        shown = board(live(), actions=FakeActions())
+        shown.on_input(b"?")
+        text = "\n".join(shown.dialog.lines())
+        for part in ("r   unpark: resume a parked session", "R   tune-up: park and unpark at once",
+                     "S   idlestop: park every session idle", "n   note: edit a parked session's note",
+                     "x   void: forget a parked session's record"):
+            self.assertIn(part, text)
 
 
 if __name__ == "__main__":
