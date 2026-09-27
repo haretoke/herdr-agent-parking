@@ -751,6 +751,20 @@ server is never restarted.
       the same session ran as an interactive Claude in the pane on 2.1.282, the label came
       back, and the record moved to `resumed/`. It answered in 1.7 s, which showed that the
       start check took any session id Herdr kept, even on a pane without a Claude (fixed)
+- [x] the worktree question on /exit (`Exiting worktree session`, `1. Keep worktree` /
+      `2. Remove worktree`) is answered with Enter only when Keep is the selected answer;
+      Remove selected or no selection read → nothing pressed, park_failed at once (seen in
+      the container: `w1:p1W`, 77 commits on the branch, the park waited 20 s)
+- [x] park and compact go by Claude's own list for the pane's process (`kind: interactive`
+      with its `pid`): its `sessionId` for the record and the transcript, its `status` (busy,
+      waiting) over Herdr's; a different Herdr id is said in the outcome. Seen in the
+      container: the daemon had been started from `w1:p1W` three days before, its
+      background workers' hooks reported to that pane (they inherit its `HERDR_PANE_ID`),
+      and Herdr named cd36bb2e ("ga4 event funnel design review") for the Claude running
+      76a720b1 ("sitemap"): the park recorded cd36bb2e
+- [ ] still on Herdr's word on such a pane: the dashboard row's id, ctx and idle time, the
+      unpark's start check (`_running_session`), and `agent.prompt` refusing `/exit` as
+      `agent_blocked` on a borrowed status
 - [ ] `S` with a pane showing a background session (real device)
 - [ ] not checked: whether `claude agents --json` and `claude stop` are scoped by
       `CLAUDE_CONFIG_DIR` (the list was the same with the alt account's
