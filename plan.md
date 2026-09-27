@@ -809,11 +809,13 @@ server is never restarted.
       pane closed and the row said `compacted 0m` with the note. `r` recreated the pane
       and resumed the same UUID, the row still `compacted`; asked what happened before,
       the resumed Claude answered from its summary ("…replied with ok, no actual work")
-- [ ] Mac local: ctx matches the statusline (tokens and percentage) for a haiku session and
+- [x] Mac local: ctx matches the statusline (tokens and percentage) for a haiku session and
       an Opus session with the window configured
       (2026-09-27, haiku half): with `context_window_by_model = {"claude-haiku-4-5": 200000}`
-      the row said `39k 19%` while that Claude's statusline said `ctx 19%`. The Opus half
-      is left: it needs an Opus test session
+      the row said `39k 19%` while that Claude's statusline said `ctx 19%`. Opus
+      (`claude-opus-5-5`, 1M window per the statusline's `¹ᴹ`, one prompt): with
+      `"claude-opus-5-5": 1000000` the row said `45k 4%` (2 + 19962 + 24754 tokens) and
+      the statusline `ctx 4%`
 - [ ] WSL2 thin client + container: the dashboard lists only the server-side (container)
       Claudes, parks and resumes; records are in the container's state directory
 - [x] Mac local: idle times stay exact when two status events arrive in one packet (the
