@@ -437,7 +437,8 @@ class BulkParkTest(unittest.TestCase):
     def test_S_edits_the_threshold_lists_targets_and_reasons_takes_one_note_confirms_then_parks(self):
         shown = board(*self.rows, actions=self.actions)
         shown.on_input(b"S")
-        self.assertEqual(shown.lines(78, 30)[-1], " > 60")
+        self.assertEqual(shown.lines(78, 30)[-2:],
+                         [" idlestop: park every session idle for at least (minutes):", " > 60"])
         shown.on_input(b"\r")
         text = "\n".join(shown.dialog.lines())
         self.assertIn("[x] w8/t3/p1", text)

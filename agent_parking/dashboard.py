@@ -153,7 +153,7 @@ class Dashboard:
             elif key == "C":
                 self._compact_then_park()
             elif key == "S":
-                self._ask(dialogs.TextInput(["park every session idle for at least (minutes):"],
+                self._ask(dialogs.TextInput(["idlestop: park every session idle for at least (minutes):"],
                                             initial=str(self.actions.bulk_minutes())), self._bulk_targets)
             elif key == "?":
                 self._ask(dialogs.Confirm(HELP, {}, others_cancel=True), lambda _: None)

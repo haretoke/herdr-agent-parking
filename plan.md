@@ -734,7 +734,7 @@ server is never restarted.
       60), and `?` gives each name with what it does in plain words (asked by the user:
       `resume` and the like are also Claude's own words; names chosen from Codex's
       proposals and a web search)
-- [ ] the dialogs and progress messages of `r`, `R`, `S` and `x` use those names
+- [x] the dialogs and progress messages of `r`, `R`, `S` and `x` use those names
 
 ### cli
 - [x] `dashboard` starts the pane process
