@@ -805,7 +805,14 @@ server is never restarted.
       Then `r` answered `resume pending` in a few seconds; after `Yes, I trust this
       folder` in the pane, Claude resumed the same UUID and the next refresh settled the
       record by itself (moved to `resumed/`, label back), so `r` was not even needed
-- [ ] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
+- [x] Mac local: `S` parks only sessions idle for 60 minutes or more, in order
+      (2026-09-27, the 60-minute default itself, nine haiku sessions left idle for an
+      hour in the isolated session): the list marked the eight idle 1h07m–1h11m and
+      skipped the one prompted a minute before with "idle 0m"; Enter with no note gave
+      `parked 8 of 8`, in list order. Six of them had never been prompted and had no
+      transcript, and `r` on one waited 30 s, then failed (`No conversation found`);
+      fixed with tests: such a Claude is not parked (`s` `c` `C` `R` say why, `S` skips it
+      as "no conversation yet"), and `r` refuses such a record at once
       (2026-09-27, with the threshold edited to 5 minutes instead of waiting an hour):
       the list marked the rows idle 12m and 9m and skipped the one idle 1m with its
       reason; one note for both; `parked 2 of 2`, in list order. The 60-minute default

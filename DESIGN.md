@@ -123,7 +123,7 @@ Every Claude pane on this server, with these columns:
 | Key | Operation | Condition |
 |---|---|---|
 | `j` / `k` / `↓` / `↑` | Move the selection | |
-| `s` | Park | `agent_status` is `idle` or `done` and the input box is empty; `working` / `blocked` / `unknown` are refused with a reason |
+| `s` | Park | `agent_status` is `idle` or `done`, the input box is empty, and the session has a transcript; `working` / `blocked` / `unknown` are refused with a reason, and so is a Claude never prompted (`claude --resume` finds no conversation for it, seen on the Mac; `S` skips it as "no conversation yet", and `r` refuses such a record at once and points to `x`) |
 | `c` | Compact | Same as park |
 | `C` | Compact, then park (the note is asked first) | Same as park |
 | `r` | Resume | A row with a record. Recreate when the pane is gone |

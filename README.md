@@ -67,7 +67,9 @@ description = "agent parking"
 | `g` | Go to the pane and close the dashboard |
 | `/`, `i`, `?`, `q` | Filter, detail line, key help, close |
 
-Only `idle` and `done` sessions with an empty input box are parked or compacted.
+Only `idle` and `done` sessions with an empty input box are parked or compacted, and
+only once they have a conversation: a Claude that was never prompted has nothing to
+resume, so exit it instead.
 Parking ends the process: background tasks, running subagents and MCP server state
 do not come back.
 
