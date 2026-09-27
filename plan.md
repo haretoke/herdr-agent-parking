@@ -740,8 +740,18 @@ server is never restarted.
 - [x] parking and unparking Claude's background sessions themselves: the user chose
       `claude stop <id>`, then `claude --resume <uuid>` (a Claude of its own that Herdr tracks)
       over `claude attach <id>` (Herdr knows its id only in the pane that started the daemon)
-- [ ] real device: a pane showing a background session in the container parks and unparks
-      (`claude agents` with a session opened, like `w1:p1W`); `S` includes such panes
+- [x] real device: a pane showing a background session in the container parks and unparks
+      (2026-09-27, v0.1.8, `kaitori-poc-app-1`, asked by the user): `w1:p1W` ran
+      `claude agents` with the session "sitemap" (76a720b1, Claude 2.1.281, a worktree)
+      opened. `park w1:p1W` answered "stopped Claude's background session 76a720b1" in
+      6.7 s: after `claude stop` the view printed `claude --worktree … --resume "sitemap"`
+      and exited by itself, the pane was a shell labelled `💤 sitemap`, and the view
+      (138 MB) and the worker (455 MB) were gone. `resume` typed the `cd` into the worktree
+      and `env CLAUDE_CONFIG_DIR=… CLAUDE_SECURESTORAGE_CONFIG_DIR=… claude --resume <uuid>`:
+      the same session ran as an interactive Claude in the pane on 2.1.282, the label came
+      back, and the record moved to `resumed/`. It answered in 1.7 s, which showed that the
+      start check took any session id Herdr kept, even on a pane without a Claude (fixed)
+- [ ] `S` with a pane showing a background session (real device)
 - [ ] not checked: whether `claude agents --json` and `claude stop` are scoped by
       `CLAUDE_CONFIG_DIR` (the list was the same with the alt account's
       `CLAUDE_SECURESTORAGE_CONFIG_DIR`); both run with the pane's own account variables
