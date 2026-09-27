@@ -156,6 +156,20 @@ class OnParkTest(FlowTestCase):
                 self.assertIn(reason, outcome.message)
 
 
+class AccountTest(FlowTestCase):
+    def test_the_variables_that_pick_the_account_are_recorded_and_nothing_else(self):
+        # Seen on the Mac: claude-alt is claude with CLAUDE_SECURESTORAGE_CONFIG_DIR set.
+        rt = self.flow()
+        rt.system.environs = {200: {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt", "HOME": "/h",
+                                    "ANTHROPIC_API_KEY": "sk-secret"}}
+        park.park(rt, "w1:p2", note=None)
+        self.assertEqual(self.saved()["env"], {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
+
+    def test_a_claude_whose_environment_cannot_be_read_records_none(self):
+        park.park(self.flow(), "w1:p2", note=None)
+        self.assertEqual(self.saved()["env"], {})
+
+
 class NamedSessionTest(FlowTestCase):
     def test_a_named_session_whose_top_rule_carries_its_name_is_parked(self):
         # Seen on the Mac: "─── summit-202606 ─" above an empty box was refused as a draft.

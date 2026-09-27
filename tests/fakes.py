@@ -10,6 +10,7 @@ class FakeSystem:
         self.links = {}
         self.found = {}
         self.rss_calls = []
+        self.environs = {}
 
     def realpath(self, path):
         return self.links.get(path, path)
@@ -23,6 +24,9 @@ class FakeSystem:
     def rss_many(self, pids):
         self.rss_calls.append(list(pids))
         return {pid: self.rss[pid] for pid in pids if pid in self.rss}
+
+    def environ(self, pid):
+        return self.environs.get(pid)
 
     def cmdline(self, pid):
         return self.cmdlines.get(pid)

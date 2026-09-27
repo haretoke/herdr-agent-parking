@@ -67,6 +67,14 @@ def argv_of(process, system):
     return process.get("argv") or system.cmdline(process.get("pid")) or []
 
 
+def account_env(process, system, settings):
+    """The variables in `resume_env` that the Claude process runs with (its account and
+    config directory; claude-alt style wrappers set them), for its resume. Nothing else of
+    its environment is kept."""
+    environ = (system.environ(process.get("pid")) if process else None) or {}
+    return {name: environ[name] for name in settings["resume_env"] if name in environ}
+
+
 def running_version(process, system):
     """The version the Claude process runs: on Linux the name of the executable
     `/proc/<pid>/exe` points to, on macOS Herdr's process `name`; None unless it looks

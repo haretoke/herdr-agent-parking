@@ -30,6 +30,7 @@ def park(rt, pane_id, note, keep=False):
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         "cwd": process.get("cwd") or pane.cwd,
         "argv": inventory.argv_of(process, rt.system) if process else [],
+        "env": inventory.account_env(process, rt.system, rt.settings),
         "claude_version": inventory.running_version(process, rt.system) if process else None,
         "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),
         "context_at_park": _context(rt, pane.session_id),
