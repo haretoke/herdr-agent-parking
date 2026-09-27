@@ -741,7 +741,10 @@ server is never restarted.
       `claude stop <id>`, then `claude --resume <uuid>` (a Claude of its own that Herdr tracks)
       over `claude attach <id>` (Herdr knows its id only in the pane that started the daemon)
 - [ ] real device: a pane showing a background session in the container parks and unparks
-      (`claude agents` with a session opened, like `w1:p1W`)
+      (`claude agents` with a session opened, like `w1:p1W`); `S` includes such panes
+- [ ] not checked: whether `claude agents --json` and `claude stop` are scoped by
+      `CLAUDE_CONFIG_DIR` (the list was the same with the alt account's
+      `CLAUDE_SECURESTORAGE_CONFIG_DIR`); both run with the pane's own account variables
 
 ### recreate (fake herdr)
 - [x] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio
