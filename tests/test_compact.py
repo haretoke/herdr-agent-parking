@@ -24,6 +24,17 @@ class PrepareTest(FlowTestCase):
                 self.assertNotIn("agent.prompt", self.fake.methods())
 
 
+class AgentViewTest(FlowTestCase):
+    def test_agent_view_gets_no_preparation_since_its_box_would_dispatch_a_new_session(self):
+        view = pane_reply()
+        view["pane"]["terminal_title_stripped"] = "claude agents"
+        rt = self.flow(**{"pane.get": view})
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("agent view", outcome.message)
+        self.assertNotIn("agent.prompt", self.fake.methods())
+
+
 class PreparePromptTest(FlowTestCase):
     def test_a_set_prepare_prompt_is_sent_instead(self):
         self.settings["prepare_prompt"] = "Save state, then give a focus."

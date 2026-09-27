@@ -3,6 +3,10 @@
 from . import screen
 
 READY_STATUSES = ("idle", "done")
+# Claude's agent view titles its terminal "6 awaiting input · claude agents". Herdr keeps
+# the id of the session the pane showed before (seen in a container and on the Mac).
+AGENT_VIEW = ("this pane shows Claude's agent view (claude agents), not a session; "
+              "open the session there, or exit the view with /exit by hand")
 
 
 def check(rt, pane_id, action):
@@ -11,6 +15,8 @@ def check(rt, pane_id, action):
     pane = rt.herdr.pane(pane_id)
     if pane is None or pane.agent != "claude":
         return pane, "no Claude in %s" % pane_id
+    if (pane.title or "").endswith("claude agents"):
+        return pane, AGENT_VIEW
     if pane.agent_status not in READY_STATUSES:
         return pane, "Claude is %s; only idle or done sessions %s" % (pane.agent_status, action)
     if not pane.session_id:

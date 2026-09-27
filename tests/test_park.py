@@ -27,6 +27,19 @@ class IntegrationTest(FlowRuntimeTestCase):
         self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+class AgentViewTest(FlowRuntimeTestCase):
+    def test_a_pane_showing_claudes_agent_view_is_refused_before_anything_is_sent(self):
+        # Seen in a container: after /exit in `claude attach`, the pane showed agent view
+        # while Herdr kept the session id; the park's /exit only closed the view.
+        view = pane_reply()
+        view["pane"]["terminal_title_stripped"] = "6 awaiting input · claude agents"
+        rt = self.runtime({"pane.get": view})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("agent view", outcome.message)
+        self.assertEqual(self.fake.methods(), ["pane.get"])
+
+
 class DraftTest(FlowRuntimeTestCase):
     def test_a_half_typed_line_is_refused_and_no_exit_is_sent(self):
         rt = self.runtime({"pane.get": pane_reply(), "agent.read": screen_reply("❯ half typed line")})
