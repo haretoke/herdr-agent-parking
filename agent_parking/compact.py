@@ -59,6 +59,7 @@ def _send_and_wait(rt, pane_id, text):
     # The wait rides on the prompt request, so no status change can slip in between
     # (it may take minutes: the preparation can commit and push).
     seconds = rt.settings["prepare_timeout_seconds"]
+    ready.empty_box(rt, pane_id)
     return rt.herdr.call("agent.prompt", {"target": pane_id, "text": text, "wait": {
         "until": ["idle", "done", "blocked"], "timeout_ms": int(seconds * 1000)}},
         timeout=seconds + herdr_api.WAIT_MARGIN_SECONDS)
@@ -90,6 +91,7 @@ def run(rt, pane_id, focus):
     line = " ".join((focus or "").split())
     sent_at = rt.clock()
     timeout = rt.settings["compact_timeout_seconds"]
+    ready.empty_box(rt, pane_id)
     rt.herdr.call("agent.prompt", {"target": pane_id, "text": ("/compact " + line).strip(), "wait": {
         "until": ["idle", "done"], "timeout_ms": int(timeout * 1000)}},
         timeout=timeout + herdr_api.WAIT_MARGIN_SECONDS)

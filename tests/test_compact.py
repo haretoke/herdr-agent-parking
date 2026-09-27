@@ -24,6 +24,18 @@ class PrepareTest(FlowTestCase):
                 self.assertNotIn("agent.prompt", self.fake.methods())
 
 
+class EmptyBoxTest(FlowTestCase):
+    def test_the_box_is_emptied_before_the_preparation_and_the_compact_are_typed(self):
+        # A blank left in the box turns a command into a message (' /exit' in a container).
+        rt = self.flow(**{"agent.prompt": {"type": "agent_info"}, "pane.get": pane_reply()})
+        compact.prepare(rt, "w1:p2")
+        compact.run(rt, "w1:p2", "keep the port map")
+        sent = [r["method"] for r in self.fake.requests if r["method"] in ("pane.send_keys", "agent.prompt")]
+        self.assertEqual(sent, ["pane.send_keys", "agent.prompt"] * 2)
+        self.assertEqual({tuple(r["params"]["keys"]) for r in self.fake.requests if r["method"] == "pane.send_keys"},
+                         {("ctrl+u",)})
+
+
 class OwnSessionTest(FlowTestCase):
     def test_the_transcript_read_is_the_one_of_the_session_claude_lists_for_the_panes_process(self):
         # Herdr may name another session on a pane that started Claude's daemon (seen in a
