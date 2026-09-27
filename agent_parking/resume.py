@@ -61,10 +61,7 @@ def resume(rt, session_id, new_workspace=False):
             return Outcome("resume_failed", record["error"], record)
         if error.code != "agent_not_ready":
             raise
-        record["status"] = "resume_pending"
-        records.write(rt.paths.records, record)
-        return Outcome("resume_pending", "Claude is waiting at a dialog (trust, login); answer it in the "
-                                         "pane (g), then press r again", record)
+        return _pending(rt, record)
     running = _running_session(rt, pane_id)
     if running != session_id:
         record.update(status="resume_failed",
@@ -79,6 +76,14 @@ def resume(rt, session_id, new_workspace=False):
                       timeout=rt.settings["start_timeout_ms"] / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
         rt.herdr.call("agent.prompt", {"target": pane_id, "text": record["note"]})
     return outcome
+
+
+def _pending(rt, record):
+    """Claude waits at a dialog: the record says so, and `r` again finishes once it is answered."""
+    record["status"] = "resume_pending"
+    records.write(rt.paths.records, record)
+    return Outcome("resume_pending", "Claude is waiting at a dialog (trust, login); answer it in the "
+                                     "pane (g), then press r again", record)
 
 
 SESSION_POLL_SECONDS = 0.5
