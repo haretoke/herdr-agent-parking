@@ -485,6 +485,40 @@ server is never restarted.
       (2026-09-27, 3 tries): each time `agent prompt ... --wait` returned, the assistant's
       reply text was already in the transcript. The flow reads right after the wait and
       retries once after 0.5 s only if the reply is missing
+- [x] Claude's background sessions (`/bg`, `claude --bg`, `claude attach`, agent view)
+      (2026-09-27, after an unpark in the container failed with "expected session
+      41038c12 … found None": the pane had shown agent view with a stale session id, the
+      park's `/exit` only closed the view, and `claude --resume` answered "is running as a
+      background session … `claude attach` … or `claude stop` first"; the typed start
+      waited 30 s without showing that line). Mac, Claude 2.1.283, throwaway Herdr, test
+      sessions (haiku) removed with `claude rm` afterwards:
+      - `claude agents --json` (0.7 s, the same list with the alt account's
+        `CLAUDE_SECURESTORAGE_CONFIG_DIR`) lists every live interactive Claude as
+        `kind: interactive` with `pid`, `sessionId`, `status` (`idle`, `busy`), and
+        background sessions as `kind: background` with the short `id`, `sessionId`,
+        `status` (`idle`, `busy`, `waiting` with `waitingFor: "permission prompt"`) and
+        `state` (`blocked`, `done`: agent view's grouping, not liveness). A running one has
+        a `pid`; a stopped one is listed only with `--all`, without `pid`
+      - `/bg` in an interactive Claude forks: the worker runs `--session-id <new>
+        --fork-session --resume <old transcript>`, the pane's Claude exits to the shell
+        printing `backgrounded · <id>` and the `claude attach/logs/stop` lines; Herdr then
+        shows `agent: null` with the new session id
+      - `claude attach <id>` in a pane: Herdr shows `agent: claude`, and the session id and
+        status only when the daemon was started from that pane (the daemon keeps the
+        `HERDR_PANE_ID` of the client that started it and its workers inherit it); attached
+        from another pane, the session is `null`. The attach client itself is ~127 MB
+      - `/exit` in an attach client turns it into agent view (argv `claude agents`, title
+        `N awaiting input · claude agents`) while Herdr keeps `agent: claude` and the old
+        session id: the incident. `/exit` in agent view returns to the shell and dispatches
+        nothing. Ctrl+Z in an attach client returns to the shell; the session keeps running
+      - `claude stop <id>`: the worker (~280 MB) and its pty host (~57 MB) exit; the
+        daemon (~130 MB) and one spare (~200 MB) stay while other background sessions run,
+        and the daemon exits once none is left
+      - after a stop, `claude attach <id>` runs it again under the same id (usable in
+        ~3 s), and `claude --resume <uuid>` runs it as an interactive Claude under the same
+        UUID that Herdr detects as usual
+      - `claude respawn <id>`: a new worker under the same id in ~2.4 s; a pending
+        permission prompt was dropped (`waiting` became `idle`)
 
 ### state / config
 - [x] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
