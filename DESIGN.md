@@ -362,6 +362,10 @@ event has no time either. So the plugin tracks it:
   while a session sits idle; spike 0-19). Only without a readable transcript does it
   get `since = now` and `lower_bound = true`, shown as `≥ 3m`. From the next status
   change on, the dashboard's own tracking takes over.
+- A pane in `observed.json` whose `state_change_seq` moved while no dashboard ran is
+  read the same way (transcript, else a lower bound): the change happened at an
+  unknown time, and counting from the reopening would call an hours-idle session
+  fresh. Under an unchanged seq the saved time stands and the status is Herdr's.
 - Nothing is tracked while the dashboard is closed. People who want continuous
   tracking keep it open in the tab placement. Herdr 0.9.1 plugins have no resident or
   scheduled mechanism (`[[startup]]` runs once and exits, `[[events]]` starts a
