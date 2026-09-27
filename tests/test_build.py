@@ -267,5 +267,16 @@ class ConfigDirTest(BuildTestCase):
         self.assertTrue(got.rows[0].has_transcript)
 
 
+class ParkedAccountTest(BuildTestCase):
+    def test_a_parked_row_carries_the_variables_of_its_record(self):
+        self.park(OTHER, None, "alt notes", 1)
+        path = state.paths(self.environ, self.settings).records / (OTHER + ".json")
+        record = json.loads(path.read_text())
+        record["env"] = {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"}
+        path.write_text(json.dumps(record))
+        got = self.build({})
+        self.assertEqual(got.rows[0].env, {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
+
+
 if __name__ == "__main__":
     unittest.main()

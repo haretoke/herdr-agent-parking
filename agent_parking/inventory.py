@@ -274,6 +274,7 @@ def _record_row(rt, record, pane, now):
     return Row(pane_id=pane.pane_id if pane else None, tab_id=pane.tab_id if pane else record.get("tab_id"),
                workspace_id=pane.workspace_id if pane else record.get("workspace_id"),
                name=record.get("title"), cwd=record.get("cwd"), session_id=session_id,
+               env=dict(record.get("env") or {}),
                ctx=_ctx(rt, summary, session_id, now), record=record,
                idle=display.age((now - parked_at).total_seconds()) if parked_at else "")
 

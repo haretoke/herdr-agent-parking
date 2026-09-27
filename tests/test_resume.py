@@ -368,6 +368,13 @@ class ConfirmationTest(unittest.TestCase):
         self.assertIn('left out: "fix the login bug"', text)
         self.assertIn("LUT の一覧を貼る前で止めた\n  次は色域", text)
 
+    def test_an_account_is_named_and_the_command_shows_how_it_is_picked(self):
+        record = dict(PARKED, env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
+        lines = resume.confirmation(record, NOW)
+        self.assertIn("account alt", lines)
+        self.assertIn("env CLAUDE_SECURESTORAGE_CONFIG_DIR=/h/.claude-creds/alt claude --resume 2716af66 --model haiku",
+                      lines)
+
     def test_nothing_left_out_says_nothing(self):
         self.assertNotIn("left out", "\n".join(resume.confirmation(dict(PARKED, argv=["claude", "-c"]), now=NOW)))
 

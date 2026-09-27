@@ -168,7 +168,12 @@ def confirmation(record, now):
     if parked_at is not None:
         lines[0] += "  parked %s ago" % display.age((now - parked_at).total_seconds())
     lines.append("cwd   %s" % (record.get("cwd") or "?"))
-    lines.append("claude --resume %s %s" % (record["session_id"][:8], " ".join(parsed.flags)))
+    env = record.get("env") or {}
+    if inventory.account_name(env):
+        lines.append("account %s" % inventory.account_name(env))
+    prefix = "".join("env " if i == 0 else "" for i in range(1 if env else 0)) + "".join(
+        "%s=%s " % item for item in sorted(env.items()))
+    lines.append("%sclaude --resume %s %s" % (prefix, record["session_id"][:8], " ".join(parsed.flags)))
     if parsed.dropped:
         lines.append("left out: " + ", ".join('"%s"' % token for token in parsed.dropped))
     if record.get("note"):
