@@ -232,9 +232,12 @@ again resumes from step 3 when a focus tag is already there.
    `agent_session.value` is a UUID. Otherwise refuse.
    Then `agent read <P> --format ansi` to make sure Claude's input box is empty: with
    a half-typed line, `agent prompt "/exit"` appends `/exit` and submits both as a
-   prompt (spike 0-13). The box is the last `❯` line between two `─` rules; it is empty
-   when nothing follows `❯ ` except dim (`ESC[2m`) placeholder text. If not empty,
-   refuse with "a draft is in the input box" (the person clears it with `g` + Ctrl+C).
+   prompt (spike 0-13). The box is the last `❯` line between two `─` rules; a named
+   session carries its name in the upper rule (`──── summit-202606 ─`, seen on the Mac),
+   so a rule is a line that starts with `───` and ends with `─`. The box is empty when
+   nothing follows `❯ ` except dim (`ESC[2m`) placeholder text. A draft is refused with
+   "a draft is in the input box" (the person clears it with `g` + Ctrl+C); a screen
+   where no box is found is refused as such, never reported as a draft.
 2. `pane process-info --pane <P>`: the Claude process is the foreground group leader
    (`pid == foreground_process_group_id`); take its `pid` and `cwd`, its `argv` (from
    `/proc/<pid>/cmdline` when Herdr gives none, as on Linux) and its version (see the

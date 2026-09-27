@@ -711,6 +711,10 @@ server is never restarted.
 - [x] an unexpected exception is logged to `dashboard.log` before exit
 - [x] a second dashboard at the same time does not corrupt `observed.json`
 - [x] `?` lists every key with what it does; any key closes the list
+- [x] a named session (its name in the rule above the input box) with an empty box is
+      parked; a box that cannot be found is reported as such, not as a draft (seen on
+      the Mac: `wJ:pS`, named `summit-202606`, was refused as having a draft; after the
+      fix all eight live Claudes on the Mac read `empty`)
 - [x] one dashboard at a time: `open` closes an overlay left open elsewhere and opens it
       again here; a dashboard kept in a tab is focused by either action; an announcement
       whose process or pane is gone does not count (asked by the user after `open` from a
