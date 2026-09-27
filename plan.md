@@ -825,8 +825,11 @@ server is never restarted.
       the events of the compaction arrived together while the dashboard waited, and only
       the first was read. Fixed with tests: the subscription keeps its own line buffer
       and hands over every complete line at each wake
-- [ ] Mac local: polling nine sessions every 2 s stays light (one `ps` per pid on macOS;
+- [x] Mac local: polling nine sessions every 2 s stays light (one `ps` per pid on macOS;
       one `ps -o pid=,rss= -p a,b,c` per refresh if it shows)
+      (2026-09-27, nine haiku sessions, 2.2 GB): the dashboard used 1.5 s of CPU in 30 s,
+      plus some 27 `ps` processes every 2 s. It showed, so each refresh now reads every
+      pane's memory with one `ps` (fixed with tests): 0.9 s in 30 s and one `ps`
 - [x] Mac local: SIGTERM during a long preparation closes the dashboard only when the wait
       returns; decide whether the stop signal should interrupt it
       (decided 2026-09-27 with the user: the action finishes, then the dashboard exits.
