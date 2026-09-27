@@ -28,7 +28,9 @@ def park(rt, pane_id, note, keep=False):
     background, refusal = _shown_background(pane, seen)
     if refusal:
         return Outcome("refused", refusal, None)
-    own, remark, _ = agents.own_session(seen, pane)
+    own, remark, entry = agents.own_session(seen, pane)
+    if entry and agents.not_idle(entry, ""):
+        return Outcome("refused", agents.not_idle(entry, ""), None)
     session_id = background["sessionId"] if background else own
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(session_id):

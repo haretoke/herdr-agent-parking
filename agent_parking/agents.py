@@ -41,15 +41,15 @@ def running_background(entries, session_id, short_id=None):
     return None
 
 
-def not_idle(entry):
-    """Why a background session is not stopped now, or None when it is idle. Herdr's status
-    for a pane showing one is not its own (seen on the Mac); Claude's list says `busy`, or
-    `waiting` with what for (`permission prompt`)."""
+def not_idle(entry, where=" in the background"):
+    """Why the session of Claude's `entry` is not parked now, or None when it is idle. Herdr's
+    status for a pane may be another session's (seen on the Mac and in a container);
+    Claude's list says `busy`, or `waiting` with what for (`permission prompt`)."""
     if entry.get("status") == "idle":
         return None
     if entry.get("waitingFor"):
-        return "Claude waits for a %s in the background; answer it first (g)" % entry["waitingFor"]
-    return "Claude is %s in the background; only idle sessions park" % (entry.get("status") or "unknown")
+        return "Claude waits for a %s%s; answer it first (g)" % (entry["waitingFor"], where)
+    return "Claude is %s%s; only idle sessions park" % (entry.get("status") or "unknown", where)
 
 
 def why_not_stop(entry, title):

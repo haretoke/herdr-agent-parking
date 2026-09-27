@@ -392,6 +392,17 @@ class OwnSessionTest(FlowTestCase):
         self.assertEqual(outcome.record["session_id"], UUID)
         self.assertIn("Herdr named cd36bb2e; Claude says 2716af66", outcome.message)
 
+    def test_a_claude_that_says_it_is_busy_or_waiting_is_not_parked_though_herdr_says_idle(self):
+        # On such a pane Herdr's status may be another session's.
+        for status, said in (("busy", "Claude is busy"), ("waiting", "Claude is waiting")):
+            with self.subTest(status=status):
+                rt = self.flow()
+                rt.system.agents = [{"kind": "interactive", "pid": 200, "sessionId": UUID, "status": status}]
+                outcome = park.park(rt, "w1:p2", note=None)
+                self.assertEqual(outcome.kind, "refused")
+                self.assertIn(said, outcome.message)
+                self.assertNotIn("agent.prompt", self.fake.methods())
+
 
 def worktree_question(selected):
     """Claude's question on /exit in one of its worktrees, as in the container."""
