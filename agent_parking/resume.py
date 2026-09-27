@@ -53,19 +53,28 @@ def resume(rt, session_id, new_workspace=False):
         except herdr_api.HerdrError:
             pass
     flags = argv.resume_flags(record.get("argv") or ["claude"]).flags
-    try:
-        start_ms = int(rt.settings["start_timeout_ms"])
-        rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
-                                      "args": ["--resume", session_id] + flags, "timeout_ms": start_ms},
-                      timeout=start_ms / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
-    except herdr_api.HerdrError as error:
-        if error.code == "timeout":
-            record.update(status="resume_failed", error="%s\n%s" % (error, _tail(rt, pane_id)))
-            records.write(rt.paths.records, record)
-            return Outcome("resume_failed", record["error"], record)
-        if error.code != "agent_not_ready":
-            raise
-        return _pending(rt, record)
+    env = record.get("env") or {}
+    if env:
+        # The variables that picked its account (claude-alt style wrappers) must be set
+        # again, and agent.start takes no environment: type the command with `env` first.
+        _type(rt, pane_id, " ".join(
+            ["env"] + [shlex.quote("%s=%s" % item) for item in sorted(env.items())]
+            + [shlex.quote(rt.settings["claude_command"]), "--resume", shlex.quote(session_id)]
+            + [shlex.quote(flag) for flag in flags]))
+    else:
+        try:
+            start_ms = int(rt.settings["start_timeout_ms"])
+            rt.herdr.call("agent.start", {"name": agent_name(session_id), "kind": "claude", "pane_id": pane_id,
+                                          "args": ["--resume", session_id] + flags, "timeout_ms": start_ms},
+                          timeout=start_ms / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
+        except herdr_api.HerdrError as error:
+            if error.code == "timeout":
+                record.update(status="resume_failed", error="%s\n%s" % (error, _tail(rt, pane_id)))
+                records.write(rt.paths.records, record)
+                return Outcome("resume_failed", record["error"], record)
+            if error.code != "agent_not_ready":
+                raise
+            return _pending(rt, record)
     running = _running_session(rt, pane_id)
     if running is AT_DIALOG:
         return _pending(rt, record)

@@ -142,6 +142,25 @@ class NotReadyTest(ResumeTestCase):
         self.assertEqual(self.saved()["status"], "resume_pending")
 
 
+class AccountTest(ResumeTestCase):
+    def test_a_session_parked_with_an_account_variable_resumes_with_it(self):
+        # agent.start takes no environment, so the command is typed with `env` in front.
+        self.park_record(env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/my alt"})
+        outcome = resume.resume(self.resuming(), UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertNotIn("agent.start", self.fake.methods())
+        [typed] = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_input"]
+        self.assertEqual(typed, {"pane_id": "w1:p2", "keys": ["Enter"], "text":
+                                 "env 'CLAUDE_SECURESTORAGE_CONFIG_DIR=/h/.claude-creds/my alt' claude --resume "
+                                 + UUID + " --model haiku"})
+
+    def test_without_account_variables_agent_start_is_used_as_before(self):
+        self.park_record(env={})
+        resume.resume(self.resuming(), UUID)
+        self.assertIn("agent.start", self.fake.methods())
+        self.assertNotIn("pane.send_input", self.fake.methods())
+
+
 class NoConversationTest(ResumeTestCase):
     def test_a_record_whose_session_has_no_transcript_is_refused_before_anything_starts(self):
         # Seen on the Mac: claude --resume said No conversation found, after a 30 s wait.
