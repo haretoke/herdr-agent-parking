@@ -114,7 +114,7 @@ def _close_or_keep(rt, pane_id, tree):
     if rt.settings["on_park"] != "close":
         return "keep", ""
     if not isinstance(tree, dict) or tree.get("type") != "split":
-        return "keep", "kept: the last pane of its tab is never closed"
+        return "keep", "kept as the last pane of its tab"
     if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
         return "keep", "kept: something other than the shell is running there"
     return "close", ""
