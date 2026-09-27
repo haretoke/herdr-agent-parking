@@ -19,7 +19,7 @@ same pane with one key, with a note you left when you parked it.
    wD/t2/p2T 💤   color notes     parked   2d     compacted 2d  —
      ↳ "stopped before pasting the table into the wiki"
  ────────────────────────────────────────────────────────────────────────────────
- s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  …
+ s park  c compact  C compact+park  r unpark  R tune-up  g go  S idlestop  …
 ```
 
 ## Requirements
@@ -55,15 +55,18 @@ description = "agent parking"
 
 ## Keys
 
+The keys are named after parking where Claude has a word of its own (`resume`), and
+`?` in the dashboard gives each name with what it does.
+
 | Key | What it does |
 |---|---|
 | `s` | Park: record how to resume, send `/exit`, keep the pane labelled `💤 …`. Asks for a note first |
-| `r` | Resume a parked session in its pane (`claude --resume <id>` with the flags it had). A closed pane is recreated where it was |
-| `R` | Swap: park and resume at once, to restart on the current `claude` |
+| `r` | Unpark: resume a parked session in its pane (`claude --resume <id>` with the flags it had). A closed pane is recreated where it was |
+| `R` | Tune-up: park and unpark at once, to restart on the current `claude` |
 | `c` | Compact: Claude prepares (`/prepare-compact`), you check its report and the focus, then `/compact <focus>` |
-| `C` | Compact, then park (the note is asked first) |
-| `S` | Park every session idle for at least a threshold (60 minutes by default, editable) |
-| `n` / `x` | Edit a parked session's note / forget its record (the transcript is never touched) |
+| `C` | Compact+park: compact, then park (the note is asked first) |
+| `S` | Idlestop: park every session idle for at least a threshold (60 minutes by default, editable) |
+| `n` / `x` | Note: edit a parked session's note / void: forget its record (the transcript is never touched) |
 | `g` | Go to the pane and close the dashboard |
 | `/`, `i`, `?`, `q` | Filter, detail line, key help, close |
 

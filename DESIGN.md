@@ -17,6 +17,15 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
 - The dashboard opens as an `overlay` by default; the `open-tab` action opens it as
   a tab for people who keep it open.
 - Documents (README, DESIGN.md, plan.md) are in English.
+- The keys are named after parking where Claude has a word of its own: `r` unpark
+  (resume), `R` tune-up (swap), `S` idlestop (bulk park), `x` void (forget the record).
+  `park`, `idle`, `compact`, `compact+park`, `go`, `filter` and `note` stay, and `?`
+  gives each name with what it does. Chosen by the user from Codex's proposals and a
+  web search (2026-09-27): unpark pairs with park and is an established term (Java's
+  `LockSupport.unpark`, CPU core parking); idlestop is the car term (アイドリングストップ)
+  and keeps `idle`; `claude respawn`, which restarts Claude's own background sessions
+  on the current binary, was avoided for `R`. The flows, records and shell commands
+  keep the plain words (`resume`, `resumed`).
 - `on_park` defaults to `keep`: the parked pane stays as an empty shell with a
   `💤 {title}` label. `close` is the alternative.
 - Defaults approved as proposed: label format `💤 {title}` (configurable); the note is
@@ -25,7 +34,7 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
   (lost on a container rebuild, configurable); resumed records are kept 30 days and
   `x` asks for confirmation; `S` defaults to 60 minutes and includes rows whose idle
   time is only a lower bound (`≥`); Codex panes are not listed, only counted in the
-  footer; `R` (swap) asks for confirmation when the running version equals the
+  footer; `R` (tune-up) asks for confirmation when the running version equals the
   current one; RSS is the sum over the foreground process group, with the Claude-only
   value kept in the JSON output; `g` sends `pane.focus` and exits, in every placement
   (spike 0-4: the overlay does not take an explicit focus back).
@@ -70,9 +79,9 @@ still unverified is listed under "Open items" and appears as spikes in `plan.md`
 | Claude pane | A pane whose `agent == "claude"` in `pane list`; `agent_session.value` is the session UUID |
 | park | Send `/exit` to an idle/done Claude pane, write a record, and keep the pane with a marked label (or close it with `on_park = close`) |
 | record | The JSON for a parked session, keyed by the session UUID |
-| resume | Start `claude --resume <UUID>` in the original pane from the record |
+| resume | Start `claude --resume <UUID>` in the original pane from the record (key `r`, unpark) |
 | recreate | When the original pane is gone, create a pane from the record's tab / cwd and resume there |
-| swap | Park and resume right away, so the session comes back on the current `claude` executable |
+| tune-up (swap) | Park and resume right away, so the session comes back on the current `claude` executable (key `R`) |
 | compact | Run the preparation step, then send `/compact <focus>` to the session |
 | idle time | Time since the pane's `agent_status` last changed (tracked by the plugin) |
 | ctx | Context usage of the session: tokens, percentage when the window size is known, or `compacted <age>` |
@@ -108,7 +117,7 @@ Every Claude pane on this server, with these columns:
   original pane's label is restored; if it was found in another pane, `pane_id` is
   moved and the old ID goes to `pane_id_history`. If the record's pane hosts a
   different UUID, the row says "another session is running here" and the record
-  stays (`r` refuses, `x` forgets). Retrying `resume_pending` is part of the same
+  stays (`r` refuses, `x` (void) forgets). Retrying `resume_pending` is part of the same
   reconciliation. `parking` and `park_failed` records are never settled by their running
   session (a park in progress, maybe in another dashboard; a park whose `/exit` did not
   take, whose record waits for a manual `/exit`). A record that vanishes meanwhile
@@ -126,17 +135,17 @@ Every Claude pane on this server, with these columns:
 | `s` | Park | `agent_status` is `idle` or `done`, the input box is empty, and the session has a transcript; `working` / `blocked` / `unknown` are refused with a reason, and so is a Claude never prompted (`claude --resume` finds no conversation for it, seen on the Mac; `S` skips it as "no conversation yet", and `r` refuses such a record at once and points to `x`) |
 | `c` | Compact | Same as park |
 | `C` | Compact, then park (the note is asked first) | Same as park |
-| `r` | Resume | A row with a record. Recreate when the pane is gone |
-| `R` | Swap (park → resume) | Same as park. Asks for confirmation when the running version equals the current one |
+| `r` | Unpark (resume) | A row with a record. Recreate when the pane is gone |
+| `R` | Tune-up (park → resume) | Same as park. Asks for confirmation when the running version equals the current one |
 | `g` | Go to the pane (socket `pane.focus {pane_id}`) and close the dashboard | A row with a pane. Works in every placement: the overlay does not take an explicit focus back when it closes (spike 0-4) |
-| `S` | Park every session idle for at least a threshold | Lists idle/done rows at or above the threshold, including `≥` rows, confirms, then parks in order. The threshold is the only condition; ctx is not |
+| `S` | Idlestop: park every session idle for at least a threshold | Lists idle/done rows at or above the threshold, including `≥` rows, confirms, then parks in order. The threshold is the only condition; ctx is not |
 | `n` | Edit the note | A row with a record |
-| `x` | Forget the record | A row with a record. Asks for confirmation. Never touches the transcript |
+| `x` | Void (forget the record) | A row with a record. Asks for confirmation. Never touches the transcript |
 | `/` | Filter (name, cwd, label) | |
 | `?` | Key help | |
 | `q` | Close | |
 
-Park, swap and `C` ask for a note (Enter on an empty line means no note). Bulk park
+Park, tune-up and `C` ask for a note (Enter on an empty line means no note). Bulk park
 attaches one note to all (may be empty).
 
 ### The note
@@ -456,7 +465,7 @@ wrong one.
                     ↳ 2026-09-24 21:10  "stopped before pasting the table into the wiki"
    (no pane)  💤    billing rollout check    parked   5d      41k           —     2.1.278
  ──────────────────────────────────────────────────────────────────────────────────
- s park  c compact  C compact+park  r resume  R swap  g go  S idle≥60m  n note  x forget  / filter  q
+ s park  c compact  C compact+park  r unpark  R tune-up  g go  S idlestop  n note  x void  / filter  q
 ```
 
 Park confirmation:
