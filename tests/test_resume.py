@@ -195,6 +195,23 @@ class TypedStartExitTest(ResumeTestCase):
         self.assertAlmostEqual(sum(self.slept), resume.TYPED_GRACE_SECONDS)
 
 
+class BackgroundTest(ResumeTestCase):
+    def test_a_session_running_in_claudes_background_is_refused_with_how_to_open_it(self):
+        # The container's record: parked from agent view, its session still ran.
+        self.park_record(env={"CLAUDE_CONFIG_DIR": "/home/node/.claude"})
+        rt = self.resuming()
+        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560}]
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("claude attach 2716af66", outcome.message)
+        self.assertIn("x (void)", outcome.message)
+        self.assertEqual(rt.system.agents_calls, [("/home/u/.local/bin/claude",
+                                                   {"CLAUDE_CONFIG_DIR": "/home/node/.claude"})])
+        self.assertNotIn("pane.send_input", self.fake.methods())
+        self.assertNotIn("agent.start", self.fake.methods())
+        self.assertEqual(self.saved()["status"], "parked")
+
+
 class NoConversationTest(ResumeTestCase):
     def test_a_record_whose_session_has_no_transcript_is_refused_before_anything_starts(self):
         # Seen on the Mac: claude --resume said No conversation found, after a 30 s wait.

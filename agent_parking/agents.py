@@ -4,6 +4,8 @@ does not stop it."""
 
 BACKGROUND = ("this pane shows a session that runs in Claude's background (%s); /exit would leave "
               "it running. `claude stop %s` stops it")
+STILL_RUNNING = ("%s still runs in Claude's background as %s: `claude attach %s` opens it in a pane; "
+                 "x (void) forgets this record")
 
 
 def attached_to(argv):

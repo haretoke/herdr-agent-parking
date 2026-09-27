@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, herdr_api, inventory, park, records, recreate, runtime, times
+from . import agents, argv, display, herdr_api, inventory, park, records, recreate, runtime, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -33,6 +33,10 @@ def resume(rt, session_id, new_workspace=False):
         # `claude --resume` would answer No conversation found (seen on the Mac).
         return Outcome("refused", "no conversation was ever saved for %s, so it cannot be resumed; "
                                   "x (void) forgets the record" % session_id[:8], record)
+    background = _background(rt, record)
+    if background:
+        # `claude --resume` would refuse it (seen in a container): the park never stopped it.
+        return Outcome("refused", agents.STILL_RUNNING % (session_id[:8], background, background), record)
     if decision.kind == "no_pane":
         placed = recreate.place(rt, record, panes, new_workspace=new_workspace)
         if placed.pane_id is None:
@@ -96,6 +100,14 @@ def resume(rt, session_id, new_workspace=False):
                       timeout=rt.settings["start_timeout_ms"] / 1000 + herdr_api.WAIT_MARGIN_SECONDS)
         rt.herdr.call("agent.prompt", {"target": pane_id, "text": record["note"]})
     return outcome
+
+
+def _background(rt, record):
+    """The short id under which Claude still runs the record's session in the background."""
+    started = (record.get("argv") or [None])[0]
+    command = inventory.claude_executable(started, rt.settings, rt.system, rt.environ)
+    return agents.running_background(rt.system.claude_agents(command, record.get("env") or {}),
+                                     record["session_id"])
 
 
 def _pending(rt, record):
