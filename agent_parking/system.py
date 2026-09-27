@@ -98,6 +98,16 @@ class System:
             return None
         return entries if isinstance(entries, list) else None
 
+    def claude_stop(self, command, short_id, env):
+        """`claude stop <short_id>` with `env` added: ends a session of Claude's background and
+        keeps its conversation (1 s on the Mac). Whether it worked."""
+        try:
+            done = self.run([command, "stop", short_id], capture_output=True, text=True, timeout=30,
+                            env=dict(os.environ, **env))
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return done.returncode == 0
+
     def realpath(self, path):
         return os.path.realpath(path)
 

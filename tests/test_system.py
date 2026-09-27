@@ -147,5 +147,28 @@ class ClaudeAgentsTest(unittest.TestCase):
             self.assertIsNone(system.System(run=run).claude_agents("claude", {}))
 
 
+class ClaudeStopTest(unittest.TestCase):
+    def test_stop_runs_with_the_account_added_and_says_whether_it_worked(self):
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append((args, kwargs["env"]))
+            return subprocess.CompletedProcess(args, 0, stdout="stopped 41038c12\n", stderr="")
+
+        self.assertTrue(system.System(run=run).claude_stop("claude", "41038c12", {"CLAUDE_CONFIG_DIR": "/c"}))
+        [(args, env)] = calls
+        self.assertEqual(args, ["claude", "stop", "41038c12"])
+        self.assertEqual(env["CLAUDE_CONFIG_DIR"], "/c")
+
+        def failing(args, **kwargs):
+            return subprocess.CompletedProcess(args, 1, stdout="", stderr="no such session")
+
+        def missing(args, **kwargs):
+            raise FileNotFoundError("claude")
+
+        for run in (failing, missing):
+            self.assertFalse(system.System(run=run).claude_stop("claude", "41038c12", {}))
+
+
 if __name__ == "__main__":
     unittest.main()
