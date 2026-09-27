@@ -116,8 +116,10 @@ def _dashboard(environ):
 def _open(environ, tab):
     """The `open` action: the dashboard over the active pane (overlay); `open-tab`: in a
     new tab of the current workspace, for people who keep it open."""
-    params = {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "tab" if tab else "overlay",
-              "focus": True}
+    placement = "tab" if tab else "overlay"
+    # The dashboard records how it was opened, so the next `open` knows whether to move it.
+    params = {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": placement, "focus": True,
+              "env": {"AGENT_PARKING_PLACEMENT": placement}}
     if tab and environ.get("HERDR_WORKSPACE_ID"):
         params["workspace_id"] = environ["HERDR_WORKSPACE_ID"]
     try:

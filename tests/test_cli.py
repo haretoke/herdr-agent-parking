@@ -76,9 +76,10 @@ class OpenTest(CliTestCase):
         self.assertEqual(cli.main(["open"], self.environ(fake)), 0)
         self.assertEqual(cli.main(["open-tab"], self.environ(fake, HERDR_WORKSPACE_ID="w3")), 0)
         self.assertEqual([r["params"] for r in fake.requests], [
-            {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "overlay", "focus": True},
+            {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "overlay", "focus": True,
+             "env": {"AGENT_PARKING_PLACEMENT": "overlay"}},
             {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": "tab", "focus": True,
-             "workspace_id": "w3"}])
+             "env": {"AGENT_PARKING_PLACEMENT": "tab"}, "workspace_id": "w3"}])
 
     def test_a_refused_open_exits_1_with_herdrs_reason(self):
         fake = self.herdr(Error("plugin_disabled", "plugin haretoke.agent-parking is disabled"))
