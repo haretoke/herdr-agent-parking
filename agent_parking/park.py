@@ -53,7 +53,10 @@ def park(rt, pane_id, note, keep=False):
     if background:
         stopped = "stopped Claude's background session %s" % background["id"]
         # A view showing it goes back to the shell by itself (seen on the Mac).
-        rt.system.claude_stop(command, background["id"], env)
+        if not rt.system.claude_stop(command, background["id"], env):
+            records.discard_parking(rt.paths.records, pane.session_id)
+            return Outcome("park_failed", "`claude stop %s` failed; the session runs on as it was"
+                           % background["id"], None)
     else:
         stopped = ""
         try:

@@ -40,6 +40,10 @@ class AgentViewTest(FlowRuntimeTestCase):
         self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+BACKGROUND_ENTRY = {"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560, "name": "work",
+                    "status": "idle", "state": "done", "cwd": "/repo"}
+
+
 class BackgroundSessionTest(FlowTestCase):
     def test_an_attach_client_is_refused_since_exit_would_leave_the_session_running(self):
         # Seen on the Mac: /exit in `claude attach` turns it into agent view and the
@@ -75,6 +79,16 @@ class BackgroundSessionTest(FlowTestCase):
         saved = self.saved()
         self.assertEqual((saved["status"], saved["session_id"], saved["cwd"], saved["background_id"], saved["note"]),
                          ("parked", UUID, "/repo/.claude/worktrees/site", "2716af66", "wiki"))
+
+    def test_a_failed_stop_leaves_the_session_as_it_was_and_no_record(self):
+        rt = self.flow(**{"pane.get": pane_reply()})
+        rt.system.agents = [dict(BACKGROUND_ENTRY)]
+        rt.system.stopped = False
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "park_failed")
+        self.assertIn("claude stop 2716af66", outcome.message)
+        self.assertIsNone(self.saved())
+        self.assertNotIn("pane.rename", self.fake.methods())
 
     def test_a_stopped_background_session_resumed_as_its_own_claude_is_parked(self):
         # Seen on the Mac: after `claude stop`, `claude --resume <uuid>` runs it in the pane
