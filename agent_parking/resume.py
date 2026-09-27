@@ -63,6 +63,8 @@ def resume(rt, session_id, new_workspace=False):
             raise
         return _pending(rt, record)
     running = _running_session(rt, pane_id)
+    if running is AT_DIALOG:
+        return _pending(rt, record)
     if running != session_id:
         record.update(status="resume_failed",
                       error="expected session %s in %s, found %s" % (session_id, pane_id, running))
@@ -87,17 +89,22 @@ def _pending(rt, record):
 
 
 SESSION_POLL_SECONDS = 0.5
+AT_DIALOG = object()
 
 
 def _running_session(rt, pane_id):
     """The session Herdr sees in the pane after the start. Herdr can detect it a moment
     after `agent.start` returns (seen on the Mac), so no session yet is asked again until
-    the start timeout; another session is an answer at once."""
+    the start timeout; another session is an answer at once. AT_DIALOG when Claude is
+    `blocked` without a session: `agent.start` returns at the trust dialog (seen on the
+    Mac) instead of failing with `agent_not_ready`."""
     limit = rt.settings["start_timeout_ms"] / 1000
     waited = 0.0
     while True:
         pane = rt.herdr.pane(pane_id)
         running = pane.session_id if pane is not None else None
+        if running is None and pane is not None and pane.agent_status == "blocked":
+            return AT_DIALOG
         if running is not None or waited >= limit:
             return running
         rt.sleep(SESSION_POLL_SECONDS)

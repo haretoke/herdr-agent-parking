@@ -129,6 +129,19 @@ class NotReadyTest(ResumeTestCase):
         self.assertEqual(self.saved()["status"], "resume_pending")
 
 
+    def test_a_start_that_returns_with_claude_blocked_at_a_dialog_is_pending_at_once(self):
+        # Seen on the Mac: at the trust dialog agent.start returned, the pane said blocked
+        # with no session yet, and the resume waited out the start timeout, then failed.
+        self.park_record()
+        at_dialog = pane_reply(status="blocked", session_id=None)
+        outcome = resume.resume(self.resuming(**{"pane.get": [SHELL, at_dialog]}), UUID)
+        self.assertEqual(outcome.kind, "resume_pending")
+        self.assertIn("answer", outcome.message)
+        self.assertEqual(self.slept, [])
+        self.assertNotIn("pane.rename", self.fake.methods())
+        self.assertEqual(self.saved()["status"], "resume_pending")
+
+
 class AlreadyRunningTest(ResumeTestCase):
     def test_a_retry_after_the_dialog_only_finishes_the_resume(self):
         self.park_record(status="resume_pending")
