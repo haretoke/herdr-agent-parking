@@ -201,7 +201,7 @@ def other_agents(panes):
     return counts
 
 
-def _labels(rt, method, key, id_key):
+def labels(rt, method, key, id_key):
     """`{id: label}` from `workspace.list` or `tab.list`; none when Herdr cannot say (the
     labels only help to recognize a row) or the label is only the number."""
     try:
@@ -227,8 +227,8 @@ def build(rt, tracker, own_pane_id):
     """The dashboard's rows now: every Claude pane but the dashboard's own."""
     now = rt.clock()
     panes = rt.herdr.panes()
-    workspace_labels = _labels(rt, "workspace.list", "workspaces", "workspace_id")
-    tab_labels = _labels(rt, "tab.list", "tabs", "tab_id")
+    workspace_labels = labels(rt, "workspace.list", "workspaces", "workspace_id")
+    tab_labels = labels(rt, "tab.list", "tabs", "tab_id")
     seqs = _state_seqs(rt)
     claude = claude_panes(panes, own_pane_id)
     infos = {pane.pane_id: _process_info(rt, pane.pane_id) for pane in claude}
