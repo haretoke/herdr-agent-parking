@@ -25,13 +25,7 @@ def park(rt, pane_id, note, keep=False):
     argv = inventory.argv_of(process, rt.system) if process else []
     env = inventory.account_env(process, rt.system, rt.settings)
     command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
-    # A session of Claude's background shown here (`claude attach <id>`, or a view Herdr
-    # names it for): /exit would leave it running, `claude stop` ends it.
-    attached = agents.attached_to(argv)
-    background = agents.running_background(rt.system.claude_agents(command, env), pane.session_id, attached)
-    if attached and background is None:
-        return Outcome("refused", agents.NOT_RUNNING % attached, None)
-    refusal = background and agents.why_not_stop(background, pane.title)
+    background, refusal = _shown_background(rt, pane, argv, command, env)
     if refusal:
         return Outcome("refused", refusal, None)
     session_id = background["sessionId"] if background else pane.session_id
@@ -58,22 +52,9 @@ def park(rt, pane_id, note, keep=False):
         record["background_id"] = background["id"]
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)
-    if background:
-        stopped = "stopped Claude's background session %s" % background["id"]
-        # A view showing it goes back to the shell by itself (seen on the Mac).
-        if not rt.system.claude_stop(command, background["id"], env):
-            records.discard_parking(rt.paths.records, session_id)
-            return Outcome("park_failed", "`claude stop %s` failed; the session runs on as it was"
-                           % background["id"], None)
-    else:
-        stopped = ""
-        try:
-            rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
-        except herdr_api.HerdrError as error:
-            records.discard_parking(rt.paths.records, session_id)
-            if error.code == "agent_blocked":
-                return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
-            raise
+    unstarted = _end(rt, pane_id, session_id, background, command, env)
+    if unstarted:
+        return unstarted
     if not (_leave_view(rt, pane_id) if background else _wait_for_shell(rt, pane_id)):
         record["status"] = "park_failed"
         records.write(rt.paths.records, record)
@@ -87,7 +68,39 @@ def park(rt, pane_id, note, keep=False):
         rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": label(rt.settings, record)})
     record.update(status="parked", parked_mode=mode)
     records.write(rt.paths.records, record)
+    stopped = "stopped Claude's background session %s" % background["id"] if background else ""
     return Outcome("parked", "; ".join(part for part in (stopped, reason) if part), record)
+
+
+def _shown_background(rt, pane, argv, command, env):
+    """(Claude's entry for the session of its background the pane shows, or None; the reason
+    not to park, or None). A `claude attach <id>` client, or a view Herdr names a background
+    session for: /exit would leave the session running, `claude stop` ends it."""
+    attached = agents.attached_to(argv)
+    entry = agents.running_background(rt.system.claude_agents(command, env), pane.session_id, attached)
+    if attached and entry is None:
+        return None, agents.NOT_RUNNING % attached
+    return entry, entry and agents.why_not_stop(entry, pane.title)
+
+
+def _end(rt, pane_id, session_id, background, command, env):
+    """End the Claude in the pane: `/exit`, or `claude stop` for a session of Claude's
+    background (a view showing it goes back to the shell by itself, seen on the Mac). An
+    Outcome when that cannot start, with the parking record dropped; else None."""
+    if background:
+        if rt.system.claude_stop(command, background["id"], env):
+            return None
+        records.discard_parking(rt.paths.records, session_id)
+        return Outcome("park_failed", "`claude stop %s` failed; the session runs on as it was"
+                       % background["id"], None)
+    try:
+        rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
+    except herdr_api.HerdrError as error:
+        records.discard_parking(rt.paths.records, session_id)
+        if error.code == "agent_blocked":
+            return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
+        raise
+    return None
 
 
 def _close_or_keep(rt, pane_id, tree):
