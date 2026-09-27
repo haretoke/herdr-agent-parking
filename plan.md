@@ -762,6 +762,12 @@ server is never restarted.
       background workers' hooks reported to that pane (they inherit its `HERDR_PANE_ID`),
       and Herdr named cd36bb2e ("ga4 event funnel design review") for the Claude running
       76a720b1 ("sitemap"): the park recorded cd36bb2e
+- [x] real device (2026-09-27, v0.1.10, asked by the user): the wrong cd36bb2e record was
+      forgotten; sitemap (76a720b1) was resumed in `w1:p1W` by hand with its account
+      variables, and `park w1:p1W` recorded 76a720b1 with the worktree cwd in 1.5 s, labelled
+      `💤 sitemap`, the worktree and its branch kept. Claude did not ask about the worktree
+      this time (Keep had been chosen at its previous exit), so the Keep answer is covered by
+      the tests, with the screen text seen in the container, not yet by a real exit
 - [ ] still on Herdr's word on such a pane: the dashboard row's id, ctx and idle time, the
       unpark's start check (`_running_session`), and `agent.prompt` refusing `/exit` as
       `agent_blocked` on a borrowed status
