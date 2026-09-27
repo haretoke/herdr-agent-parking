@@ -65,7 +65,7 @@ class FlowTestCase(FlowRuntimeTestCase):
     def flow(self, **overrides):
         script = {"pane.get": [pane_reply(), SHELL], "agent.read": screen_reply("❯"), "pane.send_keys": {"type": "ok"},
                   "pane.process_info": [PROCESS, SHELL_PROCESS], "agent.prompt": {"type": "ok"},
-                  "pane.rename": {"type": "pane_info"}}
+                  "pane.rename": {"type": "pane_info"}, "pane.close": {"type": "ok"}}
         script.update(overrides)
         rt = self.runtime(script)
         rt.system = FakeSystem(proc=False)

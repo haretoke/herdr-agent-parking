@@ -269,7 +269,16 @@ ONE_PANE = {"type": "layout_export", "tab_id": "w1:t1", "root": {"type": "pane",
 
 
 class OnParkTest(FlowTestCase):
-    def test_by_default_the_pane_stays(self):
+    def test_by_default_a_pane_beside_others_closes(self):
+        # A kept shell in a split tab only shows its label on the border; closed, it cannot be
+        # taken for a live one, and `r` recreates it.
+        outcome = park.park(self.flow(**{"layout.export": TWO_PANES, "pane.close": {"type": "ok"}}),
+                            "w1:p2", note=None)
+        self.assertIn("pane.close", self.fake.methods())
+        self.assertEqual(outcome.record["parked_mode"], "close")
+
+    def test_keep_leaves_the_pane(self):
+        self.settings["on_park"] = "keep"
         outcome = park.park(self.flow(**{"layout.export": TWO_PANES}), "w1:p2", note=None)
         self.assertNotIn("pane.close", self.fake.methods())
         self.assertEqual(outcome.record["parked_mode"], "keep")

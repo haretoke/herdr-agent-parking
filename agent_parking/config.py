@@ -9,7 +9,7 @@ DEFAULTS = {
     "poll_seconds": 2,
     "exit_timeout_seconds": 20,
     "start_timeout_ms": 30000,
-    "on_park": "keep",
+    "on_park": "close",
     "parked_label_format": "💤 {title}",
     "send_note_as_prompt": False,
     "bulk_idle_minutes": 60,

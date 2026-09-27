@@ -27,7 +27,7 @@ class LoadTest(unittest.TestCase):
             "poll_seconds": 2,
             "exit_timeout_seconds": 20,
             "start_timeout_ms": 30000,
-            "on_park": "keep",
+            "on_park": "close",
             "parked_label_format": "💤 {title}",
             "send_note_as_prompt": False,
             "bulk_idle_minutes": 60,
@@ -64,7 +64,7 @@ class LoadTest(unittest.TestCase):
                    ' "exit_timeout_seconds": true, "bulk_idle_minutes": 30}')
         loaded = self.load()
         self.assertEqual(loaded["poll_seconds"], 2)
-        self.assertEqual(loaded["on_park"], "keep")
+        self.assertEqual(loaded["on_park"], "close")
         self.assertEqual(loaded["send_note_as_prompt"], False)
         self.assertEqual(loaded["exit_timeout_seconds"], 20)
         self.assertEqual(loaded["bulk_idle_minutes"], 30)
