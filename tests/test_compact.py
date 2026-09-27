@@ -2,7 +2,7 @@ import unittest
 
 from agent_parking import compact, config
 from tests.fake_herdr import Error
-from tests.flows import SHELL, FlowTestCase, pane_reply, screen_reply
+from tests.flows import SHELL, UUID, FlowTestCase, pane_reply, screen_reply
 
 
 class PrepareTest(FlowTestCase):
@@ -22,6 +22,26 @@ class PrepareTest(FlowTestCase):
                 outcome = compact.prepare(self.flow(**overrides), "w1:p2")
                 self.assertEqual(outcome.kind, "refused")
                 self.assertNotIn("agent.prompt", self.fake.methods())
+
+
+class OwnSessionTest(FlowTestCase):
+    def test_the_transcript_read_is_the_one_of_the_session_claude_lists_for_the_panes_process(self):
+        # Herdr may name another session on a pane that started Claude's daemon (seen in a
+        # container); reading that transcript, the reply would never come (600 s).
+        stale = "cd36bb2e-0dda-4963-92ed-1f3b667d619b"
+        rt = self.flow(**{"pane.get": pane_reply(session_id=stale), "agent.prompt": {"type": "agent_info"}})
+        rt.system.agents = [{"kind": "interactive", "pid": 200, "sessionId": UUID, "status": "idle"}]
+        read = []
+        rt.rows_for = lambda session_id: read.append(session_id) or []
+        compact.prepare(rt, "w1:p2")
+        self.assertEqual(set(read), {UUID})
+
+    def test_a_claude_that_says_it_is_busy_is_not_compacted(self):
+        rt = self.flow()
+        rt.system.agents = [{"kind": "interactive", "pid": 200, "sessionId": UUID, "status": "busy"}]
+        outcome = compact.prepare(rt, "w1:p2")
+        self.assertEqual(outcome.kind, "refused")
+        self.assertNotIn("agent.prompt", self.fake.methods())
 
 
 class AgentViewTest(FlowTestCase):
