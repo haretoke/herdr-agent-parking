@@ -122,5 +122,30 @@ class EnvironTest(ProcTestCase):
         self.assertEqual(found["PATH"], os.environ["PATH"])
 
 
+class ClaudeAgentsTest(unittest.TestCase):
+    def test_the_list_is_read_with_the_claudes_account_added_and_any_failure_is_none(self):
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append((args, kwargs["env"]))
+            return subprocess.CompletedProcess(args, 0, stdout='[{"kind": "background", "id": "41038c12"}]', stderr="")
+
+        found = system.System(run=run).claude_agents("claude", {"CLAUDE_CONFIG_DIR": "/c"})
+        self.assertEqual(found, [{"kind": "background", "id": "41038c12"}])
+        [(args, env)] = calls
+        self.assertEqual(args, ["claude", "agents", "--json"])
+        self.assertEqual(env["CLAUDE_CONFIG_DIR"], "/c")
+        self.assertEqual(env["PATH"], os.environ["PATH"])
+
+        def answer(code, stdout):
+            return lambda args, **kwargs: subprocess.CompletedProcess(args, code, stdout=stdout, stderr="")
+
+        def missing(args, **kwargs):
+            raise FileNotFoundError("claude")
+
+        for run in (answer(1, "error: unknown command 'agents'"), answer(0, "not json"), answer(0, "{}"), missing):
+            self.assertIsNone(system.System(run=run).claude_agents("claude", {}))
+
+
 if __name__ == "__main__":
     unittest.main()

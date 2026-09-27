@@ -2,6 +2,7 @@
 
 import ctypes
 import ctypes.util
+import json
 import os
 import re
 import shutil
@@ -84,6 +85,18 @@ class System:
             if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
                 found[int(parts[0])] = int(parts[1])
         return found
+
+    def claude_agents(self, command, env):
+        """Claude's session list (`claude agents --json`: its interactive and background
+        sessions; 0.7 s on the Mac), run with `env` added (a Claude's account), or None when
+        it cannot be read (a Claude without the command, a failure)."""
+        try:
+            done = self.run([command, "agents", "--json"], capture_output=True, text=True, timeout=10,
+                            env=dict(os.environ, **env))
+            entries = json.loads(done.stdout) if done.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return None
+        return entries if isinstance(entries, list) else None
 
     def realpath(self, path):
         return os.path.realpath(path)
