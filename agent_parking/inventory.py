@@ -4,10 +4,10 @@ knows about it (process, memory, version, context, park record)."""
 import os
 import re
 from collections import namedtuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
-from . import display, herdr_api, idle, records, times, transcript
+from . import display, herdr_api, idle, records, runtime, times, transcript
 
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 
@@ -33,6 +33,7 @@ class Row:
     idle: str = ""
     record: Optional[dict] = None         # the park record, for parked sessions
     has_transcript: bool = True           # False: never prompted, nothing to resume
+    env: dict = field(default_factory=dict)  # its `resume_env` variables (account, config dir)
 
 
 # The dashboard's rows, and how many panes run each other agent (the "codex: n" in the title).
@@ -216,6 +217,7 @@ def build(rt, tracker, own_pane_id):
     for pane in claude:
         found = row(pane, workspace_labels, tab_labels)
         _add_process(rt, found, infos[pane.pane_id], rss)
+        runtime.remember_config_dir(rt, found.env)  # before its transcript is looked up
         summary = rt.summary_for(found.session_id) if found.session_id else None
         found.has_transcript = rt.has_transcript(found.session_id) if found.session_id else True
         found.ctx = _ctx(rt, summary, found.session_id, now)
@@ -243,6 +245,7 @@ def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
             settle_resumed(rt, decision.record, decision.pane_id, decision.restore_label_on)
             continue
         pane = by_id.get(decision.record.get("pane_id"))
+        runtime.remember_config_dir(rt, decision.record.get("env"))
         found = _record_row(rt, decision.record, pane, now)
         found.status = SHORT_STATUS.get(status, status)
         if decision.kind == "conflict" and status == "parked":
@@ -282,6 +285,7 @@ def _add_process(rt, found, info, rss):
     process = claude_process(info)
     if process is None:
         return
+    found.env = account_env(process, rt.system, rt.settings)
     found.version = running_version(process, rt.system)
     argv0 = (argv_of(process, rt.system) or [None])[0]
     found.current_version = current_version(argv0, rt.settings, rt.system, rt.environ)

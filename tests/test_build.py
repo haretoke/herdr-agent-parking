@@ -32,7 +32,8 @@ class BuildTestCase(FlowRuntimeTestCase):
         self.rt = self.runtime(base)
         self.rt.system = system or FakeSystem(proc=False)
         self.rt.summary_for = lambda session_id: getattr(self, "summaries", {}).get(session_id)
-        self.rt.has_transcript = lambda session_id: session_id not in getattr(self, "without_transcript", ())
+        self.rt.has_transcript = lambda session_id: (session_id not in getattr(self, "without_transcript", ())
+                                                     or bool(self.rt.claude_config_dirs))
         self.tracker = idle.Tracker(self.rt.clock)
         return inventory.build(self.rt, self.tracker, own)
 
@@ -248,6 +249,22 @@ class TranscriptPresenceTest(BuildTestCase):
         self.without_transcript = {OTHER}
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p3", session_id=OTHER))})
         self.assertEqual([(r.pane_id, r.has_transcript) for r in got.rows], [("w1:p2", True), ("w1:p3", False)])
+
+
+class ConfigDirTest(BuildTestCase):
+    def test_the_config_directories_of_live_and_parked_claudes_are_remembered_before_their_lookups(self):
+        from pathlib import Path
+        self.park(OTHER, None, "work notes", 1)
+        path = state.paths(self.environ, self.settings).records / (OTHER + ".json")
+        record = json.loads(path.read_text())
+        record["env"] = {"CLAUDE_CONFIG_DIR": "/claude-parked"}
+        path.write_text(json.dumps(record))
+        system = FakeSystem(proc=False)
+        system.environs = {200: {"CLAUDE_CONFIG_DIR": "/claude-live"}}
+        self.without_transcript = {UUID}  # unless its directory is known by the time it is asked
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2")), "pane.process_info": PROCESS}, system=system)
+        self.assertEqual(self.rt.claude_config_dirs, [Path("/claude-live"), Path("/claude-parked")])
+        self.assertTrue(got.rows[0].has_transcript)
 
 
 if __name__ == "__main__":
