@@ -17,3 +17,4 @@ class Runtime:
     summary_for: Callable = lambda session_id: None   # session id -> transcript.Summary
     rows_for: Callable = lambda session_id: []        # session id -> transcript tail rows
     statusline_windows: dict = field(default_factory=dict)  # session id -> window size
+    has_transcript: Callable = lambda session_id: True       # a Claude never prompted has none

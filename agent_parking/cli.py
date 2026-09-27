@@ -41,6 +41,7 @@ def make_runtime(environ):
         paths=paths, settings=settings, clock=_now, environ=environ,
         summary_for=lambda session_id: summaries.get(transcript.find(config_dir, session_id)),
         rows_for=rows_for,
+        has_transcript=lambda session_id: transcript.find(config_dir, session_id) is not None,
         statusline_windows=transcript.statusline_windows(paths.windows))
 
 

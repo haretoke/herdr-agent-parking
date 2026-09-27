@@ -59,6 +59,8 @@ class TranscriptWiringTest(CliTestCase):
         self.assertEqual(rt.summary_for(UUID).tokens, 37000)
         self.assertEqual(rt.statusline_windows, {UUID: 200000})
         self.assertEqual(rt.rows_for("5e0c1f2a-0000-4000-8000-000000000001"), [])
+        self.assertTrue(rt.has_transcript(UUID))
+        self.assertFalse(rt.has_transcript("5e0c1f2a-0000-4000-8000-000000000001"))
 
 
 class OpenTest(CliTestCase):
