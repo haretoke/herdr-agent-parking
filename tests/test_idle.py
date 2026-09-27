@@ -73,6 +73,21 @@ class SaveTest(unittest.TestCase):
         self.assertEqual(reloaded.entries, tracker.entries)
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
 
+    def test_a_change_made_while_no_dashboard_ran_dates_from_the_transcript_not_the_reopening(self):
+        clock = Clock()
+        tracker = idle.Tracker(clock)
+        tracker.poll("w1:p1", seq=18, status="working")
+        tracker.poll("w1:p2", seq=3, status="idle")
+        tracker.save(self.path, live_pane_ids={"w1:p1", "w1:p2"})
+        clock.advance(hours=4)
+        reopened = idle.Tracker.load(self.path, clock)
+        went_idle = NOW + timedelta(minutes=40)
+        changed = reopened.poll("w1:p1", seq=20, status="idle", summary=summary(went_idle))
+        self.assertEqual((changed.since, changed.lower_bound), (went_idle, False))
+        self.assertEqual(reopened.poll("w1:p2", seq=3, status="idle").since, NOW)
+        clock.advance(minutes=1)
+        self.assertEqual(reopened.poll("w1:p1", seq=21, status="working").since, clock.now)  # watched from now on
+
 
 class EventTest(unittest.TestCase):
     def test_a_change_seen_by_an_event_and_then_by_a_poll_counts_once(self):

@@ -2,7 +2,7 @@
 `state_change_seq`), so the dashboard tracks them itself."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
@@ -16,6 +16,7 @@ class Entry:
     since: datetime
     lower_bound: bool
     from_event: bool = False
+    loaded: bool = field(default=False, compare=False)  # read from observed.json, not polled yet
 
 
 class Tracker:
@@ -34,7 +35,8 @@ class Tracker:
                 since = times.parse(raw["since"])
                 if since is None:
                     raise ValueError("bad time")
-                tracker.entries[pane_id] = Entry(raw["seq"], raw["status"], since, bool(raw["lower_bound"]))
+                tracker.entries[pane_id] = Entry(raw["seq"], raw["status"], since, bool(raw["lower_bound"]),
+                                                 loaded=True)
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
             tracker.entries = {}
         return tracker
@@ -49,7 +51,9 @@ class Tracker:
         """Record what `agent.list` says about `pane_id` now (`summary`: its session's
         transcript, used the first time the pane is seen); returns its entry."""
         entry = self.entries.get(pane_id)
-        if entry is None:
+        if entry is None or (entry.loaded and seq != entry.seq):
+            # Seen for the first time, or changed while no dashboard ran (when is unknown;
+            # counting from the reopening would call an hours-idle session fresh).
             entry = self._first(seq, status, summary)
             self.entries[pane_id] = entry
         elif seq != entry.seq:
@@ -60,6 +64,7 @@ class Tracker:
             # The same seq: the time stands, and Herdr's status is right (a stale one was
             # saved in observed.json on the Mac). An event ahead of its poll is left be.
             entry.status = status
+        entry.loaded = False
         return entry
 
     def event(self, pane_id, status):
