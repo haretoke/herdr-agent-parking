@@ -11,6 +11,8 @@ class FakeSystem:
         self.found = {}
         self.rss_calls = []
         self.environs = {}
+        self.agents = None
+        self.agents_calls = []
 
     def realpath(self, path):
         return self.links.get(path, path)
@@ -36,3 +38,7 @@ class FakeSystem:
 
     def has_proc(self):
         return self.proc
+
+    def claude_agents(self, command, env):
+        self.agents_calls.append((command, env))
+        return self.agents

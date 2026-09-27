@@ -56,6 +56,27 @@ class BackgroundSessionTest(FlowTestCase):
         self.assertNotIn("agent.prompt", self.fake.methods())
         self.assertIsNone(self.saved())
 
+    def test_a_session_claude_runs_in_the_background_is_refused(self):
+        # Claude 2.1.281 in a container: `claude --resume <name>` showed a session that ran
+        # in the background, and the park's /exit left it running (282 MB, three days).
+        rt = self.flow()
+        rt.system.environs = {200: {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"}}
+        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560,
+                             "status": "idle", "state": "blocked"}]
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("claude stop 2716af66", outcome.message)
+        self.assertEqual(rt.system.agents_calls, [("claude", {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"})])
+        self.assertNotIn("agent.prompt", self.fake.methods())
+
+    def test_a_stopped_background_session_resumed_as_its_own_claude_is_parked(self):
+        # Seen on the Mac: after `claude stop`, `claude --resume <uuid>` runs it in the pane
+        # and the list keeps the stopped background entry (no pid) next to the new one.
+        rt = self.flow()
+        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "state": "done"},
+                            {"kind": "interactive", "pid": 200, "sessionId": UUID, "status": "idle"}]
+        self.assertEqual(park.park(rt, "w1:p2", note=None).kind, "parked")
+
 
 class DraftTest(FlowRuntimeTestCase):
     def test_a_half_typed_line_is_refused_and_no_exit_is_sent(self):

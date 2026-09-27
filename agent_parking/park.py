@@ -25,6 +25,10 @@ def park(rt, pane_id, note, keep=False):
     if attached:
         return Outcome("refused", agents.BACKGROUND % (attached, attached), None)
     env = inventory.account_env(process, rt.system, rt.settings)
+    background = agents.running_background(rt.system.claude_agents(rt.settings["claude_command"], env),
+                                           pane.session_id)
+    if background:
+        return Outcome("refused", agents.BACKGROUND % (background, background), None)
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(pane.session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
