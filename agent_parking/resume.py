@@ -197,6 +197,9 @@ def confirmation(record, now):
     if parked_at is not None:
         lines[0] += "  parked %s ago" % display.age((now - parked_at).total_seconds())
     lines.append("cwd   %s" % (record.get("cwd") or "?"))
+    if record.get("background_id"):
+        lines.append("was Claude's background session %s; it comes back as a Claude of its own here"
+                     % record["background_id"])
     env = record.get("env") or {}
     if inventory.account_name(env):
         lines.append("account %s" % inventory.account_name(env))

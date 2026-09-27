@@ -424,6 +424,11 @@ class ConfirmationTest(unittest.TestCase):
         self.assertIn('left out: "fix the login bug"', text)
         self.assertIn("LUT の一覧を貼る前で止めた\n  次は色域", text)
 
+    def test_a_session_parked_from_claudes_background_says_it_comes_back_as_its_own_claude(self):
+        lines = resume.confirmation(dict(PARKED, background_id="2716af66"), NOW)
+        self.assertIn("was Claude's background session 2716af66; it comes back as a Claude of its own here",
+                      lines)
+
     def test_an_account_is_named_and_the_command_shows_how_it_is_picked(self):
         record = dict(PARKED, env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
         lines = resume.confirmation(record, NOW)
