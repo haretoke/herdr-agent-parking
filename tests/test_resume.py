@@ -168,6 +168,23 @@ class AccountTest(ResumeTestCase):
         self.assertNotIn("pane.send_input", self.fake.methods())
 
 
+class TypedStartExitTest(ResumeTestCase):
+    def test_a_typed_claude_that_exits_at_once_fails_with_its_own_words_without_waiting(self):
+        # Seen in a container: `claude --resume` refused a session running in Claude's
+        # background and exited in a second; the dashboard waited 30 s for "found None".
+        self.park_record(env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"})
+        said = ("$ env CLAUDE_SECURESTORAGE_CONFIG_DIR=/h/.claude-creds/alt claude --resume %s\n"
+                "Session %s is running as a background session (2716af66). Run `claude attach 2716af66` "
+                "to open it, or `claude stop 2716af66` first to resume it here.\n$ " % (UUID, UUID))
+        rt = self.resuming(**{"pane.get": [SHELL], "pane.process_info": [SHELL_PROCESS, PROCESS, SHELL_PROCESS],
+                              "pane.read": {"type": "pane_read", "read": {"text": said}}})
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+        self.assertIn("running as a background session", outcome.message)
+        self.assertLess(sum(self.slept), 3)
+        self.assertEqual(self.saved()["status"], "resume_failed")
+
+
 class NoConversationTest(ResumeTestCase):
     def test_a_record_whose_session_has_no_transcript_is_refused_before_anything_starts(self):
         # Seen on the Mac: claude --resume said No conversation found, after a 30 s wait.
