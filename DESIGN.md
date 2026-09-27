@@ -637,7 +637,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | Long values in `argv` such as `--settings '{...}'` | Stored as is (0600); not shown in the list |
 | Transcript unreadable, missing or huge | ctx is empty; the tail read has a byte cap and never loads the whole file |
 | Codex panes | Not listed; the footer shows "codex: n (not managed)" |
-| Claude `--bg` sessions and sessions under `claude agents` | Not in a pane, out of scope |
+| Claude's background sessions (`/bg`, `claude --bg`, `claude attach`) and agent view | `/exit` in a pane that shows one leaves the session running (spike in plan.md). Park and compact refuse agent view (title ending `claude agents`); park refuses a `claude attach` client and a session `claude agents --json` lists as running in the background, naming `claude stop <id>`; unpark refuses a record whose session still runs there, naming `claude attach <id>`. Parking them is still open: `claude stop`, then `claude attach` (stays a background session, but Herdr only knows its id when the daemon started in that pane) or `claude --resume` (a Claude of its own that Herdr tracks) |
 
 ## Public plugin considerations
 

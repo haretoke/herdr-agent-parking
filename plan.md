@@ -672,6 +672,13 @@ server is never restarted.
 - [x] bulk park targets only idle/done rows at or above the threshold, including `≥` rows,
       continues after one failure, and reports the results
 - [x] the label format is configurable, cut at 80 characters, and free of control characters
+- [x] a pane showing Claude's agent view (title ending `claude agents`) is refused by park
+      and compact: Herdr keeps the id of the session shown before, and the view's box
+      dispatches a new session
+- [x] a `claude attach <id>` client, and a session `claude agents --json` lists as running
+      in the background (`kind: background` with a `pid`; run with the pane's own `claude`
+      and account variables), are refused with `claude stop <id>`: `/exit` there leaves the
+      session running. A stopped background entry does not count
 
 ### compact (fake herdr, fake transcript)
 - [x] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
@@ -711,6 +718,13 @@ server is never restarted.
 - [x] before `r`, a matching UUID running elsewhere makes the record `resumed` without starting a second process
 - [x] swap parks then resumes in the same pane, and a refused park does not resume
 - [x] swap asks for confirmation when the running version equals the current one
+- [x] a typed start (account variables) whose `claude` exits at once fails as soon as the
+      shell is back, or after 3 s of the shell alone, with the pane's last lines (seen in a
+      container: 30 s, then only "found None")
+- [x] a record whose session still runs in Claude's background is refused with
+      `claude attach <id>` and `x`, before any pane is recreated or command typed
+- [ ] parking and unparking Claude's background sessions themselves (`claude stop <id>`,
+      then `claude attach <id>` or `claude --resume <uuid>`; the user chooses)
 
 ### recreate (fake herdr)
 - [x] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio
