@@ -235,7 +235,7 @@ class Dashboard:
                                     multiline=True), save)
 
     def _start_resume(self, row, new_workspace):
-        self._later("resuming %s…" % (row.pane_id or row.session_id[:8]),
+        self._later("unparking %s…" % (row.pane_id or row.session_id[:8]),
                     lambda: self._resumed(row, self.actions.resume(row.session_id, new_workspace)))
 
     def _resumed(self, row, outcome):

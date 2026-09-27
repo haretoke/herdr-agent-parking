@@ -262,15 +262,16 @@ def acted(actions):
 
 
 class ResumeTest(unittest.TestCase):
-    def test_r_shows_the_whole_note_and_the_command_then_enter_resumes(self):
+    def test_r_shows_the_whole_note_and_the_command_then_enter_unparks(self):
         actions = FakeActions(resume=resume.Outcome("resumed", "", RECORD), now=NOW)
         shown = board(live(session_id=UUID, status="parked", record=RECORD), actions=actions)
         shown.on_input(b"r")
         text = "\n".join(shown.lines(78, 30))
-        for part in ("parked 2d ago", "claude --resume 2716af66 --effort medium", "  wiki", "  table",
-                     "Enter to resume"):
+        for part in ('unpark w8:p36 "', "parked 2d ago", "claude --resume 2716af66 --effort medium", "  wiki",
+                     "  table", "Enter to unpark"):
             self.assertIn(part, text)
         shown.on_input(b"\r")
+        self.assertIn("unparking w8:p36", "\n".join(shown.lines(78, 30)))
         shown.run_pending()
         self.assertEqual(acted(actions), [("resume", UUID, False)])
         self.assertIn("resumed w8:p36", shown.message)
@@ -306,7 +307,7 @@ class ResumeNoteTest(unittest.TestCase):
         shown.on_input(b" done\r\r")
         self.assertEqual(acted(actions), [("set_note", UUID, "wiki\ntable done")])
         self.assertIn("  table done", "\n".join(shown.lines(78, 30)))
-        self.assertIn("Enter to resume", shown.lines(78, 30)[-1])
+        self.assertIn("Enter to unpark", shown.lines(78, 30)[-1])
 
 
 class SwapTest(unittest.TestCase):

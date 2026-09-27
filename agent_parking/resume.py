@@ -161,9 +161,9 @@ def _type(rt, pane_id, command):
 
 
 def confirmation(record, now):
-    """The lines of the resume confirmation box for `record`."""
+    """The lines of the dashboard's confirmation box before `r` (unpark) resumes `record`."""
     parsed = argv.resume_flags(record.get("argv") or ["claude"])
-    lines = ['resume %s "%s"' % (record.get("pane_id") or "(new pane)", record.get("title") or "")]
+    lines = ['unpark %s "%s"' % (record.get("pane_id") or "(new pane)", record.get("title") or "")]
     parked_at = times.parse(record.get("parked_at"))
     if parked_at is not None:
         lines[0] += "  parked %s ago" % display.age((now - parked_at).total_seconds())
@@ -178,7 +178,7 @@ def confirmation(record, now):
     if record.get("note"):
         lines.append("note:")
         lines.extend("  " + line for line in record["note"].splitlines())
-    lines.append("Enter to resume, e to edit the note, Esc to cancel")
+    lines.append("Enter to unpark, e to edit the note, Esc to cancel")
     return [line.rstrip() for line in lines]
 
 
