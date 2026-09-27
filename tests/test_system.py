@@ -76,5 +76,31 @@ class RssTest(ProcTestCase):
                 self.assertIsNone(system.System(proc_root=self.tmp.name + "/none", run=run).rss_kb(42))
 
 
+class RssManyTest(ProcTestCase):
+    def test_without_proc_one_ps_call_reads_every_pid(self):
+        # Seen on the Mac: one ps per pid, about 27 every 2 s for nine sessions.
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append(args)
+            return subprocess.CompletedProcess(args, 0, stdout="   42  197632\n   43   8000\n", stderr="")
+
+        found = system.System(proc_root=self.proc, run=run).rss_many([42, 43, 44])
+        self.assertEqual(found, {42: 197632, 43: 8000})
+        self.assertEqual(calls, [["ps", "-o", "pid=,rss=", "-p", "42,43,44"]])
+        self.assertEqual(system.System(proc_root=self.proc, run=run).rss_many([]), {})
+        self.assertEqual(len(calls), 1)
+
+    def test_linux_reads_each_status_and_failures_leave_pids_out(self):
+        self.proc.mkdir()
+        self.put(42, "status", b"VmRSS:\t  209920 kB\n")
+        self.assertEqual(self.system.rss_many([42, 43]), {42: 209920})
+
+        def missing(args, **kwargs):
+            raise FileNotFoundError("ps")
+
+        self.assertEqual(system.System(proc_root=self.tmp.name + "/none", run=missing).rss_many([42]), {})
+
+
 if __name__ == "__main__":
     unittest.main()

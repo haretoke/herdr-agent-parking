@@ -50,6 +50,27 @@ class System:
         text = done.stdout.strip() if done.returncode == 0 else ""
         return int(text) if text.isdigit() else None
 
+    def rss_many(self, pids):
+        """`{pid: KiB}` for the `pids` that could be read: `VmRSS` where `/proc` exists, else
+        one `ps -o pid=,rss= -p a,b,c` for all of them (one per pid cost a process spawn
+        each, some 27 every 2 s for nine sessions on the Mac)."""
+        pids = [pid for pid in pids if isinstance(pid, int)]
+        if not pids:
+            return {}
+        if self.has_proc():
+            return {pid: kib for pid, kib in ((pid, self.rss_kb(pid)) for pid in pids) if kib is not None}
+        try:
+            done = self.run(["ps", "-o", "pid=,rss=", "-p", ",".join(map(str, pids))],
+                            capture_output=True, text=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        found = {}
+        for line in done.stdout.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                found[int(parts[0])] = int(parts[1])
+        return found
+
     def realpath(self, path):
         return os.path.realpath(path)
 
