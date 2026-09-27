@@ -794,6 +794,9 @@ server is never restarted.
       unpark's start check (`_running_session`), and `agent.prompt` refusing `/exit` as
       `agent_blocked` on a borrowed status
 - [ ] `S` with a pane showing a background session (real device)
+- [ ] the close default (v0.1.12) on real devices beyond the Mac check with `on_park = close`:
+      in the container, and on a pane showing a background session (`claude stop`, then
+      the agent view left, then the pane closed)
 - [ ] not checked: whether `claude agents --json` and `claude stop` are scoped by
       `CLAUDE_CONFIG_DIR` (the list was the same with the alt account's
       `CLAUDE_SECURESTORAGE_CONFIG_DIR`); both run with the pane's own account variables
