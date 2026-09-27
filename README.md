@@ -46,7 +46,7 @@ only while a dashboard runs). A plugin cannot bind keys itself; add one to Herdr
 
 ```toml
 [[keys.command]]
-key = "prefix+p"
+key = "prefix+a"   # prefix+p is previous_tab by default
 type = "plugin_action"
 command = "haretoke.agent-parking.open"
 description = "agent parking"
