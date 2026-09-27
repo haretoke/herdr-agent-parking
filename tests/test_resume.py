@@ -177,7 +177,7 @@ class NoConversationTest(ResumeTestCase):
         outcome = resume.resume(rt, UUID)
         self.assertEqual(outcome.kind, "refused")
         self.assertIn("no conversation", outcome.message)
-        self.assertIn("x", outcome.message)
+        self.assertIn("x (void) forgets the record", outcome.message)
         self.assertNotIn("agent.start", self.fake.methods())
         self.assertEqual(self.saved()["status"], "parked")
 

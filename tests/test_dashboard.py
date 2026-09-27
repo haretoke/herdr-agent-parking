@@ -194,17 +194,20 @@ class ParkTest(unittest.TestCase):
 
 
 class ForgetTest(unittest.TestCase):
-    def test_x_forgets_the_record_after_a_yes(self):
+    def test_x_voids_the_record_after_a_yes(self):
         parked = live(session_id="s1", status="parked", record={"session_id": "s1"})
         actions = FakeActions()
         shown = board(parked, actions=actions)
         shown.on_input(b"x")
-        self.assertIn("(y/N)", shown.lines(78, 24)[-1])
+        question = " ".join(" ".join(shown.lines(78, 24)[-2:]).split())  # wrapped to the width
+        for part in ('void w8:p36 "api gateway refactor"?', "the transcript stays", "(y/N)"):
+            self.assertIn(part, question)
         shown.on_input(b"n")
         self.assertEqual((shown.dialog, actions.calls), (None, []))
         shown.on_input(b"xy")
         shown.run_pending()
         self.assertEqual(actions.calls, [("forget", "s1")])
+        self.assertEqual(shown.message, "voided the record of s1")
 
     def test_x_on_a_live_row_has_nothing_to_forget(self):
         shown = board(live(), actions=FakeActions())

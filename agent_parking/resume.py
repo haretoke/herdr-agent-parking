@@ -32,7 +32,7 @@ def resume(rt, session_id, new_workspace=False):
     if not rt.has_transcript(session_id):
         # `claude --resume` would answer No conversation found (seen on the Mac).
         return Outcome("refused", "no conversation was ever saved for %s, so it cannot be resumed; "
-                                  "x forgets the record" % session_id[:8], record)
+                                  "x (void) forgets the record" % session_id[:8], record)
     if decision.kind == "no_pane":
         placed = recreate.place(rt, record, panes, new_workspace=new_workspace)
         if placed.pane_id is None:

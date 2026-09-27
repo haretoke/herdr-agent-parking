@@ -199,11 +199,11 @@ class Dashboard:
         row = self._parked_row()
         if row is None:
             return
-        question = 'forget the record of %s "%s"? The transcript stays. (y/N)' % (
+        question = 'void %s "%s"? Its record is forgotten; the transcript stays. (y/N)' % (
             row.pane_id or "(no pane)", row.name or "")
         self._ask(dialogs.Confirm([question], {"y": "yes"}, others_cancel=True),
-                  lambda _: self._later("forgetting…", lambda: self.actions.forget(row.session_id) or
-                                        "forgot the record of %s" % row.session_id[:8]))
+                  lambda _: self._later("voiding…", lambda: self.actions.forget(row.session_id) or
+                                        "voided the record of %s" % row.session_id[:8]))
 
     def _edit_note(self):
         row = self._parked_row()
