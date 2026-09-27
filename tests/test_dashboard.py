@@ -316,7 +316,7 @@ class SwapTest(unittest.TestCase):
         actions = FakeActions(swap=(parked, resume.Outcome("resumed", "", {"pane_id": "w8:p36"})))
         shown = board(live(version="2.1.281", current_version="2.1.283", old=True), actions=actions)
         shown.on_input(b"R")
-        self.assertIn("swapping w8:p36", shown.lines(78, 24)[-2])
+        self.assertIn("tuning up w8:p36 (park, then unpark)", shown.lines(78, 24)[-2])
         shown.run_pending()
         self.assertEqual(actions.calls, [("swap", "w8:p36")])
         self.assertIn("resumed w8:p36", shown.message)
@@ -336,7 +336,7 @@ class SwapTest(unittest.TestCase):
     def test_R_on_a_working_row_is_refused(self):
         shown = board(live(status="working"), actions=FakeActions())
         shown.on_input(b"R")
-        self.assertIn("working", shown.message)
+        self.assertEqual(shown.message, "cannot tune up: Claude is working")
 
 
 REPLY = transcript.Reply(found=True, text="Saved the port map to memory.\n<compact-focus>port map</compact-focus>",

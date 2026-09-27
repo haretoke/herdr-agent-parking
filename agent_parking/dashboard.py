@@ -248,15 +248,15 @@ class Dashboard:
         return display.said(outcome, (outcome.record or {}).get("pane_id") or row.pane_id or "(new pane)")
 
     def _swap(self):
-        """`R`: park and resume at once, so the session restarts on the current `claude`;
+        """`R` (tune-up): park and resume at once, so the session restarts on the current `claude`;
         asks first when that would not change the version (or it is unknown)."""
         row = self._row()
-        self.message = self._refusal(row, "swap") or ""
+        self.message = self._refusal(row, "tune up") or ""
         if self.message:
             return
 
         def start(_=None):
-            self._later("swapping %s (park, then resume)…" % row.pane_id,
+            self._later("tuning up %s (park, then unpark)…" % row.pane_id,
                         lambda: self._swapped(row, *self.actions.swap(row.pane_id)))
 
         question = resume.swap_question(row.version, row.current_version)
