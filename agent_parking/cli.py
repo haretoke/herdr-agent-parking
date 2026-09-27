@@ -9,8 +9,8 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-from . import (compact, config, display, herdr_api, idle, inventory, logfile, park, records, recreate, resume, runtime,
-               state, system, terminal, transcript)
+from . import (compact, config, display, herdr_api, idle, inventory, logfile, park, presence, records, recreate, resume,
+               runtime, state, system, terminal, transcript)
 
 DONE = ("parked", "compacted", "resumed")
 
@@ -115,7 +115,19 @@ def _dashboard(environ):
 
 def _open(environ, tab):
     """The `open` action: the dashboard over the active pane (overlay); `open-tab`: in a
-    new tab of the current workspace, for people who keep it open."""
+    new tab of the current workspace, for people who keep it open. One dashboard at a
+    time: one kept in a tab is focused, an overlay left open elsewhere is closed and
+    opened again here."""
+    try:
+        rt = make_runtime(environ)
+        running = presence.current(rt.paths.dashboard)
+        if running is not None and _pane_exists(rt, running["pane_id"]):
+            if running.get("placement") == "tab":
+                rt.herdr.call("plugin.pane.focus", {"pane_id": running["pane_id"]})
+                return 0
+            rt.herdr.call("plugin.pane.close", {"pane_id": running["pane_id"]})
+    except herdr_api.HerdrError as error:
+        return fail(error)
     placement = "tab" if tab else "overlay"
     # The dashboard records how it was opened, so the next `open` knows whether to move it.
     params = {"plugin_id": state.PLUGIN_ID, "entrypoint": "dashboard", "placement": placement, "focus": True,
@@ -123,10 +135,17 @@ def _open(environ, tab):
     if tab and environ.get("HERDR_WORKSPACE_ID"):
         params["workspace_id"] = environ["HERDR_WORKSPACE_ID"]
     try:
-        herdr_api.Herdr.from_environ(environ).call("plugin.pane.open", params)
+        rt.herdr.call("plugin.pane.open", params)
     except herdr_api.HerdrError as error:
         return fail(error)
     return 0
+
+
+def _pane_exists(rt, pane_id):
+    try:
+        return rt.herdr.pane(pane_id) is not None
+    except herdr_api.HerdrError:
+        return False
 
 
 def _list(environ):

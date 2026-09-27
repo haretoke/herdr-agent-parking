@@ -1,12 +1,13 @@
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 import unittest.mock
 from pathlib import Path
 
-from agent_parking import cli, compact, park, recreate, resume, state, transcript
+from agent_parking import cli, compact, park, presence, recreate, resume, state, transcript
 from tests.fake_herdr import Error, FakeHerdr
 
 
@@ -183,6 +184,54 @@ class CompactCommandTest(ShellCommandTestCase):
         self.assertEqual(code, 1)
         self.assertIn("blocked w1:p2: Claude stopped at a dialog", err)
         flow.assert_not_called()
+
+
+OPENED = {"type": "plugin_pane_opened", "plugin_pane": {"pane_id": "w3:p9"}}
+DASHBOARD_PANE = {"type": "pane_info", "pane": {"pane_id": "w1:p8", "tab_id": "w1:t1", "workspace_id": "w1"}}
+
+
+class SingleDashboardTest(CliTestCase):
+    """Seen on the Mac: each open added a dashboard, and the earlier ones stayed."""
+
+    def environ(self, fake):
+        return {"HOME": str(self.home), "HERDR_SOCKET_PATH": fake.path, "HERDR_PLUGIN_ID": state.PLUGIN_ID,
+                "HERDR_PLUGIN_STATE_DIR": str(self.home / "state")}
+
+    def herdr(self, **script):
+        fake = FakeHerdr(dict({"plugin.pane.open": OPENED, "plugin.pane.close": {"type": "ok"},
+                               "plugin.pane.focus": {"type": "ok"}, "pane.get": DASHBOARD_PANE}, **script))
+        self.addCleanup(fake.close)
+        return fake
+
+    def announce(self, placement, pid=None):
+        presence.announce(self.home / "state" / "dashboard.json", "w1:p8", pid or os.getpid(), placement)
+
+    def calls(self, fake):
+        return [(r["method"], r["params"].get("pane_id")) for r in fake.requests if r["method"] != "pane.get"]
+
+    def test_an_open_overlay_dashboard_is_closed_and_opened_again_where_open_is_used(self):
+        fake = self.herdr()
+        self.announce("overlay")
+        self.assertEqual(cli.main(["open"], self.environ(fake)), 0)
+        self.assertEqual(self.calls(fake), [("plugin.pane.close", "w1:p8"), ("plugin.pane.open", None)])
+
+    def test_a_dashboard_kept_in_a_tab_is_focused_by_either_action(self):
+        for action in ("open", "open-tab"):
+            with self.subTest(action=action):
+                fake = self.herdr()
+                self.announce("tab")
+                self.assertEqual(cli.main([action], self.environ(fake)), 0)
+                self.assertEqual(self.calls(fake), [("plugin.pane.focus", "w1:p8")])
+
+    def test_a_dashboard_whose_process_or_pane_is_gone_does_not_count(self):
+        ended = subprocess.Popen(["true"])
+        ended.wait()
+        for pid, script in ((ended.pid, {}), (None, {"pane.get": Error("pane_not_found")})):
+            with self.subTest(pid=pid):
+                fake = self.herdr(**script)
+                self.announce("overlay", pid=pid)
+                self.assertEqual(cli.main(["open"], self.environ(fake)), 0)
+                self.assertEqual(self.calls(fake), [("plugin.pane.open", None)])
 
 
 if __name__ == "__main__":
