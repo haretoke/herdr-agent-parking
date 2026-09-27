@@ -61,11 +61,23 @@ SHELL_PROCESS = {"type": "process_info", "process_info": {
     "foreground_processes": [{"pid": 100, "name": "zsh"}]}}
 
 
+def pane_list(*where):
+    """A `pane.list` reply with a pane for each (pane_id, tab_id, workspace_id)."""
+    return {"type": "pane_list", "panes": [{"pane_id": pane_id, "tab_id": tab_id, "workspace_id": workspace_id}
+                                           for pane_id, tab_id, workspace_id in where]}
+
+
+# The Claude pane `w1:p2` beside a shell `w1:p1` in one tab.
+BESIDE_A_SHELL = pane_list(("w1:p1", "w1:t1", "w1"), ("w1:p2", "w1:t1", "w1"))
+ALONE = pane_list(("w1:p2", "w1:t1", "w1"))
+
+
 class FlowTestCase(FlowRuntimeTestCase):
     def flow(self, **overrides):
         script = {"pane.get": [pane_reply(), SHELL], "agent.read": screen_reply("❯"), "pane.send_keys": {"type": "ok"},
                   "pane.process_info": [PROCESS, SHELL_PROCESS], "agent.prompt": {"type": "ok"},
-                  "pane.rename": {"type": "pane_info"}, "pane.close": {"type": "ok"}}
+                  "pane.rename": {"type": "pane_info"}, "pane.close": {"type": "ok"},
+                  "pane.list": BESIDE_A_SHELL}
         script.update(overrides)
         rt = self.runtime(script)
         rt.system = FakeSystem(proc=False)

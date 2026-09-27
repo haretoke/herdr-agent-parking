@@ -65,7 +65,7 @@ def park(rt, pane_id, note, keep=False):
         return Outcome("park_failed", why or "Claude did not exit within %s s; the pane is left as it is "
                                              "(its record stays, so `r` works after a manual /exit)"
                        % rt.settings["exit_timeout_seconds"], record)
-    mode, reason = ("keep", "") if keep else _close_or_keep(rt, pane_id, tree)
+    mode, reason = ("keep", "") if keep else _close_or_keep(rt, pane_id)
     if mode == "close":
         rt.herdr.call("pane.close", {"pane_id": pane_id})
     else:
@@ -108,16 +108,31 @@ def _end(rt, pane_id, session_id, background, command, env):
     return None
 
 
-def _close_or_keep(rt, pane_id, tree):
-    """`on_park = close` closes the pane, except the last one of its tab (that would close
-    the tab; spike 0-16) or one where something else than the shell took the foreground."""
+def _close_or_keep(rt, pane_id):
+    """`on_park = close` closes the pane (the only pane of a tab takes the tab with it),
+    except the last one of its workspace (that would close the workspace; spike 0-16) or one
+    where something else than the shell took the foreground."""
     if rt.settings["on_park"] != "close":
         return "keep", ""
-    if not isinstance(tree, dict) or tree.get("type") != "split":
-        return "keep", "kept as the last pane of its tab"
+    if not _others_in_workspace(rt, pane_id):
+        return "keep", "kept as the last pane of its workspace"
     if not herdr_api.shell_only(rt.herdr.process_info(pane_id)):
         return "keep", "kept: something other than the shell is running there"
     return "close", ""
+
+
+def _others_in_workspace(rt, pane_id):
+    """Its workspace has a pane besides this one and the dashboard's overlay (which closes
+    with the dashboard). Read at the time: `S` parks one pane after another. False when
+    Herdr cannot say."""
+    try:
+        panes = rt.herdr.panes()
+    except herdr_api.HerdrError:
+        return False
+    workspace_id = next((p.workspace_id for p in panes if p.pane_id == pane_id), None)
+    ignored = (pane_id, state.dashboard_pane(rt.environ))
+    return workspace_id is not None and any(
+        p.workspace_id == workspace_id and p.pane_id not in ignored for p in panes)
 
 
 def _label_before(rt, pane):

@@ -3,8 +3,8 @@ from datetime import timedelta
 from pathlib import Path
 
 from agent_parking import config, herdr_api, park, transcript
-from tests.flows import (NOW, PROCESS, SHELL, SHELL_PROCESS, UUID, FlowRuntimeTestCase, FlowTestCase, pane_reply,
-                         screen_reply)
+from tests.flows import (ALONE, NOW, PROCESS, SHELL, SHELL_PROCESS, UUID, FlowRuntimeTestCase, FlowTestCase,
+                         pane_list, pane_reply, screen_reply)
 
 
 class RefuseTest(FlowRuntimeTestCase):
@@ -210,8 +210,8 @@ class RecordFieldsTest(FlowTestCase):
         self.assertEqual(before["parked_at"], "2026-09-27T12:00:00Z")
         self.assertIn("layout_hint", before)
         self.assertNotIn("parked_mode", before)
-        self.assertEqual(outcome.record["parked_mode"], "keep")
-        self.assertEqual(self.saved()["parked_mode"], "keep")
+        self.assertEqual(outcome.record["parked_mode"], "close")
+        self.assertEqual(self.saved()["parked_mode"], "close")
 
 
 class ExitTest(FlowTestCase):
@@ -232,8 +232,8 @@ class ExitTest(FlowTestCase):
 
 
 class LabelTest(FlowTestCase):
-    def test_after_the_shell_is_back_the_pane_is_labelled_and_the_old_label_kept(self):
-        rt = self.flow(**{"pane.get": [pane_reply(label="api"), pane_reply(label="api"), SHELL]})
+    def test_after_the_shell_is_back_a_kept_pane_is_labelled_and_the_old_label_kept(self):
+        rt = self.flow(**{"pane.get": [pane_reply(label="api"), pane_reply(label="api"), SHELL], "pane.list": ALONE})
         outcome = park.park(rt, "w1:p2", note=None)
         self.assertEqual(outcome.kind, "parked")
         self.assertEqual(len(self.slept), 1)
@@ -277,6 +277,27 @@ class OnParkTest(FlowTestCase):
         self.assertIn("pane.close", self.fake.methods())
         self.assertEqual(outcome.record["parked_mode"], "close")
 
+    def test_by_default_a_pane_alone_in_its_tab_closes_when_its_workspace_has_another_tab(self):
+        # Herdr closes the tab with its only pane and keeps the workspace (spike 0-16); `r`
+        # opens a new tab for it.
+        other_tab = pane_list(("w1:p1", "w1:t2", "w1"), ("w1:p2", "w1:t1", "w1"))
+        outcome = park.park(self.flow(**{"layout.export": ONE_PANE, "pane.list": other_tab}), "w1:p2", note=None)
+        self.assertIn("pane.close", self.fake.methods())
+        self.assertEqual(outcome.record["parked_mode"], "close")
+
+    def test_close_keeps_the_last_pane_of_a_workspace_whatever_other_workspaces_have(self):
+        elsewhere = pane_list(("w2:p1", "w2:t1", "w2"), ("w1:p2", "w1:t1", "w1"))
+        outcome = park.park(self.flow(**{"layout.export": ONE_PANE, "pane.list": elsewhere}), "w1:p2", note=None)
+        self.assertNotIn("pane.close", self.fake.methods())
+        self.assertIn("last pane of its workspace", outcome.message)
+
+    def test_close_keeps_the_pane_when_herdr_cannot_list_the_panes(self):
+        from tests.fake_herdr import Error
+        outcome = park.park(self.flow(**{"layout.export": TWO_PANES, "pane.list": Error("internal")}), "w1:p2",
+                            note=None)
+        self.assertNotIn("pane.close", self.fake.methods())
+        self.assertEqual(outcome.record["parked_mode"], "keep")
+
     def test_keep_leaves_the_pane(self):
         self.settings["on_park"] = "keep"
         outcome = park.park(self.flow(**{"layout.export": TWO_PANES}), "w1:p2", note=None)
@@ -293,11 +314,11 @@ class OnParkTest(FlowTestCase):
         self.assertEqual((outcome.kind, outcome.record["parked_mode"]), ("parked", "close"))
         self.assertEqual(self.saved()["parked_mode"], "close")
 
-    def test_close_keeps_the_last_pane_of_a_tab_and_a_busy_pane(self):
+    def test_close_keeps_the_last_pane_of_its_workspace_and_a_busy_pane(self):
         self.settings["on_park"] = "close"
         busy = {"type": "process_info", "process_info": {"shell_pid": 100, "foreground_process_group_id": 300,
                                                          "foreground_processes": [{"pid": 300, "name": "vim"}]}}
-        for overrides, reason in [({"layout.export": ONE_PANE}, "last pane"),
+        for overrides, reason in [({"layout.export": ONE_PANE, "pane.list": ALONE}, "last pane of its workspace"),
                                   ({"layout.export": TWO_PANES, "pane.process_info": [PROCESS, busy]}, "shell")]:
             with self.subTest(reason=reason):
                 outcome = park.park(self.flow(**overrides), "w1:p2", note=None)
@@ -378,9 +399,11 @@ class OverlayTest(FlowTestCase):
         self.assertEqual(self.saved()["layout_hint"], {"sibling_pane_id": "w1:p1", "position": "second",
                                                        "direction": "right", "ratio": 0.5, "path": []})
 
-    def test_a_pane_alone_with_the_overlay_is_the_last_one_of_its_tab(self):
+    def test_a_pane_alone_with_the_overlay_is_the_last_one_of_its_workspace(self):
         self.settings["on_park"] = "close"
-        outcome = park.park(self.flow(**{"layout.export": with_overlay(ONE_PANE["root"])}), "w1:p2", note=None)
+        overlaid = pane_list(("w1:p2", "w1:t1", "w1"), ("w1:p9", "w1:t1", "w1"))
+        outcome = park.park(self.flow(**{"layout.export": with_overlay(ONE_PANE["root"]), "pane.list": overlaid}),
+                            "w1:p2", note=None)
         self.assertNotIn("pane.close", self.fake.methods())
         self.assertIsNone(self.saved()["layout_hint"])
         self.assertIn("last pane", outcome.message)
