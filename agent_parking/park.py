@@ -23,11 +23,9 @@ def park(rt, pane_id, note, keep=False):
     pane, refusal = ready.check(rt, pane_id, "park")
     if refusal:
         return Outcome("refused", refusal, None)
-    process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
-    argv = inventory.argv_of(process, rt.system) if process else []
-    env = inventory.account_env(process, rt.system, rt.settings)
-    command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
-    background, refusal = _shown_background(rt, pane, argv, command, env)
+    seen = agents.look(rt, pane_id)
+    process, argv, env, command = seen.process, seen.argv, seen.env, seen.command
+    background, refusal = _shown_background(pane, seen)
     if refusal:
         return Outcome("refused", refusal, None)
     session_id = background["sessionId"] if background else pane.session_id
@@ -75,12 +73,12 @@ def park(rt, pane_id, note, keep=False):
     return Outcome("parked", "; ".join(part for part in (stopped, reason) if part), record)
 
 
-def _shown_background(rt, pane, argv, command, env):
+def _shown_background(pane, seen):
     """(Claude's entry for the session of its background the pane shows, or None; the reason
     not to park, or None). A `claude attach <id>` client, or a view Herdr names a background
     session for: /exit would leave the session running, `claude stop` ends it."""
-    attached = agents.attached_to(argv)
-    entry = agents.running_background(rt.system.claude_agents(command, env), pane.session_id, attached)
+    attached = agents.attached_to(seen.argv)
+    entry = agents.running_background(seen.entries, pane.session_id, attached)
     if attached and entry is None:
         return None, agents.NOT_RUNNING % attached
     return entry, entry and agents.why_not_stop(entry, pane.title)

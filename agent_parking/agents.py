@@ -2,6 +2,23 @@
 `claude attach <id>`, which shows one in a pane while it runs outside it. `/exit` there
 does not stop it."""
 
+from collections import namedtuple
+
+from . import inventory
+
+Seen = namedtuple("Seen", "process argv env command entries")
+
+
+def look(rt, pane_id):
+    """The Claude process in `pane_id` (its argv, account variables, the `claude` to run for
+    it) and Claude's session list, read with that `claude` and those variables."""
+    process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
+    argv = inventory.argv_of(process, rt.system) if process else []
+    env = inventory.account_env(process, rt.system, rt.settings)
+    command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
+    return Seen(process, argv, env, command, rt.system.claude_agents(command, env))
+
+
 NOT_RUNNING = ("this pane attaches to Claude's background session %s, which Claude does not list as "
                "running; look at the pane (g)")
 
