@@ -9,6 +9,7 @@ from . import config, display, herdr_api, inventory, layout, ready, records, sta
 Outcome = namedtuple("Outcome", "kind message record")
 
 PARKABLE = ready.READY_STATUSES
+NO_CONVERSATION = "this Claude has no conversation yet, so there is nothing to resume; exit it with /exit instead"
 POLL_SECONDS = 0.5
 
 
@@ -18,6 +19,9 @@ def park(rt, pane_id, note, keep=False):
     pane, refusal = ready.check(rt, pane_id, "park")
     if refusal:
         return Outcome("refused", refusal, None)
+    if not rt.has_transcript(pane.session_id):
+        # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
+        return Outcome("refused", NO_CONVERSATION, None)
     process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
     tree = _tab_tree(rt, pane_id)
     record = {

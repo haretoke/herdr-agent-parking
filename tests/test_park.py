@@ -156,6 +156,18 @@ class OnParkTest(FlowTestCase):
                 self.assertIn(reason, outcome.message)
 
 
+class NoConversationTest(FlowTestCase):
+    def test_a_claude_that_never_had_a_conversation_is_not_parked(self):
+        # Seen on the Mac: its record could not be resumed ("No conversation found").
+        rt = self.flow()
+        rt.has_transcript = lambda session_id: False
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("no conversation yet", outcome.message)
+        self.assertNotIn("agent.prompt", self.fake.methods())
+        self.assertIsNone(self.saved())
+
+
 def with_overlay(root):
     """The tab's layout while the dashboard's overlay (`w1:p9`) is open over it (seen on the Mac)."""
     return {"type": "layout_export", "tab_id": "w1:t1", "root": {
