@@ -24,12 +24,16 @@ def make_runtime(environ):
     processes, the plugin's state directory, and transcripts read through a cache."""
     log = state.state_dir(environ) / "dashboard.log"
     settings = config.load(state.config_dir(environ) / "config.json", lambda line: logfile.append(log, line))
-    config_dir = state.claude_config_dir(environ, settings)
+    # The plugin's own, then those of Claudes started with another CLAUDE_CONFIG_DIR.
+    config_dirs = [state.claude_config_dir(environ, settings)]
     summaries = transcript.Cache(transcript.load)
+
+    def find(session_id):
+        return transcript.find_any(config_dirs, session_id)
 
     def rows_for(session_id):
         """The tail of the session's transcript (the compact flow reads Claude's replies)."""
-        path = transcript.find(config_dir, session_id)
+        path = find(session_id)
         try:
             return transcript.read_tail(path) if path is not None else []
         except OSError:
@@ -39,10 +43,11 @@ def make_runtime(environ):
     return runtime.Runtime(
         herdr=herdr_api.Herdr.from_environ(environ), system=system.System(),
         paths=paths, settings=settings, clock=_now, environ=environ,
-        summary_for=lambda session_id: summaries.get(transcript.find(config_dir, session_id)),
+        summary_for=lambda session_id: summaries.get(find(session_id)),
         rows_for=rows_for,
-        has_transcript=lambda session_id: transcript.find(config_dir, session_id) is not None,
-        statusline_windows=transcript.statusline_windows(paths.windows))
+        has_transcript=lambda session_id: find(session_id) is not None,
+        statusline_windows=transcript.statusline_windows(paths.windows),
+        claude_config_dirs=config_dirs)
 
 
 def main(args, environ):

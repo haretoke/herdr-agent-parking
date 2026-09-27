@@ -7,7 +7,7 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
-from agent_parking import cli, compact, park, presence, recreate, resume, state, transcript
+from agent_parking import cli, compact, park, presence, recreate, resume, runtime, state, transcript
 from tests.fake_herdr import Error, FakeHerdr
 
 
@@ -234,6 +234,25 @@ class SingleDashboardTest(CliTestCase):
                 self.announce("overlay", pid=pid)
                 self.assertEqual(cli.main(["open"], self.environ(fake)), 0)
                 self.assertEqual(self.calls(fake), [("plugin.pane.open", None)])
+
+
+class ConfigDirsTest(CliTestCase):
+    def test_transcripts_are_looked_up_in_every_config_directory_a_claude_was_seen_with(self):
+        work = self.home / "claude-work"
+        (work / "projects" / "-w").mkdir(parents=True)
+        usage = {"input_tokens": 5, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
+        (work / "projects" / "-w" / (UUID + ".jsonl")).write_text(
+            json.dumps({"type": "assistant", "message": {"model": "m", "usage": usage}}) + "\n")
+        rt = cli.make_runtime({"HOME": str(self.home), "HERDR_SOCKET_PATH": "/nonexistent.sock"})
+        self.assertEqual(rt.claude_config_dirs, [self.home / ".claude"])
+        self.assertFalse(rt.has_transcript(UUID))
+        runtime.remember_config_dir(rt, {"CLAUDE_CONFIG_DIR": "relative/dir"})
+        runtime.remember_config_dir(rt, {"CLAUDE_CONFIG_DIR": str(work)})
+        runtime.remember_config_dir(rt, {"CLAUDE_CONFIG_DIR": str(work)})
+        self.assertEqual(rt.claude_config_dirs, [self.home / ".claude", work])
+        self.assertTrue(rt.has_transcript(UUID))
+        self.assertEqual(rt.summary_for(UUID).tokens, 5)
+        self.assertEqual(len(rt.rows_for(UUID)), 1)
 
 
 if __name__ == "__main__":
