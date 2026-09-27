@@ -4,8 +4,6 @@ does not stop it."""
 
 NOT_RUNNING = ("this pane attaches to Claude's background session %s, which Claude does not list as "
                "running; look at the pane (g)")
-STILL_RUNNING = ("%s still runs in Claude's background as %s: `claude attach %s` opens it in a pane; "
-                 "x (void) forgets this record")
 
 
 def attached_to(argv):

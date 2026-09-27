@@ -33,10 +33,16 @@ def resume(rt, session_id, new_workspace=False):
         # `claude --resume` would answer No conversation found (seen on the Mac).
         return Outcome("refused", "no conversation was ever saved for %s, so it cannot be resumed; "
                                   "x (void) forgets the record" % session_id[:8], record)
-    background = _background(rt, record)
+    command, background = _background(rt, record)
     if background:
-        # `claude --resume` would refuse it (seen in a container): the park never stopped it.
-        return Outcome("refused", agents.STILL_RUNNING % (session_id[:8], background, background), record)
+        # `claude --resume` refuses it "or `claude stop` first to resume it here" (seen in a
+        # container, where the park had only closed agent view): stop it when it is idle.
+        refusal = agents.not_idle(background)
+        if refusal:
+            return Outcome("refused", refusal, record)
+        if not rt.system.claude_stop(command, background["id"], record.get("env") or {}):
+            return Outcome("refused", "`claude stop %s` failed; it still runs in Claude's background"
+                           % background["id"], record)
     if decision.kind == "no_pane":
         placed = recreate.place(rt, record, panes, new_workspace=new_workspace)
         if placed.pane_id is None:
@@ -103,12 +109,12 @@ def resume(rt, session_id, new_workspace=False):
 
 
 def _background(rt, record):
-    """The short id under which Claude still runs the record's session in the background."""
+    """The `claude` to run for the record's session, and Claude's entry for it when it still
+    runs in the background (else None)."""
     started = (record.get("argv") or [None])[0]
     command = inventory.claude_executable(started, rt.settings, rt.system, rt.environ)
-    entry = agents.running_background(rt.system.claude_agents(command, record.get("env") or {}),
-                                      record["session_id"])
-    return entry and entry["id"]
+    return command, agents.running_background(rt.system.claude_agents(command, record.get("env") or {}),
+                                              record["session_id"])
 
 
 def _pending(rt, record):

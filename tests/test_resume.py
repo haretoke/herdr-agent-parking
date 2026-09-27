@@ -208,17 +208,29 @@ class TypedStartExitTest(ResumeTestCase):
 
 
 class BackgroundTest(ResumeTestCase):
-    def test_a_session_running_in_claudes_background_is_refused_with_how_to_open_it(self):
-        # The container's record: parked from agent view, its session still ran.
+    def test_an_idle_session_still_running_in_claudes_background_is_stopped_then_resumed_here(self):
+        # The container's record: parked from agent view by v0.1.5, its session still ran,
+        # and `claude --resume` refused it ("or `claude stop` first to resume it here").
+        self.park_record()
+        rt = self.resuming()
+        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560,
+                             "status": "idle"}]
+        outcome = resume.resume(rt, UUID)
+        self.assertEqual(outcome.kind, "resumed")
+        self.assertEqual(rt.system.stop_calls, [("/home/u/.local/bin/claude", "2716af66", {})])
+        self.assertIn("agent.start", self.fake.methods())
+
+    def test_a_busy_session_in_claudes_background_is_not_stopped(self):
         self.park_record(env={"CLAUDE_CONFIG_DIR": "/home/node/.claude"})
         rt = self.resuming()
-        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560}]
+        rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560,
+                             "status": "busy"}]
         outcome = resume.resume(rt, UUID)
         self.assertEqual(outcome.kind, "refused")
-        self.assertIn("claude attach 2716af66", outcome.message)
-        self.assertIn("x (void)", outcome.message)
+        self.assertIn("busy in the background", outcome.message)
         self.assertEqual(rt.system.agents_calls, [("/home/u/.local/bin/claude",
                                                    {"CLAUDE_CONFIG_DIR": "/home/node/.claude"})])
+        self.assertEqual(rt.system.stop_calls, [])
         self.assertNotIn("pane.send_input", self.fake.methods())
         self.assertNotIn("agent.start", self.fake.methods())
         self.assertEqual(self.saved()["status"], "parked")
