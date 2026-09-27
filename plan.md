@@ -715,6 +715,15 @@ server is never restarted.
       parked; a box that cannot be found is reported as such, not as a draft (seen on
       the Mac: `wJ:pS`, named `summit-202606`, was refused as having a draft; after the
       fix all eight live Claudes on the Mac read `empty`)
+- [x] a Claude started with account variables (`resume_env`: `CLAUDE_CONFIG_DIR`,
+      `CLAUDE_SECURESTORAGE_CONFIG_DIR`) is parked with them and resumed with them, typed
+      as `env VAR=value claude --resume ...` because `agent.start` takes no environment;
+      only those names are recorded; transcripts are looked up in a Claude's own
+      `CLAUDE_CONFIG_DIR` too; the detail line and the resume confirmation name the
+      account (the user runs `claude-alt`, which sets `CLAUDE_SECURESTORAGE_CONFIG_DIR`;
+      checked on a real Herdr with a probe variable added to `resume_env`: the record
+      kept only it, and after `r` and after `R` the new Claude process had it again,
+      same UUID)
 - [x] one dashboard at a time: `open` closes an overlay left open elsewhere and opens it
       again here; a dashboard kept in a tab is focused by either action; an announcement
       whose process or pane is gone does not count (asked by the user after `open` from a

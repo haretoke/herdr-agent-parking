@@ -296,6 +296,13 @@ be read before step 6.
 5. `pane.send_input <P>` of `printf '%s\n' '💤 <note>'` + Enter (secondary display;
    continue on failure).
 6. `agent start <name> --kind claude --pane <P> --timeout <start_timeout_ms> -- --resume <UUID> <flags>`.
+   When the record has `env` (the variables that picked the Claude's account, below),
+   `agent start` cannot carry them (it takes no environment), so the pane's shell gets
+   `env VAR=value ... <claude_command> --resume <UUID> <flags>` typed instead, and the
+   same checks follow (the session appears, `blocked` without it is pending, else the
+   start timeout). Seen on the Mac: `claude-alt` is `claude` with
+   `CLAUDE_SECURESTORAGE_CONFIG_DIR` set; without this a parked alt session came back on
+   the main account.
    `<flags>` is the record's `argv` minus the executable and minus `--resume` / `-r` /
    `--continue` / `-c` / `--session-id` / `--name` / `-n` / `--fork-session` /
    `--from-pr` / `--teleport` with their values. An initial prompt given as a positional
@@ -539,6 +546,7 @@ Record (schema_version 1):
   "title": "color pipeline notes",
   "cwd": "/path/to/project",
   "argv": ["/home/u/.local/bin/claude", "--effort", "medium"],
+  "env": {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/home/u/.claude-creds/alt"},
   "claude_version": "2.1.280",
   "claude_executable": "/home/u/.local/share/claude/versions/2.1.280",
   "pane_id": "wD:p2T",
@@ -590,6 +598,7 @@ Config `HERDR_PLUGIN_CONFIG_DIR/config.json` (every key optional):
 | `prepare_prompt` | null | When set, this text is sent instead of `prepare_command`, with no fallback. When unset, a missing skill (`Unknown command`) makes the flow send the built-in text instead |
 | `prepare_timeout_seconds` | 600 | How long to wait for the preparation to finish |
 | `compact_timeout_seconds` | 300 | How long to wait for the new `compact_boundary` line |
+| `resume_env` | `["CLAUDE_CONFIG_DIR", "CLAUDE_SECURESTORAGE_CONFIG_DIR"]` | Variables read from a Claude's process at park time (`/proc/<pid>/environ`, or the kernel's process arguments on macOS) and set again at resume, so an account switched by environment comes back on the same account. Only these names are kept, never the rest of the environment (API keys stay out). A `CLAUDE_CONFIG_DIR` among them also adds that directory to where transcripts are looked up, for the live Claude and for its record. The detail line and the resume confirmation name the account after the directory (`account alt`) |
 
 ## Errors and edge cases
 

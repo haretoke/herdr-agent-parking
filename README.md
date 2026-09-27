@@ -123,6 +123,16 @@ haretoke.agent-parking`). Every key is optional:
 | `prepare_command` / `prepare_prompt` | `"/prepare-compact"` / none | What `c` sends to prepare |
 | `poll_seconds`, `exit_timeout_seconds`, `start_timeout_ms`, `prepare_timeout_seconds`, `compact_timeout_seconds` | 2, 20, 30000, 600, 300 | Waits |
 | `claude_command`, `claude_config_dir`, `records_dir`, `resumed_keep_days` | | Where things are |
+| `resume_env` | `["CLAUDE_CONFIG_DIR", "CLAUDE_SECURESTORAGE_CONFIG_DIR"]` | Variables a parked Claude gets back when it resumes (see below) |
+
+### Several accounts
+
+If you switch accounts with an environment variable (a wrapper that runs
+`CLAUDE_SECURESTORAGE_CONFIG_DIR=~/.claude-creds/alt claude`, or a separate
+`CLAUDE_CONFIG_DIR`), parking records those variables from the Claude's own process and
+the resume sets them again, so a session comes back on the account it ran on. The
+detail line shows which (`account alt`), and transcripts are also looked up in a
+Claude's own `CLAUDE_CONFIG_DIR`. Only the variables named in `resume_env` are kept.
 
 The ctx percentage needs the window size. Besides the setting, a statusline can
 write it for each session: Claude's statusline input has `session_id` and
