@@ -3,7 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from agent_parking import config, herdr_api, park, transcript
-from tests.flows import (NOW, PROCESS, SHELL, UUID, FlowRuntimeTestCase, FlowTestCase, pane_reply,
+from tests.flows import (NOW, PROCESS, SHELL, SHELL_PROCESS, UUID, FlowRuntimeTestCase, FlowTestCase, pane_reply,
                          screen_reply)
 
 
@@ -40,25 +40,34 @@ class AgentViewTest(FlowRuntimeTestCase):
         self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+ATTACHED = {"type": "process_info", "process_info": {
+    "shell_pid": 100, "foreground_process_group_id": 200,
+    "foreground_processes": [{"pid": 200, "name": "claude", "cwd": "/repo",
+                              "argv": ["/home/u/.local/bin/claude", "attach", "2716af66"]}]}}
 BACKGROUND_ENTRY = {"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560, "name": "work",
                     "status": "idle", "state": "done", "cwd": "/repo"}
 
 
 class BackgroundSessionTest(FlowTestCase):
-    def test_an_attach_client_is_refused_since_exit_would_leave_the_session_running(self):
+    def test_an_attach_client_is_parked_by_stopping_the_session_it_shows(self):
         # Seen on the Mac: /exit in `claude attach` turns it into agent view and the
-        # session goes on in Claude's background.
-        attached = {"type": "process_info", "process_info": {
-            "shell_pid": 100, "foreground_process_group_id": 200,
-            "foreground_processes": [{"pid": 200, "name": "claude", "cwd": "/repo",
-                                      "argv": ["/home/u/.local/bin/claude", "attach", "41038c12"]}]}}
-        rt = self.flow(**{"pane.process_info": attached})
+        # session goes on in Claude's background; after `claude stop` the client exits.
+        rt = self.flow(**{"pane.process_info": [ATTACHED, SHELL_PROCESS]})
+        rt.system.agents = [dict(BACKGROUND_ENTRY)]
         outcome = park.park(rt, "w1:p2", note=None)
-        self.assertEqual(outcome.kind, "refused")
-        self.assertIn("background", outcome.message)
-        self.assertIn("claude stop 41038c12", outcome.message)
+        self.assertEqual(outcome.kind, "parked")
+        self.assertEqual([call[1] for call in rt.system.stop_calls], ["2716af66"])
         self.assertNotIn("agent.prompt", self.fake.methods())
-        self.assertIsNone(self.saved())
+
+    def test_an_attach_client_whose_session_claude_does_not_list_as_running_is_refused(self):
+        for listed in (None, [], [dict(BACKGROUND_ENTRY, pid=None)]):
+            with self.subTest(listed=listed):
+                rt = self.flow(**{"pane.process_info": ATTACHED})
+                rt.system.agents = listed
+                outcome = park.park(rt, "w1:p2", note=None)
+                self.assertEqual(outcome.kind, "refused")
+                self.assertIn("2716af66", outcome.message)
+                self.assertNotIn("agent.prompt", self.fake.methods())
 
     def test_a_session_claude_runs_in_the_background_is_stopped_and_parked(self):
         # In a container a pane showed a session of Claude's background (`claude agents`

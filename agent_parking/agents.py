@@ -2,8 +2,8 @@
 `claude attach <id>`, which shows one in a pane while it runs outside it. `/exit` there
 does not stop it."""
 
-BACKGROUND = ("this pane shows a session that runs in Claude's background (%s); /exit would leave "
-              "it running. `claude stop %s` stops it")
+NOT_RUNNING = ("this pane attaches to Claude's background session %s, which Claude does not list as "
+               "running; look at the pane (g)")
 STILL_RUNNING = ("%s still runs in Claude's background as %s: `claude attach %s` opens it in a pane; "
                  "x (void) forgets this record")
 
@@ -13,13 +13,15 @@ def attached_to(argv):
     return argv[2] if len(argv) > 2 and argv[1] == "attach" else None
 
 
-def running_background(entries, session_id):
-    """Claude's entry for `session_id` when it runs in the background, from its session list
+def running_background(entries, session_id, short_id=None):
+    """Claude's entry for `session_id` (or the one whose short id is `short_id`, which a
+    `claude attach` client names) when it runs in the background, from its session list
     (`claude agents --json`: `id` is the short id `claude stop` takes), else None. Only a live
     worker counts (it has a `pid`): a stopped one stays listed and can be resumed as a
     Claude of its own."""
     for entry in entries or []:
-        if entry.get("kind") == "background" and entry.get("sessionId") == session_id and entry.get("pid"):
+        mine = entry.get("id") == short_id if short_id else entry.get("sessionId") == session_id
+        if entry.get("kind") == "background" and mine and entry.get("pid"):
             return dict(entry, id=entry.get("id") or session_id[:8])
     return None
 

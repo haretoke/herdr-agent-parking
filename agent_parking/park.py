@@ -21,22 +21,25 @@ def park(rt, pane_id, note, keep=False):
         return Outcome("refused", refusal, None)
     process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
     argv = inventory.argv_of(process, rt.system) if process else []
-    attached = agents.attached_to(argv)
-    if attached:
-        return Outcome("refused", agents.BACKGROUND % (attached, attached), None)
     env = inventory.account_env(process, rt.system, rt.settings)
     command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
-    # A session of Claude's background shown here: /exit would leave it running.
-    background = agents.running_background(rt.system.claude_agents(command, env), pane.session_id)
-    if background and agents.why_not_stop(background, pane.title):
-        return Outcome("refused", agents.why_not_stop(background, pane.title), None)
+    # A session of Claude's background shown here (`claude attach <id>`, or a view Herdr
+    # names it for): /exit would leave it running, `claude stop` ends it.
+    attached = agents.attached_to(argv)
+    background = agents.running_background(rt.system.claude_agents(command, env), pane.session_id, attached)
+    if attached and background is None:
+        return Outcome("refused", agents.NOT_RUNNING % attached, None)
+    refusal = background and agents.why_not_stop(background, pane.title)
+    if refusal:
+        return Outcome("refused", refusal, None)
+    session_id = background["sessionId"] if background else pane.session_id
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
-    if not rt.has_transcript(pane.session_id):
+    if not rt.has_transcript(session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
         return Outcome("refused", NO_CONVERSATION, None)
     tree = _tab_tree(rt, pane_id)
     record = {
-        "schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
+        "schema_version": records.SCHEMA_VERSION, "session_id": session_id,
         "status": "parking", "pane_id": pane_id, "pane_id_history": [],
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         "cwd": (background or {}).get("cwd") or process.get("cwd") or pane.cwd,
@@ -44,7 +47,7 @@ def park(rt, pane_id, note, keep=False):
         "env": env,
         "claude_version": inventory.running_version(process, rt.system) if process else None,
         "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),
-        "context_at_park": _context(rt, pane.session_id),
+        "context_at_park": _context(rt, session_id),
         "parked_at": times.iso(rt.clock()),
         "note": note if note and note.strip() else None,
     }
@@ -56,7 +59,7 @@ def park(rt, pane_id, note, keep=False):
         stopped = "stopped Claude's background session %s" % background["id"]
         # A view showing it goes back to the shell by itself (seen on the Mac).
         if not rt.system.claude_stop(command, background["id"], env):
-            records.discard_parking(rt.paths.records, pane.session_id)
+            records.discard_parking(rt.paths.records, session_id)
             return Outcome("park_failed", "`claude stop %s` failed; the session runs on as it was"
                            % background["id"], None)
     else:
@@ -64,7 +67,7 @@ def park(rt, pane_id, note, keep=False):
         try:
             rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
         except herdr_api.HerdrError as error:
-            records.discard_parking(rt.paths.records, pane.session_id)
+            records.discard_parking(rt.paths.records, session_id)
             if error.code == "agent_blocked":
                 return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
             raise
