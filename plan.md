@@ -24,10 +24,10 @@ devcon-herdr's plugin lock.
 - Only `idle` or `done` panes with an empty input box can be parked or compacted.
 - The record is written before `/exit` is sent (Herdr's `agent_session` becomes None
   when Claude exits).
-- Parked panes are kept by default (`on_park = "keep"`): the empty shell gets the label
-  `💤 {title}` with `pane rename` (labels survive the exit) and the label is restored
-  on resume. `on_park = "close"` closes the pane and resumes through recreate; the last
-  pane of a tab is never closed.
+- Parked panes are closed by default (`on_park = "close"`, since v0.1.12) and resume
+  through recreate; the last pane of a tab is never closed. A kept pane (that one, or
+  every pane with `on_park = "keep"`) gets the label `💤 {title}` with `pane rename`
+  (labels survive the exit) and the label is restored on resume.
 - Resume is `herdr agent start <name> --kind claude --pane <P> -- --resume <UUID> <flags>`,
   `<flags>` being the park-time argv minus resume and naming flags.
 - Without the pane, recreate from the record's `layout_hint` / tab / workspace / cwd.
@@ -435,7 +435,15 @@ server is never restarted.
 - [x] whether `pane close` on the last pane of a tab closes the tab (the reason to keep
       that pane even with `on_park = close`)
       (2026-09-27): yes. Closing the only pane of a new tab removed the tab from
-      `tab list`. `on_park = close` keeps such a pane, as designed
+      `tab list`. `on_park = close` keeps such a pane, as designed.
+      Again on a throwaway Herdr (2026-09-27): the workspace stays when it has other
+      tabs; closing the last pane of its only tab removes the workspace; a tab made
+      again with `tab create` goes to the end of the tab order (A, C, B)
+- [x] where a pane label shows (Herdr 0.9.1 source, 2026-09-27): on the pane's top
+      border only (`border_label`: a reported title first, then the label), and
+      `pane_borders = true` means `auto`, which draws borders only in a tab with two
+      panes or more. So the `💤` label of a kept pane alone in its tab shows nowhere but
+      in the dashboard; this made `close` the default (v0.1.12)
 - [x] whether a parked session can be compacted headless
       (`claude -p --resume <uuid> "/compact"`; `/compact` is not in the documented list of
       slash commands available with `-p`). If it works, parked sessions can be compacted
@@ -660,7 +668,8 @@ server is never restarted.
 - [x] `layout_hint` (sibling pane id or `null` for a subtree, `first` / `second`, direction,
       ratio, boolean path) from `layout.export` is stored before the park, whatever
       `on_park` is
-- [x] by default (`on_park` unset) the pane is not closed
+- [x] with `on_park = keep` the pane is not closed (the default until v0.1.11)
+- [x] by default (v0.1.12) a pane beside others in its tab is closed
 - [x] with `on_park = close`, `pane close <P>` is called after the shell is back and
       `parked_mode` is `"close"`
 - [x] with `on_park = close`, the last pane of a tab and a pane with something other than
