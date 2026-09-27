@@ -723,8 +723,12 @@ server is never restarted.
       container: 30 s, then only "found None")
 - [x] a record whose session still runs in Claude's background is refused with
       `claude attach <id>` and `x`, before any pane is recreated or command typed
+- [x] the typed start counts Claude as started only when Herdr shows `agent: claude`: a
+      prompt helper (`git` under oh-my-zsh, after the `cd` and the note typed before) was
+      taken for Claude exiting at once
 - [ ] parking and unparking Claude's background sessions themselves (`claude stop <id>`,
-      then `claude attach <id>` or `claude --resume <uuid>`; the user chooses)
+      then `claude attach <id>` or `claude --resume <uuid>`; the user chooses). Not seen
+      yet: `claude stop` while a client is attached (the spike stopped after Ctrl+Z)
 
 ### recreate (fake herdr)
 - [x] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio
