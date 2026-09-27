@@ -28,6 +28,8 @@ def park(rt, pane_id, note, keep=False):
     command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
     # A session of Claude's background shown here: /exit would leave it running.
     background = agents.running_background(rt.system.claude_agents(command, env), pane.session_id)
+    if background and agents.not_idle(background):
+        return Outcome("refused", agents.not_idle(background), None)
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(pane.session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.

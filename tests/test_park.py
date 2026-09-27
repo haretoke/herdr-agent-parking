@@ -80,6 +80,20 @@ class BackgroundSessionTest(FlowTestCase):
         self.assertEqual((saved["status"], saved["session_id"], saved["cwd"], saved["background_id"], saved["note"]),
                          ("parked", UUID, "/repo/.claude/worktrees/site", "2716af66", "wiki"))
 
+    def test_a_background_session_that_is_busy_or_waits_for_a_permission_is_not_stopped(self):
+        # Herdr's status for a pane showing one is not its own (seen on the Mac); Claude's
+        # list says `busy`, or `waiting` with `waitingFor: "permission prompt"`.
+        for status, extra, said in (("busy", {}, "busy"),
+                                    ("waiting", {"waitingFor": "permission prompt"}, "permission prompt")):
+            with self.subTest(status=status):
+                rt = self.flow(**{"pane.get": pane_reply()})
+                rt.system.agents = [dict(BACKGROUND_ENTRY, status=status, **extra)]
+                outcome = park.park(rt, "w1:p2", note=None)
+                self.assertEqual(outcome.kind, "refused")
+                self.assertIn(said, outcome.message)
+                self.assertEqual(rt.system.stop_calls, [])
+                self.assertIsNone(self.saved())
+
     def test_a_failed_stop_leaves_the_session_as_it_was_and_no_record(self):
         rt = self.flow(**{"pane.get": pane_reply()})
         rt.system.agents = [dict(BACKGROUND_ENTRY)]

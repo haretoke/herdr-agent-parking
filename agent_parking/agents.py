@@ -22,3 +22,14 @@ def running_background(entries, session_id):
         if entry.get("kind") == "background" and entry.get("sessionId") == session_id and entry.get("pid"):
             return dict(entry, id=entry.get("id") or session_id[:8])
     return None
+
+
+def not_idle(entry):
+    """Why a background session is not stopped now, or None when it is idle. Herdr's status
+    for a pane showing one is not its own (seen on the Mac); Claude's list says `busy`, or
+    `waiting` with what for (`permission prompt`)."""
+    if entry.get("status") == "idle":
+        return None
+    if entry.get("waitingFor"):
+        return "Claude waits for a %s in the background; answer it first (g)" % entry["waitingFor"]
+    return "Claude is %s in the background; only idle sessions park" % (entry.get("status") or "unknown")
