@@ -76,6 +76,16 @@ def account_env(process, system, settings):
     return {name: environ[name] for name in settings["resume_env"] if name in environ}
 
 
+def account_name(env):
+    """The account a Claude runs as, named after the directory that picks it
+    (`CLAUDE_SECURESTORAGE_CONFIG_DIR=~/.claude-creds/alt` is `alt`); "" for the default."""
+    for name in ("CLAUDE_SECURESTORAGE_CONFIG_DIR", "CLAUDE_CONFIG_DIR"):
+        value = (env or {}).get(name, "").rstrip("/")
+        if value:
+            return os.path.basename(value).lstrip(".")
+    return ""
+
+
 def running_version(process, system):
     """The version the Claude process runs: on Linux the name of the executable
     `/proc/<pid>/exe` points to, on macOS Herdr's process `name`; None unless it looks

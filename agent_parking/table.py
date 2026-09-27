@@ -4,7 +4,7 @@ Narrow panes drop the lowest-priority columns first and give the space to the na
 (decided with Fable, 2026-09-27; see DESIGN.md, "UI and keys").
 """
 
-from . import display
+from . import display, inventory
 
 
 def columns(width):
@@ -68,6 +68,8 @@ def detail(cells, note, width):
     if "idle" not in cols and cells["idle"]:
         parts.append("idle " + cells["idle"])
     parts.extend(cells[c] for c in ("ctx", "rss", "ver") if c not in cols and cells[c] not in ("", "—"))
+    if cells.get("account"):
+        parts.append("account " + cells["account"])
     if note:
         parts.append('"%s"' % note.splitlines()[0])
     return display.cell("    ↳ " + " · ".join(parts), width) if parts else ""
@@ -110,4 +112,5 @@ def cells(row):
     return {"place": place, "place_id": place_id, "name": row.name or "", "status": row.status or "",
             "idle": row.idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
             "rss": "—" if row.record is not None else memory(row.rss_kb),
-            "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else ""}
+            "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else "",
+            "account": inventory.account_name(row.env)}

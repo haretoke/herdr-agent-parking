@@ -40,7 +40,7 @@ class CellsTest(unittest.TestCase):
         cells = table.cells(live(idle="≥1h12m"))
         self.assertEqual(cells, {"place": "w8/t3/p36 web", "place_id": "w8/t3/p36", "name": "api gateway refactor",
                                  "status": "idle", "idle": "≥1h12m", "ctx": "37k 18%", "ctx_short": "37k",
-                                 "rss": "205M", "ver": "2.1.283", "old": ""})
+                                 "rss": "205M", "ver": "2.1.283", "old": "", "account": ""})
 
     def test_the_place_label_is_the_pane_then_the_tab_then_the_workspace_label(self):
         self.assertEqual(table.cells(live(label=None))["place"], "w8/t3/p36 2")
@@ -95,6 +95,20 @@ class HeaderTest(unittest.TestCase):
         self.assertEqual(table.header(78), "  place" + " " * 10 + "name" + " " * 10 + "status   idle   ctx" + " " * 11 +
                          "rss   ver")
         self.assertEqual(table.header(51), "  place" + " " * 8 + "name" + " " * 24 + "status")
+
+
+class AccountTest(unittest.TestCase):
+    def test_the_account_is_named_after_its_directory_and_shown_on_the_detail_line(self):
+        cases = [({"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"}, "alt"),
+                 ({"CLAUDE_CONFIG_DIR": "/h/.claude-work"}, "claude-work"),
+                 ({"CLAUDE_CONFIG_DIR": "/h/.claude-work", "CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/creds/alt/"}, "alt"),
+                 ({}, "")]
+        for env, name in cases:
+            with self.subTest(env=env):
+                self.assertEqual(table.cells(live(env=env))["account"], name)
+        alt = table.cells(live(env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"}, idle="12m"))
+        self.assertEqual(table.detail(alt, None, 120), "    ↳ account alt")
+        self.assertEqual(table.detail(alt, "wiki", 70), '    ↳ 205M · 2.1.283 · account alt · "wiki"')
 
 
 class DetailTest(unittest.TestCase):
