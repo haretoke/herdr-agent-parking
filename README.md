@@ -41,7 +41,8 @@ or, from a clone, `herdr plugin link /path/to/herdr-agent-parking`.
 
 The plugin adds two actions: **Open agent parking** (the dashboard over the active
 pane) and **Open agent parking in a tab** (to keep it open; idle times are tracked
-only while a dashboard runs). A plugin cannot bind keys itself; add one to Herdr's
+only while a dashboard runs). There is one dashboard at a time: opening it again moves
+an overlay to where you are, and a dashboard kept in a tab is focused instead. A plugin cannot bind keys itself; add one to Herdr's
 `config.toml`:
 
 ```toml

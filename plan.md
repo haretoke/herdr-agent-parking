@@ -711,6 +711,11 @@ server is never restarted.
 - [x] an unexpected exception is logged to `dashboard.log` before exit
 - [x] a second dashboard at the same time does not corrupt `observed.json`
 - [x] `?` lists every key with what it does; any key closes the list
+- [x] one dashboard at a time: `open` closes an overlay left open elsewhere and opens it
+      again here; a dashboard kept in a tab is focused by either action; an announcement
+      whose process or pane is gone does not count (asked by the user after `open` from a
+      second pane added a second dashboard; checked on a real Herdr: open, open, open-tab,
+      open left one dashboard each time, the last one focused in its tab)
 
 ### cli
 - [x] `dashboard` starts the pane process

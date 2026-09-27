@@ -500,6 +500,13 @@ Bulk park:
   of it: a park cut between its record and `/exit` would leave a `parking` record that
   nothing settles. Escape sequences other than the arrows
   (Delete, Home, F-keys) are consumed whole and never type characters.
+- One dashboard at a time per server. The dashboard writes its pane, process and
+  placement to `dashboard.json` in the state directory while it runs. `open` over a
+  dashboard left open elsewhere as an overlay closes it and opens it again over the
+  active pane (it belongs where you are); a dashboard kept in a tab is focused by either
+  action instead. An announcement whose process or pane is gone does not count. (Seen
+  on the Mac: before this, each `open` added a dashboard, each polling and each a split
+  of its tab.)
 - Keys: two `[[actions]]` (`open`: overlay, `open-tab`: tab), `contexts = ["global"]`.
   Users bind them in `config.toml` with
   `[[keys.command]] type = "plugin_action" command = "haretoke.agent-parking.open"`;
