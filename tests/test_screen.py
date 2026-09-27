@@ -21,6 +21,9 @@ class InputBoxTest(unittest.TestCase):
             (box("❯ \x1b[2mdim\x1b[0m and typed"), "draft"),
             ("⏺ no box here\r\nplain output", "unknown"),
             (box("❯", below="not a rule"), "unknown"),
+            (box("❯\xa0\r").replace(RULE, "\x1b[38;5;244m" + "─" * 40 + " summit-202606 ─\x1b[0m", 1), "empty"),
+            (box("❯ typed").replace(RULE, "─" * 40 + " summit-202606 ─", 1), "draft"),
+            (box("❯", below="── not a rule"), "unknown"),
             ("\r\n".join(["❯ Reply with just the word SEVEN.", "⏺ SEVEN", RULE, "❯", RULE]), "empty"),
         ]
         for text, expected in cases:

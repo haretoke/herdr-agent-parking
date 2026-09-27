@@ -156,6 +156,16 @@ class OnParkTest(FlowTestCase):
                 self.assertIn(reason, outcome.message)
 
 
+class NamedSessionTest(FlowTestCase):
+    def test_a_named_session_whose_top_rule_carries_its_name_is_parked(self):
+        # Seen on the Mac: "─── summit-202606 ─" above an empty box was refused as a draft.
+        named = "\x1b[38;2;136;136;136m" + "─" * 60 + " summit-202606 ─\x1b[0m\r"
+        text = "\r\n".join(["⏺ OK", named, "❯\xa0\r", "\x1b[38;2;136;136;136m" + "─" * 76 + "\x1b[0m\r", "  ctx 0%"])
+        reply = {"type": "agent_read", "read": {"pane_id": "w1:p2", "format": "ansi", "text": text}}
+        outcome = park.park(self.flow(**{"agent.read": reply}), "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+
+
 class NoConversationTest(FlowTestCase):
     def test_a_claude_that_never_had_a_conversation_is_not_parked(self):
         # Seen on the Mac: its record could not be resumed ("No conversation found").

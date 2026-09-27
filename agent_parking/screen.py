@@ -10,8 +10,10 @@ def _plain(line):
 
 
 def _is_rule(line):
+    """A row of `─`, maybe with a label in it: a named session shows its name in the rule
+    above the box (`──── summit-202606 ─`, seen on the Mac)."""
     plain = _plain(line)
-    return plain != "" and set(plain) == {"─"}
+    return plain.startswith("───") and plain.endswith("─")
 
 
 def _typed(line):
