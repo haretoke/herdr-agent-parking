@@ -21,6 +21,18 @@ def find(config_dir, session_id):
     return found[0] if len(found) == 1 else None
 
 
+def find_any(config_dirs, session_id):
+    """The transcript of `session_id` in any of `config_dirs` (an account kept apart with
+    `CLAUDE_CONFIG_DIR` has its own); None when there is none or several."""
+    try:
+        records.checked_uuid(session_id)
+    except ValueError:
+        return None
+    found = {path for directory in dict.fromkeys(config_dirs)
+             for path in (directory / "projects").glob("*/%s.jsonl" % session_id)}
+    return found.pop() if len(found) == 1 else None
+
+
 def read_tail(path, cap=TAIL_BYTES):
     """The JSON object lines of the last `cap` bytes of `path`. A line cut by the cap is
     dropped; the rest of the file is never loaded."""

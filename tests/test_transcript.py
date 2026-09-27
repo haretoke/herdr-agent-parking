@@ -35,6 +35,18 @@ class FindTest(TranscriptTestCase):
         self.put("-b")
         self.assertIsNone(transcript.find(self.config, UUID))
 
+    def test_several_config_directories_are_searched_for_the_one_transcript(self):
+        # An account kept apart with CLAUDE_CONFIG_DIR has its transcripts in its own directory.
+        other = self.config.parent / "claude-work"
+        (other / "projects" / "-w").mkdir(parents=True)
+        path = other / "projects" / "-w" / (UUID + ".jsonl")
+        path.write_text("{}\n")
+        self.assertEqual(transcript.find_any([self.config, other], UUID), path)
+        self.assertEqual(transcript.find_any([self.config, other, other], UUID), path)
+        self.put("-a")
+        self.assertIsNone(transcript.find_any([self.config, other], UUID))
+        self.assertIsNone(transcript.find_any([], UUID))
+
     def test_a_session_id_that_is_not_a_uuid_is_not_globbed(self):
         self.put("-a", name="x.jsonl")
         for bad in ("*", "x", "../x", ""):
