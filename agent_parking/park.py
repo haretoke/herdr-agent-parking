@@ -146,6 +146,8 @@ def bulk_targets(rows, entries, now, minutes):
         entry = entries.get(row.pane_id)
         if row.status not in PARKABLE:
             skipped.append((row, row.status or "unknown"))
+        elif not row.has_transcript:
+            skipped.append((row, "no conversation yet"))
         elif entry is None:
             skipped.append((row, "idle time unknown"))
         elif (now - entry.since).total_seconds() < minutes * 60:

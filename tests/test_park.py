@@ -259,6 +259,15 @@ class BulkTest(unittest.TestCase):
         self.assertEqual({r.pane_id: reason for r, reason in skipped},
                          {"w1:p3": "idle 59m", "w1:p4": "blocked", "w1:p5": "working", "w1:p6": "idle time unknown"})
 
+    def test_a_session_without_a_conversation_is_left_out_whatever_its_idle_time(self):
+        from agent_parking.idle import Entry
+        from agent_parking.inventory import Row
+        rows = [Row(pane_id="w1:p1", status="idle", has_transcript=False)]
+        entries = {"w1:p1": Entry(1, "idle", NOW - timedelta(hours=3), False)}
+        targets, skipped = park.bulk_targets(rows, entries, NOW, minutes=60)
+        self.assertEqual((targets, [(r.pane_id, reason) for r, reason in skipped]),
+                         ([], [("w1:p1", "no conversation yet")]))
+
     def test_a_failure_does_not_stop_the_others_and_every_result_is_reported(self):
         calls = []
 
