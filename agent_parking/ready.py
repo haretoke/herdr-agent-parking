@@ -16,6 +16,9 @@ def check(rt, pane_id, action):
     if not pane.session_id:
         return pane, ("Herdr does not know this Claude's session; run "
                       "`herdr integration install claude` and restart it")
-    if screen.input_box(rt.herdr.screen(pane_id)) != "empty":
+    box = screen.input_box(rt.herdr.screen(pane_id))
+    if box == "draft":
         return pane, "a draft is in Claude's input box; clear it first (g, then Ctrl+C)"
+    if box != "empty":
+        return pane, "could not find Claude's input box on its screen; look at the pane first (g)"
     return pane, None

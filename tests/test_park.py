@@ -166,6 +166,14 @@ class NamedSessionTest(FlowTestCase):
         self.assertEqual(outcome.kind, "parked")
 
 
+    def test_a_screen_without_a_readable_box_says_so_instead_of_claiming_a_draft(self):
+        reply = {"type": "agent_read", "read": {"pane_id": "w1:p2", "format": "ansi", "text": "⏺ OK\r\nno box"}}
+        outcome = park.park(self.flow(**{"agent.read": reply}), "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("could not find Claude's input box", outcome.message)
+        self.assertNotIn("draft", outcome.message)
+
+
 class NoConversationTest(FlowTestCase):
     def test_a_claude_that_never_had_a_conversation_is_not_parked(self):
         # Seen on the Mac: its record could not be resumed ("No conversation found").
