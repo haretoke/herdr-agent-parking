@@ -171,8 +171,7 @@ def confirmation(record, now):
     env = record.get("env") or {}
     if inventory.account_name(env):
         lines.append("account %s" % inventory.account_name(env))
-    prefix = "".join("env " if i == 0 else "" for i in range(1 if env else 0)) + "".join(
-        "%s=%s " % item for item in sorted(env.items()))
+    prefix = "env %s " % " ".join("%s=%s" % item for item in sorted(env.items())) if env else ""
     lines.append("%sclaude --resume %s %s" % (prefix, record["session_id"][:8], " ".join(parsed.flags)))
     if parsed.dropped:
         lines.append("left out: " + ", ".join('"%s"' % token for token in parsed.dropped))
