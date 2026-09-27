@@ -32,6 +32,7 @@ class BuildTestCase(FlowRuntimeTestCase):
         self.rt = self.runtime(base)
         self.rt.system = system or FakeSystem(proc=False)
         self.rt.summary_for = lambda session_id: getattr(self, "summaries", {}).get(session_id)
+        self.rt.has_transcript = lambda session_id: session_id not in getattr(self, "without_transcript", ())
         self.tracker = idle.Tracker(self.rt.clock)
         return inventory.build(self.rt, self.tracker, own)
 
@@ -240,6 +241,13 @@ class SaveObservedTest(BuildTestCase):
         self.rt.paths.windows.write_text(json.dumps({UUID: 200000}))
         refresh()
         self.assertEqual(self.rt.statusline_windows, {UUID: 200000})
+
+
+class TranscriptPresenceTest(BuildTestCase):
+    def test_rows_say_whether_their_session_has_a_conversation(self):
+        self.without_transcript = {OTHER}
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p3", session_id=OTHER))})
+        self.assertEqual([(r.pane_id, r.has_transcript) for r in got.rows], [("w1:p2", True), ("w1:p3", False)])
 
 
 if __name__ == "__main__":

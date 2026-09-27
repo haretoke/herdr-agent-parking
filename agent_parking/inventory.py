@@ -32,6 +32,7 @@ class Row:
     ctx: str = ""
     idle: str = ""
     record: Optional[dict] = None         # the park record, for parked sessions
+    has_transcript: bool = True           # False: never prompted, nothing to resume
 
 
 # The dashboard's rows, and how many panes run each other agent (the "codex: n" in the title).
@@ -208,6 +209,7 @@ def build(rt, tracker, own_pane_id):
         found = row(pane, workspace_labels, tab_labels)
         _add_process(rt, found, infos[pane.pane_id], rss)
         summary = rt.summary_for(found.session_id) if found.session_id else None
+        found.has_transcript = rt.has_transcript(found.session_id) if found.session_id else True
         found.ctx = _ctx(rt, summary, found.session_id, now)
         entry = tracker.poll(found.pane_id, seqs.get(found.pane_id), found.status, summary)
         found.idle = idle.text(entry, now)
