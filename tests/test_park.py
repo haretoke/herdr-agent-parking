@@ -379,6 +379,43 @@ class TimeoutTest(FlowTestCase):
         self.assertEqual(sum(self.slept), 1.0)
 
 
+def worktree_question(selected):
+    """Claude's question on /exit in one of its worktrees, as in the container."""
+    rows = ["  Exiting worktree session",
+            "  You have 77 commits on worktree-feat-3815. The branch will be deleted if you remove the worktree.",
+            "  %s 1. Keep worktree    Stays at /workspace/.claude/worktrees/feat-3815" % ("❯" if selected == 1 else " "),
+            "  %s 2. Remove worktree  All changes and commits will be lost." % ("❯" if selected == 2 else " "),
+            "  Enter to confirm · Esc to cancel"]
+    return {"type": "agent_read", "read": {"text": "\r\n".join(rows)}}
+
+
+class WorktreeTest(FlowTestCase):
+    def test_the_worktree_question_on_exit_is_answered_with_keep(self):
+        # Seen in a container: /exit in a session in `.claude/worktrees/…` asked Keep or
+        # Remove, and the park waited 20 s, then failed with the question on screen.
+        rt = self.flow(**{"pane.get": [pane_reply(), pane_reply(status="blocked"), SHELL],
+                          "agent.read": [screen_reply("❯"), worktree_question(1)],
+                          "pane.send_keys": {"type": "ok"}})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        [keys] = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_keys"]
+        self.assertEqual(keys, {"pane_id": "w1:p2", "keys": ["enter"]})
+
+    def test_nothing_is_pressed_unless_keep_is_the_selected_answer(self):
+        # Enter on Remove deletes the worktree's branch (77 commits in the container).
+        for selected in (2, None):
+            with self.subTest(selected=selected):
+                rt = self.flow(**{"pane.get": [pane_reply(), pane_reply(status="blocked")],
+                                  "agent.read": [screen_reply("❯"), worktree_question(selected)],
+                                  "pane.send_keys": {"type": "ok"}})
+                outcome = park.park(rt, "w1:p2", note=None)
+                self.assertEqual(outcome.kind, "park_failed")
+                self.assertIn("keep its worktree", outcome.message)
+                self.assertNotIn("pane.send_keys", self.fake.methods())
+                self.assertEqual(self.slept, [])
+                self.assertEqual(self.saved()["status"], "park_failed")
+
+
 class BlockedTest(FlowTestCase):
     def test_a_blocked_claude_refuses_the_exit_and_the_parking_record_goes(self):
         from tests.fake_herdr import Error

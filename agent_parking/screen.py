@@ -42,3 +42,16 @@ def input_box(text):
         if _plain(lines[i]).startswith("❯") and _is_rule(lines[i - 1]) and _is_rule(lines[i + 1]):
             return "draft" if _typed(lines[i]) else "empty"
     return "unknown"
+
+
+KEEP_SELECTED = re.compile(r"^❯\s*1\.\s*Keep worktree\b")
+
+
+def worktree_exit(text):
+    """Claude's question on /exit in one of its worktrees (`Exiting worktree session`, Keep or
+    Remove; seen in a container): None without it, `keep` when `1. Keep worktree` is the
+    selected answer, else `other` (Remove selected, or no selection to read)."""
+    lines = [_plain(line) for line in text.split("\n")]
+    if not any("Exiting worktree session" in line for line in lines):
+        return None
+    return "keep" if any(KEEP_SELECTED.match(line) for line in lines) else "other"

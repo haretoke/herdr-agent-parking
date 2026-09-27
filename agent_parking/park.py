@@ -4,7 +4,8 @@ import os
 import unicodedata
 from collections import namedtuple
 
-from . import agents, config, display, herdr_api, inventory, layout, ready, records, runtime, state, times, transcript
+from . import (agents, config, display, herdr_api, inventory, layout, ready, records, runtime, screen, state, times,
+               transcript)
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -56,11 +57,12 @@ def park(rt, pane_id, note, keep=False):
     unstarted = _end(rt, pane_id, session_id, background, command, env)
     if unstarted:
         return unstarted
-    if not (_leave_view(rt, pane_id) if background else _wait_for_shell(rt, pane_id)):
+    left, why = (_leave_view(rt, pane_id), None) if background else _wait_after_exit(rt, pane_id)
+    if not left:
         record["status"] = "park_failed"
         records.write(rt.paths.records, record)
-        return Outcome("park_failed", "Claude did not exit within %s s; the pane is left as it is "
-                                      "(its record stays, so `r` works after a manual /exit)"
+        return Outcome("park_failed", why or "Claude did not exit within %s s; the pane is left as it is "
+                                             "(its record stays, so `r` works after a manual /exit)"
                        % rt.settings["exit_timeout_seconds"], record)
     mode, reason = ("keep", "") if keep else _close_or_keep(rt, pane_id, tree)
     if mode == "close":
@@ -157,6 +159,30 @@ def _context(rt, session_id):
                                     rt.statusline_windows)
     return {"tokens": summary.tokens, "percent": transcript.percent(summary.tokens, window),
             "compacted": summary.compacted}
+
+
+WORKTREE_QUESTION = ("Claude asks whether to keep its worktree, and Keep is not the selected answer; "
+                     "answer it in the pane (g). The record stays, so `r` works once Claude has exited")
+
+
+def _wait_after_exit(rt, pane_id):
+    """`_wait_for_shell` after /exit, answering Claude's question in one of its worktrees with
+    Keep, its default (seen in a container), and only when Keep is the selected answer:
+    Remove would delete the branch. (True, None) once Claude has left, else (False, why)."""
+    kept = False
+    for attempt in range(int(rt.settings["exit_timeout_seconds"] / POLL_SECONDS) + 1):
+        if attempt:
+            rt.sleep(POLL_SECONDS)
+        pane = rt.herdr.pane(pane_id)
+        if pane is None or pane.agent is None:
+            return True, None
+        question = None if kept else screen.worktree_exit(rt.herdr.screen(pane_id))
+        if question == "keep":
+            rt.herdr.call("pane.send_keys", {"pane_id": pane_id, "keys": ["enter"]})
+            kept = True
+        elif question == "other":
+            return False, WORKTREE_QUESTION
+    return False, None
 
 
 def _leave_view(rt, pane_id):
