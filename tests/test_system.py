@@ -1,4 +1,6 @@
+import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,6 +102,24 @@ class RssManyTest(ProcTestCase):
             raise FileNotFoundError("ps")
 
         self.assertEqual(system.System(proc_root=self.tmp.name + "/none", run=missing).rss_many([42]), {})
+
+
+class EnvironTest(ProcTestCase):
+    def test_linux_reads_the_environment_from_proc(self):
+        self.put(42, "environ", b"HOME=/home/u\0CLAUDE_CONFIG_DIR=/home/u/.claude-work\0EMPTY=\0")
+        self.assertEqual(self.system.environ(42),
+                         {"HOME": "/home/u", "CLAUDE_CONFIG_DIR": "/home/u/.claude-work", "EMPTY": ""})
+        self.assertIsNone(self.system.environ(43))
+
+    def test_a_real_process_shows_the_environment_it_was_started_with(self):
+        # Not /bin/sleep: macOS hides the environment of its own platform binaries.
+        env = dict(os.environ, AGENT_PARKING_PROBE="two words=kept")
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(5)"], env=env)
+        self.addCleanup(child.wait)
+        self.addCleanup(child.kill)
+        found = system.System().environ(child.pid)
+        self.assertEqual(found["AGENT_PARKING_PROBE"], "two words=kept")
+        self.assertEqual(found["PATH"], os.environ["PATH"])
 
 
 if __name__ == "__main__":

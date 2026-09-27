@@ -1,9 +1,13 @@
 """What the plugin reads about processes outside Herdr: `/proc` on Linux, `ps` elsewhere."""
 
+import ctypes
+import ctypes.util
 import os
 import re
 import shutil
+import struct
 import subprocess
+import sys
 from pathlib import Path
 
 VMRSS = re.compile(rb"^VmRSS:\s*(\d+)\s*kB", re.M)
@@ -26,6 +30,16 @@ class System:
         if not data:
             return None
         return [part.decode("utf-8", "replace") for part in data.rstrip(b"\0").split(b"\0")]
+
+    def environ(self, pid):
+        """The environment `pid` was started with (`/proc/<pid>/environ` on Linux, the
+        kernel's process arguments on macOS), or None when it cannot be read."""
+        if self.has_proc():
+            data = self._read(pid, "environ")
+            return None if data is None else _pairs(data.split(b"\0"))
+        if sys.platform == "darwin":
+            return _macos_environ(pid)
+        return None
 
     def has_proc(self):
         return self.proc_root.is_dir()
@@ -77,3 +91,46 @@ class System:
     def which(self, command, path):
         """`command` found on the `PATH` string `path`, or None."""
         return shutil.which(command, path=path)
+
+
+def _pairs(items):
+    found = {}
+    for item in items:
+        name, sep, value = item.partition(b"=")
+        if sep and name:
+            found[name.decode("utf-8", "replace")] = value.decode("utf-8", "replace")
+    return found
+
+
+def _macos_environ(pid):
+    """The environment in `sysctl(KERN_PROCARGS2)`: argc, the executable path, padding, argv
+    and then the environment, all NUL-separated (only for processes of this user)."""
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    ctl_kern, kern_argmax, kern_procargs2 = 1, 8, 49
+    argmax = ctypes.c_int(0)
+    size = ctypes.c_size_t(ctypes.sizeof(argmax))
+    if libc.sysctl((ctypes.c_int * 2)(ctl_kern, kern_argmax), 2, ctypes.byref(argmax), ctypes.byref(size),
+                   None, 0) != 0:
+        return None
+    buffer = ctypes.create_string_buffer(argmax.value)
+    size = ctypes.c_size_t(argmax.value)
+    if libc.sysctl((ctypes.c_int * 3)(ctl_kern, kern_procargs2, pid), 3, buffer, ctypes.byref(size),
+                   None, 0) != 0:
+        return None
+    data = buffer.raw[:size.value]
+    if len(data) < 4:
+        return None
+    argc = struct.unpack("i", data[:4])[0]
+    rest = data[4:]
+    start = rest.find(b"\0")
+    if start < 0:
+        return None
+    while start < len(rest) and rest[start] == 0:
+        start += 1
+    parts = rest[start:].split(b"\0")
+    environment = []
+    for item in parts[argc:]:
+        if not item:
+            break
+        environment.append(item)
+    return _pairs(environment)
