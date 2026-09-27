@@ -28,7 +28,8 @@ def park(rt, pane_id, note, keep=False):
     background, refusal = _shown_background(pane, seen)
     if refusal:
         return Outcome("refused", refusal, None)
-    session_id = background["sessionId"] if background else pane.session_id
+    own, remark, _ = agents.own_session(seen, pane)
+    session_id = background["sessionId"] if background else own
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
@@ -70,7 +71,7 @@ def park(rt, pane_id, note, keep=False):
     record.update(status="parked", parked_mode=mode)
     records.write(rt.paths.records, record)
     stopped = "stopped Claude's background session %s" % background["id"] if background else ""
-    return Outcome("parked", "; ".join(part for part in (stopped, reason) if part), record)
+    return Outcome("parked", "; ".join(part for part in (remark, stopped, reason) if part), record)
 
 
 def _shown_background(pane, seen):

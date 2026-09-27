@@ -60,3 +60,18 @@ def why_not_stop(entry, title):
         return ('the pane shows "%s", not "%s" that Herdr names for it; look at the pane (g)'
                 % (title or "", entry["name"]))
     return not_idle(entry)
+
+
+def own_session(seen, pane):
+    """(the session the pane's Claude runs, a remark, Claude's entry for it or None). Claude's
+    list gives its interactive sessions by `pid`, which beats Herdr's id: the hooks of
+    background workers started from a pane report to that pane for the daemon's lifetime
+    (seen in a container, where Herdr named another session). Herdr's id otherwise."""
+    pid = seen.process.get("pid")
+    for entry in seen.entries or []:
+        if entry.get("kind") == "interactive" and pid and entry.get("pid") == pid and entry.get("sessionId"):
+            said = entry["sessionId"]
+            remark = "" if said == pane.session_id else "Herdr named %s; Claude says %s" % (
+                (pane.session_id or "none")[:8], said[:8])
+            return said, remark, entry
+    return pane.session_id, "", None

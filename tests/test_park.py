@@ -379,6 +379,20 @@ class TimeoutTest(FlowTestCase):
         self.assertEqual(sum(self.slept), 1.0)
 
 
+class OwnSessionTest(FlowTestCase):
+    def test_the_session_claude_lists_for_the_panes_process_is_parked_whatever_herdr_says(self):
+        # Seen in a container: the hooks of Claude's background workers, started from this
+        # pane, made Herdr name another session (cd36bb2e) for the Claude running 76a720b1,
+        # and the park recorded that one.
+        stale = "cd36bb2e-0dda-4963-92ed-1f3b667d619b"
+        rt = self.flow(**{"pane.get": [pane_reply(session_id=stale), SHELL]})
+        rt.system.agents = [{"kind": "interactive", "pid": 200, "sessionId": UUID, "status": "idle"}]
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        self.assertEqual(outcome.record["session_id"], UUID)
+        self.assertIn("Herdr named cd36bb2e; Claude says 2716af66", outcome.message)
+
+
 def worktree_question(selected):
     """Claude's question on /exit in one of its worktrees, as in the container."""
     rows = ["  Exiting worktree session",
