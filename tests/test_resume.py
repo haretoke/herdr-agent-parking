@@ -176,13 +176,25 @@ class TypedStartExitTest(ResumeTestCase):
         said = ("$ env CLAUDE_SECURESTORAGE_CONFIG_DIR=/h/.claude-creds/alt claude --resume %s\n"
                 "Session %s is running as a background session (2716af66). Run `claude attach 2716af66` "
                 "to open it, or `claude stop 2716af66` first to resume it here.\n$ " % (UUID, UUID))
-        rt = self.resuming(**{"pane.get": [SHELL], "pane.process_info": [SHELL_PROCESS, PROCESS, SHELL_PROCESS],
+        rt = self.resuming(**{"pane.get": [SHELL, pane_reply(session_id=None), SHELL],
+                              "pane.process_info": SHELL_PROCESS,
                               "pane.read": {"type": "pane_read", "read": {"text": said}}})
         outcome = resume.resume(rt, UUID)
         self.assertEqual(outcome.kind, "resume_failed")
         self.assertIn("running as a background session", outcome.message)
         self.assertLess(sum(self.slept), 3)
         self.assertEqual(self.saved()["status"], "resume_failed")
+
+    def test_a_prompt_helper_before_claude_starts_is_not_taken_for_claude_exiting(self):
+        # oh-my-zsh runs `git` for its prompt after each typed line (the `cd` and the note
+        # come before the start): a helper, then the shell, then Claude.
+        self.park_record(env={"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/h/.claude-creds/alt"}, note="wiki")
+        helper = {"type": "process_info", "process_info": {
+            "shell_pid": 100, "foreground_process_group_id": 300,
+            "foreground_processes": [{"pid": 300, "name": "git", "argv": ["git", "status"]}]}}
+        rt = self.resuming(**{"pane.get": [SHELL, SHELL, SHELL, pane_reply(session_id=None), pane_reply()],
+                              "pane.process_info": [SHELL_PROCESS, helper, SHELL_PROCESS, PROCESS]})
+        self.assertEqual(resume.resume(rt, UUID).kind, "resumed")
 
     def test_a_typed_command_that_never_leaves_the_shell_fails_after_a_short_grace(self):
         # A claude that starts and exits between two looks, or a line the shell did not run.

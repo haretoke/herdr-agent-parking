@@ -130,9 +130,10 @@ def _running_session(rt, pane_id, typed=False):
     the start timeout; another session is an answer at once. AT_DIALOG when Claude is
     `blocked` without a session: `agent.start` returns at the trust dialog (seen on the
     Mac) instead of failing with `agent_not_ready`. A `typed` command has nothing that
-    waits for its start: EXITED once the shell is back after something else ran (Claude
-    refused and exited, seen in a container), or when the shell alone stays for
-    TYPED_GRACE_SECONDS (a start missed between two looks)."""
+    waits for its start: EXITED once the shell is back after Herdr saw Claude (it refused
+    and exited, seen in a container), or when the shell alone stays for
+    TYPED_GRACE_SECONDS (a start missed between two looks). Only Claude counts as started:
+    a prompt's helper (`git` for oh-my-zsh) runs between the lines typed before it."""
     limit = rt.settings["start_timeout_ms"] / 1000
     waited = 0.0
     started = False
@@ -142,10 +143,10 @@ def _running_session(rt, pane_id, typed=False):
         if running is None and pane is not None and pane.agent_status == "blocked":
             return AT_DIALOG
         if running is None and typed:
-            shell = herdr_api.shell_only(rt.herdr.process_info(pane_id))
-            if shell and (started or waited >= TYPED_GRACE_SECONDS):
+            if pane is not None and pane.agent == "claude":
+                started = True
+            elif (started or waited >= TYPED_GRACE_SECONDS) and herdr_api.shell_only(rt.herdr.process_info(pane_id)):
                 return EXITED
-            started = started or not shell
         if running is not None or waited >= limit:
             return running
         rt.sleep(SESSION_POLL_SECONDS)
