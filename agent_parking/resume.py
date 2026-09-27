@@ -146,7 +146,8 @@ def _running_session(rt, pane_id, typed=False):
     started = False
     while True:
         pane = rt.herdr.pane(pane_id)
-        running = pane.session_id if pane is not None else None
+        # Only a Claude Herdr sees there: it may keep an id on a pane left without one.
+        running = pane.session_id if pane is not None and pane.agent == "claude" else None
         if running is None and pane is not None and pane.agent_status == "blocked":
             return AT_DIALOG
         if running is None and typed:

@@ -106,6 +106,14 @@ class AfterStartTest(ResumeTestCase):
         self.assertEqual(outcome.kind, "resume_failed")
         self.assertAlmostEqual(sum(self.slept), 3.0)
 
+    def test_a_session_id_herdr_keeps_on_the_shell_is_not_taken_for_the_resumed_claude(self):
+        # Seen on the Mac: after /bg, Herdr kept the session id on a pane without an agent.
+        self.park_record()
+        self.settings["start_timeout_ms"] = 3000
+        stale = pane_reply(status="unknown", agent=None)
+        outcome = resume.resume(self.resuming(**{"pane.get": [SHELL, stale]}), UUID)
+        self.assertEqual(outcome.kind, "resume_failed")
+
     def test_another_session_is_resume_failed_with_both_ids(self):
         other = "0939a1b4-2ecb-4bd4-a241-59bd6732651f"
         self.park_record()
