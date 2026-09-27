@@ -768,6 +768,19 @@ server is never restarted.
       `💤 sitemap`, the worktree and its branch kept. Claude did not ask about the worktree
       this time (Keep had been chosen at its previous exit), so the Keep answer is covered by
       the tests, with the screen text seen in the container, not yet by a real exit
+- [x] park and compact empty Claude's input box (Ctrl+U) before typing a command (seen in
+      the container, cms-test 7a87ac1d: Claude got ' /exit', answered it as a message, and
+      the park failed after 20 s; on the Mac a typed space does not show on the screen, so
+      the box read as empty, and Ctrl+U empties the line and does nothing to an empty one;
+      a space, then Ctrl+U and /exit, and Claude exited)
+- [x] the worktree question on a real screen (Mac, throwaway repo, no model turn but one):
+      no commits → /exit ends Claude and removes the worktree without asking; a commit or an
+      uncommitted file → the question, which `worktree_exit` reads as `keep` from the ANSI
+      screen, and Enter keeps the worktree and ends Claude; the same for a session resumed
+      with `claude --worktree <name> --resume <uuid>`
+- [ ] seen once in the container, not reproduced: calltracker (a3112c1e, resumed by hand with
+      `claude --worktree calltracker-inbound --resume …`) answered /exit with "Worktree kept.
+      Your work is saved at …" and stayed running (the park of v0.1.5 had failed there)
 - [ ] still on Herdr's word on such a pane: the dashboard row's id, ctx and idle time, the
       unpark's start check (`_running_session`), and `agent.prompt` refusing `/exit` as
       `agent_blocked` on a borrowed status
