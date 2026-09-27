@@ -519,6 +519,9 @@ server is never restarted.
         UUID that Herdr detects as usual
       - `claude respawn <id>`: a new worker under the same id in ~2.4 s; a pending
         permission prompt was dropped (`waiting` became `idle`)
+      - `claude stop <id>` while a client is attached (a second test session): the client
+        prints `Resume this session with: claude --resume <uuid>` and `Session <id> has
+        exited.` and the pane is back at the shell within 2 s
 
 ### state / config
 - [x] the state directory is `HERDR_PLUGIN_STATE_DIR` only when `HERDR_PLUGIN_ID` is this
@@ -675,10 +678,15 @@ server is never restarted.
 - [x] a pane showing Claude's agent view (title ending `claude agents`) is refused by park
       and compact: Herdr keeps the id of the session shown before, and the view's box
       dispatches a new session
-- [x] a `claude attach <id>` client, and a session `claude agents --json` lists as running
-      in the background (`kind: background` with a `pid`; run with the pane's own `claude`
-      and account variables), are refused with `claude stop <id>`: `/exit` there leaves the
-      session running. A stopped background entry does not count
+- [x] a session of Claude's background shown in the pane (a `claude attach <id>` client, or
+      the session Herdr names is listed by `claude agents --json` as `kind: background` with
+      a `pid`; run with the pane's own `claude` and account variables) is parked with
+      `claude stop <id>` instead of `/exit` (the user chose to bring such sessions back as a
+      Claude of their own): the record keeps the session's cwd (its worktree), only the
+      executable as argv, and `background_id`; a view that stays on agent view's list is
+      left with `/exit`. Refused: `busy`, `waiting` (a permission prompt), a title that is
+      not the session's name (a stale id), an attach client whose session is not running;
+      a failed stop leaves no record. A stopped background entry does not count
 
 ### compact (fake herdr, fake transcript)
 - [x] `c` on `idle` / `done` with an empty input box sends `prepare_command` with `agent prompt`;
@@ -721,14 +729,19 @@ server is never restarted.
 - [x] a typed start (account variables) whose `claude` exits at once fails as soon as the
       shell is back, or after 3 s of the shell alone, with the pane's last lines (seen in a
       container: 30 s, then only "found None")
-- [x] a record whose session still runs in Claude's background is refused with
-      `claude attach <id>` and `x`, before any pane is recreated or command typed
+- [x] a record whose session still runs in Claude's background (the container's, parked
+      from agent view by v0.1.5) is stopped first when idle, then resumed here as a Claude of
+      its own; busy or waiting is refused, before any pane is recreated or command typed
+- [x] unpark's confirmation says a session from Claude's background comes back as a Claude
+      of its own
 - [x] the typed start counts Claude as started only when Herdr shows `agent: claude`: a
       prompt helper (`git` under oh-my-zsh, after the `cd` and the note typed before) was
       taken for Claude exiting at once
-- [ ] parking and unparking Claude's background sessions themselves (`claude stop <id>`,
-      then `claude attach <id>` or `claude --resume <uuid>`; the user chooses). Not seen
-      yet: `claude stop` while a client is attached (the spike stopped after Ctrl+Z)
+- [x] parking and unparking Claude's background sessions themselves: the user chose
+      `claude stop <id>`, then `claude --resume <uuid>` (a Claude of its own that Herdr tracks)
+      over `claude attach <id>` (Herdr knows its id only in the pane that started the daemon)
+- [ ] real device: a pane showing a background session in the container parks and unparks
+      (`claude agents` with a session opened, like `w1:p1W`)
 
 ### recreate (fake herdr)
 - [x] with a `second`-position hint and its sibling pane present, `pane split <sibling> --direction <dir> --cwd <cwd> --no-focus`, then `layout.set_split_ratio` with the recorded path and ratio

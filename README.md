@@ -150,9 +150,10 @@ write it for each session: Claude's statusline input has `session_id` and
   `Agent parking`; close it.
 - Records live in the plugin's state directory, per Herdr server: in a container they
   stay with the container.
-- Claude's background sessions (`/bg`, `claude --bg`, `claude attach`) are not parked:
-  `/exit` in a pane that shows one only leaves it, and the session keeps running. The
-  dashboard refuses such panes and Claude's agent view; `claude stop <id>` stops one.
+- A pane showing one of Claude's background sessions (`claude attach`, or `claude agents`
+  with a session opened) is parked with `claude stop <id>`, since `/exit` there would
+  leave the session running; `r` brings it back with `claude --resume` as a Claude of its
+  own in that pane. Claude's agent view list itself is not parked.
 
 ## License
 
