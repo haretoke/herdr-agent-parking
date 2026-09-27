@@ -214,6 +214,21 @@ class RecordFieldsTest(FlowTestCase):
         self.assertEqual(self.saved()["parked_mode"], "close")
 
 
+class TabLabelTest(FlowTestCase):
+    def test_the_tabs_name_is_recorded_for_the_tab_that_r_makes_again(self):
+        # A pane alone in its tab closes with the tab; `r` opens a new tab for it (spike 0-16).
+        tabs = {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "api", "number": 1},
+                                             {"tab_id": "w1:t2", "label": "docs", "number": 2}]}
+        park.park(self.flow(**{"tab.list": tabs}), "w1:p2", note=None)
+        self.assertEqual(self.saved()["tab_label"], "api")
+
+    def test_a_tab_named_only_by_its_number_records_no_name(self):
+        # The new tab goes to the end of the tab order, where the old number is wrong.
+        tabs = {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "1", "number": 1}]}
+        park.park(self.flow(**{"tab.list": tabs}), "w1:p2", note=None)
+        self.assertIsNone(self.saved()["tab_label"])
+
+
 class ExitTest(FlowTestCase):
     def test_exit_is_a_plain_agent_prompt_without_a_wait(self):
         park.park(self.flow(), "w1:p2", note=None)
