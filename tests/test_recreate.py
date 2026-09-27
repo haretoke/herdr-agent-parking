@@ -5,7 +5,7 @@ from agent_parking.herdr_api import Pane
 from tests.flows import UUID, FlowTestCase
 
 RECORD = {"session_id": UUID, "pane_id": "w1:p9", "tab_id": "w1:t1", "workspace_id": "w1", "cwd": "/repo",
-          "tab_label": "api", "workspace_label": "zf-api", "pane_id_history": []}
+          "tab_label": "api", "workspace_label": "shop-api", "pane_id_history": []}
 SPLIT = {"type": "pane_info", "pane": {"pane_id": "w1:p12", "tab_id": "w1:t1", "workspace_id": "w1"}}
 
 
@@ -109,7 +109,7 @@ class NewWorkspaceTest(FlowTestCase):
         placed = recreate.place(rt, dict(RECORD, layout_hint=None), [pane("w2:p1", "w2:t1")], new_workspace=True)
         self.assertEqual(placed.pane_id, "w5:p1")
         [(method, params)] = [(r["method"], r["params"]) for r in self.fake.requests]
-        self.assertEqual((method, params), ("workspace.create", {"cwd": "/repo", "label": "zf-api", "focus": False}))
+        self.assertEqual((method, params), ("workspace.create", {"cwd": "/repo", "label": "shop-api", "focus": False}))
 
 
 class NoCwdTest(FlowTestCase):

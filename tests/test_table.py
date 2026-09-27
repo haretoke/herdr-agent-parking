@@ -28,7 +28,7 @@ class NameWidthTest(unittest.TestCase):
 
 
 def live(**fields):
-    base = dict(pane_id="w8:p36", tab_id="w8:t3", workspace_id="w8", tab_label="2", workspace_label="zf-api",
+    base = dict(pane_id="w8:p36", tab_id="w8:t3", workspace_id="w8", tab_label="2", workspace_label="shop-api",
                 label="web", name="api gateway refactor", status="idle", rss_kb=210_000, version="2.1.283",
                 ctx="37k 18%")
     base.update(fields)
@@ -44,7 +44,7 @@ class CellsTest(unittest.TestCase):
 
     def test_the_place_label_is_the_pane_then_the_tab_then_the_workspace_label(self):
         self.assertEqual(table.cells(live(label=None))["place"], "w8/t3/p36 2")
-        self.assertEqual(table.cells(live(label=None, tab_label=None))["place"], "w8/t3/p36 zf-api")
+        self.assertEqual(table.cells(live(label=None, tab_label=None))["place"], "w8/t3/p36 shop-api")
         self.assertEqual(table.cells(live(label=None, tab_label=None, workspace_label=None))["place"],
                          "w8/t3/p36")
 

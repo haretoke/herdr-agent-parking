@@ -49,10 +49,10 @@ class BuildRowsTest(BuildTestCase):
                           raw_pane("w1:p5", agent=None, session_id=None))
         got = self.build({"pane.list": panes,
                           "workspace.list": {"type": "workspace_list",
-                                             "workspaces": [{"workspace_id": "w1", "label": "zf-api"}]},
+                                             "workspaces": [{"workspace_id": "w1", "label": "shop-api"}]},
                           "tab.list": {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "2"}]}})
         self.assertEqual([(r.pane_id, r.label, r.tab_label, r.workspace_label, r.status, r.session_id)
-                          for r in got.rows], [("w1:p2", "api", "2", "zf-api", "idle", UUID)])
+                          for r in got.rows], [("w1:p2", "api", "2", "shop-api", "idle", UUID)])
         self.assertEqual(got.others, {"codex": 2})
 
 

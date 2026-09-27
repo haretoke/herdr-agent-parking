@@ -28,9 +28,9 @@ class RowTest(unittest.TestCase):
     def test_a_row_carries_place_name_cwd_status_and_session(self):
         p = pane("w8:p36", tab_id="w8:t3", workspace_id="w8", label="api", title="proto_tunnel", cwd="/repo",
                  status="done")
-        row = inventory.row(p, workspace_labels={"w8": "zf-api"}, tab_labels={"w8:t3": "2"})
+        row = inventory.row(p, workspace_labels={"w8": "shop-api"}, tab_labels={"w8:t3": "2"})
         self.assertEqual((row.pane_id, row.tab_id, row.workspace_id), ("w8:p36", "w8:t3", "w8"))
-        self.assertEqual((row.workspace_label, row.tab_label, row.label), ("zf-api", "2", "api"))
+        self.assertEqual((row.workspace_label, row.tab_label, row.label), ("shop-api", "2", "api"))
         self.assertEqual((row.name, row.cwd, row.status, row.session_id), ("proto_tunnel", "/repo", "done", UUID))
 
     def test_unknown_labels_stay_empty(self):
