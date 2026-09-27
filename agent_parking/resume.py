@@ -6,7 +6,7 @@ Outcome kinds: refused, resumed, resume_pending, resume_failed.
 import shlex
 from collections import namedtuple
 
-from . import argv, display, herdr_api, inventory, park, records, recreate, times
+from . import argv, display, herdr_api, inventory, park, records, recreate, runtime, times
 
 Outcome = namedtuple("Outcome", "kind message record")
 
@@ -28,6 +28,7 @@ def resume(rt, session_id, new_workspace=False):
         return _finish(rt, record, decision.pane_id, decision.restore_label_on)
     if decision.kind == "conflict":
         return Outcome("refused", "another Claude session runs in %s" % decision.pane_id, record)
+    runtime.remember_config_dir(rt, record.get("env"))  # where its transcript lives
     if not rt.has_transcript(session_id):
         # `claude --resume` would answer No conversation found (seen on the Mac).
         return Outcome("refused", "no conversation was ever saved for %s, so it cannot be resumed; "

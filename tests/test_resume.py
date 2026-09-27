@@ -154,6 +154,13 @@ class AccountTest(ResumeTestCase):
                                  "env 'CLAUDE_SECURESTORAGE_CONFIG_DIR=/h/.claude-creds/my alt' claude --resume "
                                  + UUID + " --model haiku"})
 
+    def test_a_record_with_its_own_config_directory_finds_its_transcript_there(self):
+        from pathlib import Path
+        self.park_record(env={"CLAUDE_CONFIG_DIR": "/claude-work"})
+        rt = self.resuming()
+        rt.has_transcript = lambda session_id: Path("/claude-work") in rt.claude_config_dirs
+        self.assertEqual(resume.resume(rt, UUID).kind, "resumed")
+
     def test_without_account_variables_agent_start_is_used_as_before(self):
         self.park_record(env={})
         resume.resume(self.resuming(), UUID)

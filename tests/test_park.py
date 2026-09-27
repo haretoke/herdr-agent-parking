@@ -170,6 +170,17 @@ class AccountTest(FlowTestCase):
         self.assertEqual(self.saved()["env"], {})
 
 
+    def test_a_claude_with_its_own_config_directory_is_parked_from_a_shell_that_never_listed_it(self):
+        # `park <pane>` from a shell: no list was built, so the directory is only known from
+        # the process itself, and it must be known before the transcript is looked for.
+        from pathlib import Path
+        rt = self.flow()
+        rt.system.environs = {200: {"CLAUDE_CONFIG_DIR": "/claude-work"}}
+        rt.has_transcript = lambda session_id: Path("/claude-work") in rt.claude_config_dirs
+        self.assertEqual(park.park(rt, "w1:p2", note=None).kind, "parked")
+        self.assertEqual(self.saved()["env"], {"CLAUDE_CONFIG_DIR": "/claude-work"})
+
+
 class NamedSessionTest(FlowTestCase):
     def test_a_named_session_whose_top_rule_carries_its_name_is_parked(self):
         # Seen on the Mac: "─── summit-202606 ─" above an empty box was refused as a draft.

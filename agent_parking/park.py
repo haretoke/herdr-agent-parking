@@ -3,7 +3,7 @@
 import unicodedata
 from collections import namedtuple
 
-from . import config, display, herdr_api, inventory, layout, ready, records, state, times, transcript
+from . import config, display, herdr_api, inventory, layout, ready, records, runtime, state, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -19,10 +19,12 @@ def park(rt, pane_id, note, keep=False):
     pane, refusal = ready.check(rt, pane_id, "park")
     if refusal:
         return Outcome("refused", refusal, None)
+    process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
+    env = inventory.account_env(process, rt.system, rt.settings)
+    runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(pane.session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
         return Outcome("refused", NO_CONVERSATION, None)
-    process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
     tree = _tab_tree(rt, pane_id)
     record = {
         "schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
@@ -30,7 +32,7 @@ def park(rt, pane_id, note, keep=False):
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         "cwd": process.get("cwd") or pane.cwd,
         "argv": inventory.argv_of(process, rt.system) if process else [],
-        "env": inventory.account_env(process, rt.system, rt.settings),
+        "env": env,
         "claude_version": inventory.running_version(process, rt.system) if process else None,
         "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),
         "context_at_park": _context(rt, pane.session_id),
