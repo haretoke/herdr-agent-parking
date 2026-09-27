@@ -26,9 +26,8 @@ def park(rt, pane_id, note, keep=False):
         return Outcome("refused", agents.BACKGROUND % (attached, attached), None)
     env = inventory.account_env(process, rt.system, rt.settings)
     command = inventory.claude_executable(argv[0] if argv else None, rt.settings, rt.system, rt.environ)
+    # A session of Claude's background shown here: /exit would leave it running.
     background = agents.running_background(rt.system.claude_agents(command, env), pane.session_id)
-    if background:
-        return Outcome("refused", agents.BACKGROUND % (background, background), None)
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(pane.session_id):
         # `claude --resume` finds no conversation for it (seen on the Mac): nothing to keep.
@@ -38,7 +37,7 @@ def park(rt, pane_id, note, keep=False):
         "schema_version": records.SCHEMA_VERSION, "session_id": pane.session_id,
         "status": "parking", "pane_id": pane_id, "pane_id_history": [],
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
-        "cwd": process.get("cwd") or pane.cwd,
+        "cwd": (background or {}).get("cwd") or process.get("cwd") or pane.cwd,
         "argv": argv,
         "env": env,
         "claude_version": inventory.running_version(process, rt.system) if process else None,
@@ -47,15 +46,23 @@ def park(rt, pane_id, note, keep=False):
         "parked_at": times.iso(rt.clock()),
         "note": note if note and note.strip() else None,
     }
+    if background:
+        record["background_id"] = background["id"]
     # Herdr forgets the session id once Claude exits (spike 0-2): write it down first.
     records.start_parking(rt.paths.records, record)
-    try:
-        rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
-    except herdr_api.HerdrError as error:
-        records.discard_parking(rt.paths.records, pane.session_id)
-        if error.code == "agent_blocked":
-            return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
-        raise
+    if background:
+        stopped = "stopped Claude's background session %s" % background["id"]
+        # A view showing it goes back to the shell by itself (seen on the Mac).
+        rt.system.claude_stop(command, background["id"], env)
+    else:
+        stopped = ""
+        try:
+            rt.herdr.call("agent.prompt", {"target": pane_id, "text": "/exit"})
+        except herdr_api.HerdrError as error:
+            records.discard_parking(rt.paths.records, pane.session_id)
+            if error.code == "agent_blocked":
+                return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
+            raise
     if not _wait_for_shell(rt, pane_id):
         record["status"] = "park_failed"
         records.write(rt.paths.records, record)
@@ -69,7 +76,7 @@ def park(rt, pane_id, note, keep=False):
         rt.herdr.call("pane.rename", {"pane_id": pane_id, "label": label(rt.settings, record)})
     record.update(status="parked", parked_mode=mode)
     records.write(rt.paths.records, record)
-    return Outcome("parked", reason, record)
+    return Outcome("parked", "; ".join(part for part in (stopped, reason) if part), record)
 
 
 def _close_or_keep(rt, pane_id, tree):

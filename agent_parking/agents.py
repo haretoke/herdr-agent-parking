@@ -14,10 +14,11 @@ def attached_to(argv):
 
 
 def running_background(entries, session_id):
-    """The short id under which Claude runs `session_id` in the background, from its session
-    list (`claude agents --json`), else None. Only a live worker counts (it has a `pid`): a
-    stopped one stays listed and can be resumed as a Claude of its own."""
+    """Claude's entry for `session_id` when it runs in the background, from its session list
+    (`claude agents --json`: `id` is the short id `claude stop` takes), else None. Only a live
+    worker counts (it has a `pid`): a stopped one stays listed and can be resumed as a
+    Claude of its own."""
     for entry in entries or []:
         if entry.get("kind") == "background" and entry.get("sessionId") == session_id and entry.get("pid"):
-            return entry.get("id") or session_id[:8]
+            return dict(entry, id=entry.get("id") or session_id[:8])
     return None

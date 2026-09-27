@@ -106,8 +106,9 @@ def _background(rt, record):
     """The short id under which Claude still runs the record's session in the background."""
     started = (record.get("argv") or [None])[0]
     command = inventory.claude_executable(started, rt.settings, rt.system, rt.environ)
-    return agents.running_background(rt.system.claude_agents(command, record.get("env") or {}),
-                                     record["session_id"])
+    entry = agents.running_background(rt.system.claude_agents(command, record.get("env") or {}),
+                                      record["session_id"])
+    return entry and entry["id"]
 
 
 def _pending(rt, record):

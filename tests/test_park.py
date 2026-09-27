@@ -56,20 +56,25 @@ class BackgroundSessionTest(FlowTestCase):
         self.assertNotIn("agent.prompt", self.fake.methods())
         self.assertIsNone(self.saved())
 
-    def test_a_session_claude_runs_in_the_background_is_refused(self):
-        # Claude 2.1.281 in a container: `claude --resume <name>` showed a session that ran
-        # in the background, and the park's /exit left it running (282 MB, three days).
+    def test_a_session_claude_runs_in_the_background_is_stopped_and_parked(self):
+        # In a container a pane showed a session of Claude's background (`claude agents`
+        # with the session opened); /exit left it running (452 MB). `claude stop` ends it,
+        # and a view showing it goes back to the shell by itself (seen on the Mac).
         rt = self.flow()
         rt.system.environs = {200: {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"}}
         rt.system.agents = [{"kind": "background", "id": "2716af66", "sessionId": UUID, "pid": 3000560,
-                             "status": "idle", "state": "blocked"}]
-        outcome = park.park(rt, "w1:p2", note=None)
-        self.assertEqual(outcome.kind, "refused")
-        self.assertIn("claude stop 2716af66", outcome.message)
+                             "name": "work", "status": "idle", "state": "done", "cwd": "/repo/.claude/worktrees/site"}]
+        outcome = park.park(rt, "w1:p2", note="wiki")
+        self.assertEqual(outcome.kind, "parked")
+        self.assertIn("stopped Claude's background session 2716af66", outcome.message)
         # The Claude the pane runs: the plugin's PATH may not have `claude`.
-        self.assertEqual(rt.system.agents_calls, [("/home/u/.local/bin/claude",
-                                                   {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"})])
+        account = {"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/opt/creds"}
+        self.assertEqual(rt.system.agents_calls, [("/home/u/.local/bin/claude", account)])
+        self.assertEqual(rt.system.stop_calls, [("/home/u/.local/bin/claude", "2716af66", account)])
         self.assertNotIn("agent.prompt", self.fake.methods())
+        saved = self.saved()
+        self.assertEqual((saved["status"], saved["session_id"], saved["cwd"], saved["background_id"], saved["note"]),
+                         ("parked", UUID, "/repo/.claude/worktrees/site", "2716af66", "wiki"))
 
     def test_a_stopped_background_session_resumed_as_its_own_claude_is_parked(self):
         # Seen on the Mac: after `claude stop`, `claude --resume <uuid>` runs it in the pane

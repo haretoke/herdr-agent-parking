@@ -13,6 +13,8 @@ class FakeSystem:
         self.environs = {}
         self.agents = None
         self.agents_calls = []
+        self.stopped = True
+        self.stop_calls = []
 
     def realpath(self, path):
         return self.links.get(path, path)
@@ -42,3 +44,7 @@ class FakeSystem:
     def claude_agents(self, command, env):
         self.agents_calls.append((command, env))
         return self.agents
+
+    def claude_stop(self, command, short_id, env):
+        self.stop_calls.append((command, short_id, env))
+        return self.stopped
