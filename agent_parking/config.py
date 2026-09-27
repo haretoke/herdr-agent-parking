@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 from collections import namedtuple
 
 DEFAULTS = {
@@ -21,6 +22,9 @@ DEFAULTS = {
     "prepare_prompt": None,
     "prepare_timeout_seconds": 600,
     "compact_timeout_seconds": 300,
+    # Environment variables of a parked Claude that are set again when it resumes: the ones
+    # that pick its account and config (never secrets such as API keys).
+    "resume_env": ["CLAUDE_CONFIG_DIR", "CLAUDE_SECURESTORAGE_CONFIG_DIR"],
 }
 
 
@@ -81,6 +85,8 @@ VALID = {
     "prepare_prompt": _optional_text,
     "prepare_timeout_seconds": _positive_number,
     "compact_timeout_seconds": _positive_number,
+    "resume_env": lambda value: isinstance(value, list) and all(
+        isinstance(name, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) for name in value),
 }
 
 

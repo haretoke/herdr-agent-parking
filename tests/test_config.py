@@ -40,6 +40,7 @@ class LoadTest(unittest.TestCase):
             "prepare_prompt": None,
             "prepare_timeout_seconds": 600,
             "compact_timeout_seconds": 300,
+            "resume_env": ["CLAUDE_CONFIG_DIR", "CLAUDE_SECURESTORAGE_CONFIG_DIR"],
         })
 
     def test_an_unusable_file_gives_the_defaults_and_a_reason(self):
@@ -83,6 +84,14 @@ class LoadTest(unittest.TestCase):
         self.assertEqual(loaded["records_dir"], "/mnt/keep")
         self.assertEqual(loaded["claude_config_dir"], "~/.claude-alt")
         self.assertEqual(self.logged, [])
+
+    def test_resume_env_is_a_list_of_variable_names(self):
+        self.write('{"resume_env": ["CLAUDE_CONFIG_DIR", "MY_PROFILE"]}')
+        self.assertEqual(self.load()["resume_env"], ["CLAUDE_CONFIG_DIR", "MY_PROFILE"])
+        for bad in ('"CLAUDE_CONFIG_DIR"', '["A B"]', '["1X"]', '[3]'):
+            with self.subTest(value=bad):
+                self.write('{"resume_env": %s}' % bad)
+                self.assertEqual(self.load()["resume_env"], config.DEFAULTS["resume_env"])
 
     def test_an_unknown_key_is_ignored_with_a_reason(self):
         self.write('{"poll_second": 5}')
