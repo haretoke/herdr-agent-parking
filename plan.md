@@ -445,7 +445,11 @@ server is never restarted.
       the tabs of every workspace with `workspace_id` and `label` (an unnamed tab's label
       is its number, `"1"`). Run against it: park's workspace check said alone for the
       only pane of a workspace and not alone for a pane in a second tab; that pane closed
-      with its tab, and recreate with `tab_label = "docs"` opened a tab `docs` at the end
+      with its tab, and recreate with `tab_label = "docs"` opened a tab `docs` at the end.
+      `tab.create` and `workspace.create` accept `"label": null` (most tabs are unnamed,
+      and older records have no `tab_label`): the tab gets its number, the workspace the
+      name of its directory. A tab's `number` counts creations, not positions (a tab
+      made after one was closed was number 3 of two)
 - [x] where a pane label shows (Herdr 0.9.1 source, 2026-09-27): on the pane's top
       border only (`border_label`: a reported title first, then the label), and
       `pane_borders = true` means `auto`, which draws borders only in a tab with two

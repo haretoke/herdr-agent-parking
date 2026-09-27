@@ -223,7 +223,7 @@ class TabLabelTest(FlowTestCase):
         self.assertEqual(self.saved()["tab_label"], "api")
 
     def test_a_tab_named_only_by_its_number_records_no_name(self):
-        # The new tab goes to the end of the tab order, where the old number is wrong.
+        # Herdr's own name for an unnamed tab, not one the user gave it.
         tabs = {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "1", "number": 1}]}
         park.park(self.flow(**{"tab.list": tabs}), "w1:p2", note=None)
         self.assertIsNone(self.saved()["tab_label"])
