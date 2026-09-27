@@ -59,6 +59,17 @@ class BackgroundSessionTest(FlowTestCase):
         self.assertEqual([call[1] for call in rt.system.stop_calls], ["2716af66"])
         self.assertNotIn("agent.prompt", self.fake.methods())
 
+    def test_a_view_that_stays_after_the_stop_is_left_with_exit(self):
+        # `claude agents` showing the session (the container's w1:p1W) is agent view itself:
+        # after the stop it may stay on its list, which /exit leaves (seen on the Mac).
+        polls = int(park.VIEW_SECONDS / park.POLL_SECONDS) + 1
+        rt = self.flow(**{"pane.get": [pane_reply()] * (1 + polls) + [SHELL], "pane.send_input": {"type": "ok"}})
+        rt.system.agents = [dict(BACKGROUND_ENTRY)]
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "parked")
+        [typed] = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_input"]
+        self.assertEqual(typed, {"pane_id": "w1:p2", "text": "/exit", "keys": ["Enter"]})
+
     def test_an_attach_client_whose_session_claude_does_not_list_as_running_is_refused(self):
         for listed in (None, [], [dict(BACKGROUND_ENTRY, pid=None)]):
             with self.subTest(listed=listed):

@@ -11,6 +11,8 @@ Outcome = namedtuple("Outcome", "kind message record")
 PARKABLE = ready.READY_STATUSES
 NO_CONVERSATION = "this Claude has no conversation yet, so there is nothing to resume; exit it with /exit instead"
 POLL_SECONDS = 0.5
+VIEW_SECONDS = 5
+VIEW_EXITS = 2
 
 
 def park(rt, pane_id, note, keep=False):
@@ -71,7 +73,7 @@ def park(rt, pane_id, note, keep=False):
             if error.code == "agent_blocked":
                 return Outcome("refused", "Claude is waiting at a dialog; answer it first (g)", None)
             raise
-    if not _wait_for_shell(rt, pane_id):
+    if not (_leave_view(rt, pane_id) if background else _wait_for_shell(rt, pane_id)):
         record["status"] = "park_failed"
         records.write(rt.paths.records, record)
         return Outcome("park_failed", "Claude did not exit within %s s; the pane is left as it is "
@@ -142,9 +144,22 @@ def _context(rt, session_id):
             "compacted": summary.compacted}
 
 
-def _wait_for_shell(rt, pane_id):
-    """Poll until Claude has left `pane_id` (about 4 s in spike 0-2)."""
-    for attempt in range(int(rt.settings["exit_timeout_seconds"] / POLL_SECONDS) + 1):
+def _leave_view(rt, pane_id):
+    """After `claude stop`, until the pane is back at the shell: a `claude attach` client
+    exits by itself (seen on the Mac), while `claude agents` that showed the session may stay
+    on its list; `/exit` leaves the list (in a session it shows, it goes to the list first)."""
+    for _ in range(VIEW_EXITS):
+        if _wait_for_shell(rt, pane_id, VIEW_SECONDS):
+            return True
+        rt.herdr.call("pane.send_input", {"pane_id": pane_id, "text": "/exit", "keys": ["Enter"]})
+    return _wait_for_shell(rt, pane_id)
+
+
+def _wait_for_shell(rt, pane_id, seconds=None):
+    """Poll until Claude has left `pane_id` (about 4 s in spike 0-2), at most `seconds`
+    (`exit_timeout_seconds`)."""
+    seconds = rt.settings["exit_timeout_seconds"] if seconds is None else seconds
+    for attempt in range(int(seconds / POLL_SECONDS) + 1):
         if attempt:
             rt.sleep(POLL_SECONDS)
         pane = rt.herdr.pane(pane_id)
