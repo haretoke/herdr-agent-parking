@@ -3,7 +3,7 @@
 import unicodedata
 from collections import namedtuple
 
-from . import config, display, herdr_api, inventory, layout, ready, records, runtime, state, times, transcript
+from . import agents, config, display, herdr_api, inventory, layout, ready, records, runtime, state, times, transcript
 
 # kind: refused, parked, park_failed
 Outcome = namedtuple("Outcome", "kind message record")
@@ -20,6 +20,10 @@ def park(rt, pane_id, note, keep=False):
     if refusal:
         return Outcome("refused", refusal, None)
     process = inventory.claude_process(rt.herdr.process_info(pane_id)) or {}
+    argv = inventory.argv_of(process, rt.system) if process else []
+    attached = agents.attached_to(argv)
+    if attached:
+        return Outcome("refused", agents.BACKGROUND % (attached, attached), None)
     env = inventory.account_env(process, rt.system, rt.settings)
     runtime.remember_config_dir(rt, env)  # its transcript may live in its own config directory
     if not rt.has_transcript(pane.session_id):
@@ -31,7 +35,7 @@ def park(rt, pane_id, note, keep=False):
         "status": "parking", "pane_id": pane_id, "pane_id_history": [],
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         "cwd": process.get("cwd") or pane.cwd,
-        "argv": inventory.argv_of(process, rt.system) if process else [],
+        "argv": argv,
         "env": env,
         "claude_version": inventory.running_version(process, rt.system) if process else None,
         "label_before": _label_before(rt, pane), "layout_hint": layout.hint(tree, pane_id),

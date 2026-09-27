@@ -40,6 +40,23 @@ class AgentViewTest(FlowRuntimeTestCase):
         self.assertEqual(self.fake.methods(), ["pane.get"])
 
 
+class BackgroundSessionTest(FlowTestCase):
+    def test_an_attach_client_is_refused_since_exit_would_leave_the_session_running(self):
+        # Seen on the Mac: /exit in `claude attach` turns it into agent view and the
+        # session goes on in Claude's background.
+        attached = {"type": "process_info", "process_info": {
+            "shell_pid": 100, "foreground_process_group_id": 200,
+            "foreground_processes": [{"pid": 200, "name": "claude", "cwd": "/repo",
+                                      "argv": ["/home/u/.local/bin/claude", "attach", "41038c12"]}]}}
+        rt = self.flow(**{"pane.process_info": attached})
+        outcome = park.park(rt, "w1:p2", note=None)
+        self.assertEqual(outcome.kind, "refused")
+        self.assertIn("background", outcome.message)
+        self.assertIn("claude stop 41038c12", outcome.message)
+        self.assertNotIn("agent.prompt", self.fake.methods())
+        self.assertIsNone(self.saved())
+
+
 class DraftTest(FlowRuntimeTestCase):
     def test_a_half_typed_line_is_refused_and_no_exit_is_sent(self):
         rt = self.runtime({"pane.get": pane_reply(), "agent.read": screen_reply("❯ half typed line")})
