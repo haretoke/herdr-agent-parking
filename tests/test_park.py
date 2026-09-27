@@ -65,12 +65,26 @@ class BackgroundSessionTest(FlowTestCase):
         # `claude agents` showing the session (the container's w1:p1W) is agent view itself:
         # after the stop it may stay on its list, which /exit leaves (seen on the Mac).
         polls = int(park.VIEW_SECONDS / park.POLL_SECONDS) + 1
-        rt = self.flow(**{"pane.get": [pane_reply()] * (1 + polls) + [SHELL], "pane.send_input": {"type": "ok"}})
+        rt = self.flow(**{"pane.get": [pane_reply()] * (1 + polls) + [SHELL], "pane.send_input": {"type": "ok"},
+                          "pane.process_info": [PROCESS, PROCESS, SHELL_PROCESS]})
         rt.system.agents = [dict(BACKGROUND_ENTRY)]
         outcome = park.park(rt, "w1:p2", note=None)
         self.assertEqual(outcome.kind, "parked")
         [typed] = [r["params"] for r in self.fake.requests if r["method"] == "pane.send_input"]
         self.assertEqual(typed, {"pane_id": "w1:p2", "text": "/exit", "keys": ["Enter"]})
+
+    def test_nothing_is_typed_when_a_prompt_helper_is_in_front_instead_of_claude(self):
+        # Herdr may still say `claude` while the shell's prompt runs its helper (`mise`,
+        # `git`; seen on the Mac right after the stop): /exit would land in the shell.
+        helper = {"type": "process_info", "process_info": {
+            "shell_pid": 100, "foreground_process_group_id": 300,
+            "foreground_processes": [{"pid": 300, "name": "git", "argv": ["git", "status"]}]}}
+        polls = int(park.VIEW_SECONDS / park.POLL_SECONDS) + 1
+        rt = self.flow(**{"pane.get": [pane_reply()] * (1 + polls) + [SHELL], "pane.send_input": {"type": "ok"},
+                          "pane.process_info": [PROCESS, helper, SHELL_PROCESS]})
+        rt.system.agents = [dict(BACKGROUND_ENTRY)]
+        self.assertEqual(park.park(rt, "w1:p2", note=None).kind, "parked")
+        self.assertNotIn("pane.send_input", self.fake.methods())
 
     def test_an_attach_client_whose_session_claude_does_not_list_as_running_is_refused(self):
         for listed in (None, [], [dict(BACKGROUND_ENTRY, pid=None)]):

@@ -1,5 +1,6 @@
 """Parking: exit an idle Claude after recording how to bring it back."""
 
+import os
 import unicodedata
 from collections import namedtuple
 
@@ -165,8 +166,18 @@ def _leave_view(rt, pane_id):
     for _ in range(VIEW_EXITS):
         if _wait_for_shell(rt, pane_id, VIEW_SECONDS):
             return True
-        rt.herdr.call("pane.send_input", {"pane_id": pane_id, "text": "/exit", "keys": ["Enter"]})
+        if _claude_in_front(rt.herdr.process_info(pane_id)):
+            rt.herdr.call("pane.send_input", {"pane_id": pane_id, "text": "/exit", "keys": ["Enter"]})
     return _wait_for_shell(rt, pane_id)
+
+
+def _claude_in_front(info):
+    """Whether Claude leads the pane's foreground: not the shell, nor a helper of its prompt
+    (`mise`, `git`) while Herdr still says `claude` (seen on the Mac right after a stop)."""
+    leader = inventory.claude_process(info) or {}
+    started = os.path.basename((leader.get("argv") or [""])[0])
+    return started == "claude" or leader.get("name") == "claude" or bool(
+        inventory.VERSION.fullmatch(leader.get("name") or ""))
 
 
 def _wait_for_shell(rt, pane_id, seconds=None):
