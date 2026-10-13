@@ -898,6 +898,17 @@ design with Fable, checked by Codex):
 - [x] a parked record without a pane is grouped by the workspace and labels of its
       record, so a session of a closed workspace still says where it was
 
+After the Codex and Claude reviews of the above (2026-10-13):
+- [x] `park` records `workspace_label` (it recorded only `tab_label`, so the group of a
+      record whose pane was closed, the default, would have shown the id alone)
+- [x] a record without a pane takes the workspace's and tab's current labels when they are
+      still there, else the record's
+- [x] a group takes the first label any of its rows knows; no rows give no groups
+- [x] the screen never exceeds the height: the title, rule and column titles go first,
+      then the start of the footer (a dialog's input line stays); a view never ends with
+      a header alone; a header's rule fills the width after a control character is dropped
+- [x] nothing is marked `●` when the dashboard's own place is unknown
+
 ### cli
 - [x] `dashboard` starts the pane process
 - [x] `config.json` is read from `HERDR_PLUGIN_CONFIG_DIR` only when `HERDR_PLUGIN_ID` is this
