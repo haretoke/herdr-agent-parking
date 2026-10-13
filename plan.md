@@ -887,10 +887,10 @@ design with Fable, checked by Codex):
       `place` is 13 and `place_id` 11 columns; a paneless parked row shows `no pane 💤`
 - [x] a group header line names a workspace: ` ── web (w8) · 2 claude · 1 parked ───…`
       filled with `─` to the width, `w8` alone when the workspace has no label
-- [ ] the body groups the rows by workspace in the order they first appear, a header
+- [x] the body groups the rows by workspace in the order they first appear, a header
       before each group; j/k move over the rows only; only groups with visible rows are
       shown under `/`; the selection stays on its session across groups
-- [ ] scrolling keeps the header of the group at the top of the view (shown again when
+- [x] scrolling keeps the header of the group at the top of the view (shown again when
       the view starts inside a group); the lines never exceed the height
 - [ ] the dashboard's own workspace (the pane with `HERDR_PANE_ID` in `pane.list`, else
       `HERDR_WORKSPACE_ID`, else none) is marked `●` in its header, and the rows of its

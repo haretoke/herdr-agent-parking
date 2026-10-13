@@ -6,7 +6,8 @@ from agent_parking.inventory import Inventory, Row
 
 
 def live(pane_id="w8:p36", **fields):
-    base = dict(pane_id=pane_id, tab_id="w8:t3", workspace_id="w8", label="web", name="api gateway refactor",
+    base = dict(pane_id=pane_id, tab_id="w8:t3", workspace_id="w8", workspace_label="shop-api", label="web",
+                name="api gateway refactor",
                 status="idle", rss_kb=210_000, version="2.1.283", ctx="37k 18%", idle="12m")
     base.update(fields)
     return Row(**base)
@@ -39,11 +40,12 @@ class ScreenTest(unittest.TestCase):
         self.assertEqual(lines[0], " Agent parking · 2 claude · 410M · codex: 5 (not managed)")
         self.assertEqual(lines[1], " " + "─" * 76)
         self.assertEqual(lines[2], table.header(78))
-        self.assertEqual(lines[3], table.line(table.cells(first), 78, selected=True))
-        self.assertEqual(lines[4], table.line(table.cells(second), 78, selected=False))
-        self.assertEqual(lines[5], lines[1])
-        self.assertTrue(lines[6].startswith(" s park  c compact  C compact+park  r unpark"), lines[6])
-        self.assertEqual(len(lines), 7)
+        self.assertEqual(lines[3], table.group_header(table.groups([first, second])[0], 78, own=False))
+        self.assertEqual(lines[4], table.line(table.cells(first), 78, selected=True))
+        self.assertEqual(lines[5], table.line(table.cells(second), 78, selected=False))
+        self.assertEqual(lines[6], lines[1])
+        self.assertTrue(lines[7].startswith(" s park  c compact  C compact+park  r unpark"), lines[7])
+        self.assertEqual(len(lines), 8)
         for line in lines:
             self.assertLessEqual(display.width(line), 78)
 
@@ -61,18 +63,18 @@ class DetailTest(unittest.TestCase):
         parked = live("w8:p37", status="parked", record={"note": "stopped before the wiki"}, idle="2d")
         shown = board(first, parked)
         lines = shown.lines(60, 20)
-        self.assertEqual(lines[4], table.detail(table.cells(first), None, 60))
-        self.assertEqual(lines[5], table.line(table.cells(parked), 60, selected=False))
+        self.assertEqual(lines[5], table.detail(table.cells(first), None, 60))
+        self.assertEqual(lines[6], table.line(table.cells(parked), 60, selected=False))
         shown.on_input(b"i")
-        self.assertEqual(shown.lines(60, 20)[4], lines[5])
+        self.assertEqual(shown.lines(60, 20)[5], lines[6])
         shown.on_input(b"i")
         self.assertEqual(shown.lines(60, 20), lines)
 
     def test_a_parked_row_shows_its_note_and_nothing_is_added_when_there_is_nothing_to_say(self):
         parked = live(status="parked", record={"note": "stopped before the wiki"}, idle="2d")
         lines = board(parked, live("w8:p37")).lines(100, 20)
-        self.assertEqual(lines[4], '    ↳ "stopped before the wiki"')
-        self.assertEqual(len(board(live()).lines(100, 20)), 6)
+        self.assertEqual(lines[5], '    ↳ "stopped before the wiki"')
+        self.assertEqual(len(board(live()).lines(100, 20)), 7)
 
 
 class MoveTest(unittest.TestCase):
@@ -87,22 +89,58 @@ class MoveTest(unittest.TestCase):
         board().on_input(b"j")
 
 
+class GroupTest(unittest.TestCase):
+    def test_rows_sit_under_the_header_of_their_workspace_and_the_selection_walks_the_groups(self):
+        a = live("w8:p1", name="api", session_id="a")
+        b = live("wD:p2", name="notes", session_id="b", workspace_id="wD", workspace_label="notes")
+        c = live("w8:p3", name="infra", session_id="c")
+        shown = board(a, b, c)
+        text = shown.lines(78, 20)
+        self.assertEqual([line for line in text if line.startswith(" ── ")],
+                         [table.group_header(table.Group("w8", "shop-api", [a, c]), 78, own=False),
+                          table.group_header(table.Group("wD", "notes", [b]), 78, own=False)])
+        self.assertEqual([row.name for row in shown.visible()], ["api", "infra", "notes"])
+        shown.on_input(b"jj")
+        self.assertEqual(shown._row().session_id, "b")
+        shown.refresh()
+        self.assertEqual(shown._row().session_id, "b")
+
+    def test_a_filter_hides_the_groups_without_a_matching_row(self):
+        shown = board(live("w8:p1", name="api"), live("wD:p2", name="notes", workspace_id="wD", workspace_label="notes"))
+        shown.on_input(b"/notes\r")
+        headers = [line for line in shown.lines(78, 20) if line.startswith(" ── ")]
+        self.assertEqual(len(headers), 1)
+        self.assertIn("notes (wD)", headers[0])
+
+
 class HeightTest(unittest.TestCase):
     def test_the_list_fits_the_height_and_scrolls_to_keep_the_selection_in_view(self):
         rows = [live("w8:p%d" % n, name="session %d" % n) for n in range(10)]
         shown = board(*rows)
         lines = shown.lines(78, 10)
         self.assertEqual(len(lines), 10)
-        self.assertIn("session 0", lines[3])
+        self.assertIn("shop-api (w8)", lines[3])
+        self.assertIn("session 0", lines[4])
         self.assertTrue(lines[-1].startswith(" s park"))
         for _ in range(9):
             shown.on_input(b"j")
         lines = shown.lines(78, 10)
         self.assertEqual(len(lines), 10)
         self.assertTrue(any("▶" in line and "session 9" in line for line in lines), lines)
+        self.assertIn("shop-api (w8)", lines[3])  # the group's header is shown again on top
+        self.assertIn("session 6", lines[4])
         shown.on_input(b"k")
         self.assertTrue(any("▶" in line and "session 8" in line for line in shown.lines(78, 10)))
         self.assertIn("session 9", "".join(shown.lines(78, 10)))  # no jump back to the top
+
+    def test_a_view_too_low_for_the_header_still_shows_the_selected_row(self):
+        shown = board(*[live("w8:p%d" % n, name="session %d" % n) for n in range(5)])
+        shown.on_input(b"jjjj")
+        for width, height in ((78, 6), (78, 7), (60, 6), (60, 7)):  # at 60 a detail line is drawn
+            with self.subTest(width=width, height=height):
+                lines = shown.lines(width, height)
+                self.assertEqual(len(lines), height)
+                self.assertTrue(any("▶" in line and "session 4" in line for line in lines), lines)
 
 
 class KeepSelectionTest(unittest.TestCase):
@@ -235,10 +273,10 @@ class NoteTest(unittest.TestCase):
 
 class FilterTest(unittest.TestCase):
     def test_slash_filters_by_name_cwd_and_labels_ignoring_case(self):
-        rows = [live("w8:p1", name="API gateway", cwd="/w/one", label=None),
-                live("w8:p2", name="docs", cwd="/w/api-docs", label=None),
-                live("w8:p3", name="infra", cwd="/w/infra", label=None, tab_label="Api"),
-                live("w8:p4", name="release", cwd="/w/rel", label=None)]
+        rows = [live("w8:p1", name="API gateway", cwd="/w/one", label=None, workspace_label=None),
+                live("w8:p2", name="docs", cwd="/w/api-docs", label=None, workspace_label=None),
+                live("w8:p3", name="infra", cwd="/w/infra", label=None, tab_label="Api", workspace_label=None),
+                live("w8:p4", name="release", cwd="/w/rel", label=None, workspace_label=None)]
         shown = board(*rows)
         shown.on_input(b"jjj/api\r")
         self.assertEqual([row.pane_id for row in shown.visible()], ["w8:p1", "w8:p2", "w8:p3"])

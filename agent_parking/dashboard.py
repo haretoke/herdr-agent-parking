@@ -71,13 +71,17 @@ class Dashboard:
             self.selected = keys.index(chosen)
         self.selected = max(0, min(self.selected, len(keys) - 1))
 
-    def visible(self):
-        """The rows shown and selectable: those matching the filter (`/`) in their name,
-        cwd or labels, ignoring case."""
+    def groups(self):
+        """The rows matching the filter (`/`) in their name, cwd or labels, ignoring case,
+        grouped by workspace as they are drawn."""
         wanted = self.filter.lower()
-        return [row for row in self.rows if not wanted or any(
+        return table.groups([row for row in self.rows if not wanted or any(
             wanted in (text or "").lower()
-            for text in (row.name, row.cwd, row.label, row.tab_label, row.workspace_label))]
+            for text in (row.name, row.cwd, row.label, row.tab_label, row.workspace_label))])
+
+    def visible(self):
+        """The rows shown and selectable, in the order they are drawn."""
+        return [row for group in self.groups() for row in group.rows]
 
     def title(self):
         running = [row for row in self.rows if row.record is None]
@@ -107,22 +111,39 @@ class Dashboard:
                 [" " + ("events: off · " if not self.events_on else "") + KEYS])
 
     def _visible_body(self, width, space):
-        """The rows' lines that fit in `space`, scrolled only as far as needed to keep the
-        selected row and its detail line in view."""
-        body, first, last = [], 0, 0
-        for index, row in enumerate(self.visible()):
-            cells = table.cells(row)
-            if index == self.selected:
-                first = len(body)
-            body.append(table.line(cells, width, selected=index == self.selected))
-            if index == self.selected and self.show_detail:
-                note = (row.record or {}).get("note")
-                body.extend(line for line in [table.detail(cells, note, width)] if line)
-            if index == self.selected:
-                last = len(body) - 1
-        self.top = min(self.top, first)
-        self.top = max(self.top, last - space + 1, 0)
-        return body[self.top:self.top + space]
+        """The groups' header lines and rows that fit in `space`, scrolled only as far as
+        needed to keep the selected row and its detail line in view. A view that starts
+        inside a group shows that group's header again on its first line."""
+        body, headers, first, last, index = [], [], 0, 0, 0
+        for group in self.groups():
+            headers.append(len(body))
+            body.append(table.group_header(group, width, own=False))
+            for row in group.rows:
+                cells = table.cells(row)
+                if index == self.selected:
+                    first = len(body)
+                body.append(table.line(cells, width, selected=index == self.selected))
+                if index == self.selected and self.show_detail:
+                    note = (row.record or {}).get("note")
+                    body.extend(line for line in [table.detail(cells, note, width)] if line)
+                if index == self.selected:
+                    last = len(body) - 1
+                index += 1
+
+        def top_for(lines):
+            """The first line in view with `lines` to fill: moved only as far as needed to
+            show the selected row, then its detail line when both fit."""
+            shown_to = min(last, first + lines - 1)
+            return max(min(self.top, first), shown_to - lines + 1, 0)
+
+        top = top_for(space)
+        if space >= 2 and headers and top not in headers:
+            top = top_for(space - 1)  # one line for the header shown again
+            if top not in headers:
+                self.top = top
+                return [body[max(h for h in headers if h < top)]] + body[top:top + space - 1]
+        self.top = top
+        return body[top:top + space]
 
     def on_input(self, data):
         for key in self.keys.feed(data):
