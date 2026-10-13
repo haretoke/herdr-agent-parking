@@ -116,6 +116,27 @@ class GroupTest(unittest.TestCase):
         self.assertEqual(lines[6], table.group_header(table.Group("wD", "notes", [b]), 78, own=False))
         self.assertTrue(lines[7].startswith("  t1/p2 "), lines[7])
 
+    def test_without_a_known_own_place_nothing_is_marked(self):
+        lines = board(live("w8:p1"), Row(status="parked", name="billing", record={})).lines(78, 20)
+        self.assertFalse(any("●" in line for line in lines), lines)
+
+    def test_a_view_never_ends_with_a_header_alone_and_shows_each_header_once(self):
+        a = live("w8:p1", name="api")
+        b, c = live("wD:p2", name="notes", workspace_id="wD", workspace_label="notes"), live("wD:p3", name="docs",
+                                                                                            workspace_id="wD")
+        shown = board(a, b, c)
+        lines = shown.lines(78, 8)  # room for three body lines: header, row, and the next header
+        self.assertEqual(len([line for line in lines if line.startswith(" ── ")]), 1, lines)
+        self.assertNotIn("notes (wD)", "".join(lines))
+        for height in range(6, 14):
+            for selected in range(3):
+                shown.selected = selected
+                body = shown.lines(78, height)[3:-2]
+                with self.subTest(height=height, selected=selected):
+                    headers = [line for line in body if line.startswith(" ── ")]
+                    self.assertEqual(len(headers), len(set(headers)))
+                    self.assertTrue(any("▶" in line for line in body), body)
+
     def test_a_filter_hides_the_groups_without_a_matching_row(self):
         shown = board(live("w8:p1", name="api"), live("wD:p2", name="notes", workspace_id="wD", workspace_label="notes"))
         shown.on_input(b"/notes\r")
@@ -143,6 +164,21 @@ class HeightTest(unittest.TestCase):
         shown.on_input(b"k")
         self.assertTrue(any("▶" in line and "session 8" in line for line in shown.lines(78, 10)))
         self.assertIn("session 9", "".join(shown.lines(78, 10)))  # no jump back to the top
+
+    def test_the_screen_never_exceeds_the_height_and_keeps_the_footers_end(self):
+        shown = board(live("w8:p1"), live("w8:p2"))
+        self.assertEqual(shown.lines(78, 0), [])
+        for height in range(1, 6):
+            with self.subTest(height=height):
+                lines = shown.lines(78, height)
+                self.assertLessEqual(len(lines), height)
+                self.assertTrue(lines[-1].startswith(" s park"), lines)
+        shown.on_input(b"/")  # a dialog in the footer: its input line stays in view
+        for height in range(1, 6):
+            with self.subTest(height=height, dialog=True):
+                lines = shown.lines(78, height)
+                self.assertLessEqual(len(lines), height)
+                self.assertTrue(lines[-1].startswith(" > "), lines)
 
     def test_a_view_too_low_for_the_header_still_shows_the_selected_row(self):
         shown = board(*[live("w8:p%d" % n, name="session %d" % n) for n in range(5)])

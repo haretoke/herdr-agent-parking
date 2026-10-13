@@ -165,6 +165,9 @@ class GroupTest(unittest.TestCase):
         line = table.group_header(table.Group("w8", "a" * 50, [live()]), 30, own=False)
         self.assertEqual(display.width(line), 30)
         self.assertTrue(line.endswith("…"), line)
+        # a control character in a label is dropped when drawn, and the rule still fills the width
+        line = table.group_header(table.Group("w8", "a\x01b", [live()]), 52, own=False)
+        self.assertEqual((display.width(line), line.endswith("─")), (52, True))
 
 
 if __name__ == "__main__":

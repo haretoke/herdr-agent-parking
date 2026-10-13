@@ -97,10 +97,19 @@ class Dashboard:
         return " " + " · ".join(parts)
 
     def lines(self, width, height):
+        """The screen, never more than `height` lines: a low pane loses the title, rule
+        and column titles first, then the start of the footer (its end holds the dialog's
+        input line), before the body."""
+        if height <= 0:
+            return []
         rule = " " + "─" * (width - 2)
         footer = [rule] + self._footer(width)
         top = [self.title(), rule, table.header(width)]
-        body = self._visible_body(width, max(1, height - len(top) - len(footer)))
+        if len(top) + len(footer) >= height:
+            top = []
+        if len(footer) >= height:
+            footer = footer[len(footer) - max(height - 1, 1):]
+        body = self._visible_body(width, height - len(top) - len(footer))
         return [display.cell(line, width) for line in top + body + footer]
 
     def _footer(self, width):
@@ -115,7 +124,10 @@ class Dashboard:
     def _visible_body(self, width, space):
         """The groups' header lines and rows that fit in `space`, scrolled only as far as
         needed to keep the selected row and its detail line in view. A view that starts
-        inside a group shows that group's header again on its first line."""
+        inside a group shows that group's header again on its first line (from two lines
+        up: with one, the selected row is what the keys act on, so it wins over its header
+        and its detail line). A view never ends with a header alone, since the rows it
+        announces would be out of sight."""
         body, headers, first, last, index = [], [], 0, 0, 0
         for group in self.groups():
             headers.append(len(body))
@@ -140,14 +152,22 @@ class Dashboard:
             shown_to = min(last, first + lines - 1)
             return max(min(self.top, first), shown_to - lines + 1, 0)
 
+        def window(start, lines):
+            end = min(len(body), start + lines)
+            if end - 1 > start and end - 1 in headers and end - 1 > last:
+                end -= 1
+            return body[start:end]
+
+        if space <= 0:
+            return []
         top = top_for(space)
         if space >= 2 and headers and top not in headers:
             top = top_for(space - 1)  # one line for the header shown again
             if top not in headers:
                 self.top = top
-                return [body[max(h for h in headers if h < top)]] + body[top:top + space - 1]
+                return [body[max(h for h in headers if h < top)]] + window(top, space - 1)
         self.top = top
-        return body[top:top + space]
+        return window(top, space)
 
     def on_input(self, data):
         for key in self.keys.feed(data):

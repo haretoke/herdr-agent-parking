@@ -164,5 +164,5 @@ def group_header(group, width, own):
         parts.append("%d claude" % live)
     if parked:
         parts.append("%d parked" % parked)
-    text = " ── " + (OWN_MARK + " " if own else "") + " · ".join(parts) + " "
-    return display.cell(text + "─" * max(0, width - display.width(text)), width)
+    text = display.cell(" ── " + (OWN_MARK + " " if own else "") + " · ".join(parts) + " ", width)
+    return text + "─" * (width - display.width(text))  # filled after the cut drops control characters
