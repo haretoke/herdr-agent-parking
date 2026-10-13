@@ -157,6 +157,19 @@ class ParkedRowsTest(BuildTestCase):
         self.assertEqual(got.rows[1].tab_id, "w1:t1")
 
 
+class RecordLabelsTest(BuildTestCase):
+    def test_a_parked_record_without_a_pane_keeps_the_labels_of_its_record_for_its_group(self):
+        self.park(THIRD, "w1:p8", "billing", 5)
+        directory = state.paths(self.environ, self.settings).records
+        record = records.read(directory, THIRD)
+        record.update({"workspace_id": "wZ", "workspace_label": "old shop", "tab_label": "notes"})
+        records.write(directory, record)
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"))})
+        row = got.rows[-1]
+        self.assertEqual((row.pane_id, row.workspace_id, row.workspace_label, row.tab_label),
+                         (None, "wZ", "old shop", "notes"))
+
+
 class ResumedByHandTest(BuildTestCase):
     def test_a_session_resumed_by_hand_elsewhere_settles_its_record_and_gets_no_parked_row(self):
         self.park(OTHER, "w1:p5", "color notes", 2)

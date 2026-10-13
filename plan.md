@@ -895,7 +895,7 @@ design with Fable, checked by Codex):
 - [x] the dashboard's own workspace (the pane with `HERDR_PANE_ID` in `pane.list`, else
       `HERDR_WORKSPACE_ID`, else none) is marked `●` in its header, and the rows of its
       own tab carry `●` before their place
-- [ ] a parked record without a pane is grouped by the workspace and labels of its
+- [x] a parked record without a pane is grouped by the workspace and labels of its
       record, so a session of a closed workspace still says where it was
 
 ### cli
