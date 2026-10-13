@@ -84,14 +84,14 @@ PARKED_MARK = "💤"
 OWN_MARK = "●"  # the workspace and tab the dashboard runs in
 
 
-NO_PANE = "(no pane)"
+NO_PANE = "no pane"  # the place of a parked record whose pane is gone
 
 
 def _ids(row, with_workspace):
     """`w8/t3/p36` from the workspace, tab and pane ids (`w8:t3`, `w8:p36`), or `t3/p36`
     without the workspace (the group header names it)."""
     if not row.pane_id:
-        return NO_PANE
+        return "(%s)" % NO_PANE if with_workspace else NO_PANE
     parts = [(i or "").split(":")[-1] for i in (row.tab_id, row.pane_id)]
     if with_workspace:
         parts.insert(0, row.workspace_id)
@@ -117,7 +117,7 @@ def cells(row):
     """The text of every column for `row`."""
     ids = _ids(row, with_workspace=False)
     if row.record is not None:
-        place = place_id = ids.strip("()") + " " + PARKED_MARK
+        place = place_id = ids + " " + PARKED_MARK
     else:
         label = row.label or row.tab_label
         place, place_id = (ids + " " + label if label else ids), ids
@@ -137,15 +137,12 @@ Group = namedtuple("Group", "workspace_id label rows")
 def groups(rows):
     """The rows grouped by workspace, the groups in the order their first row appears
     (live rows come first, so a workspace with only parked sessions sinks)."""
-    found = []
+    found = {}
     for row in rows:
-        for group in found:
-            if group.workspace_id == row.workspace_id:
-                group.rows.append(row)
-                break
-        else:
-            found.append(Group(row.workspace_id, row.workspace_label if row.workspace_id else None, [row]))
-    return found
+        if row.workspace_id not in found:
+            found[row.workspace_id] = Group(row.workspace_id, row.workspace_label if row.workspace_id else None, [])
+        found[row.workspace_id].rows.append(row)
+    return list(found.values())
 
 
 def group_header(group, width, own):

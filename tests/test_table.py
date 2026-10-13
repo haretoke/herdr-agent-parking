@@ -136,10 +136,6 @@ class DetailTest(unittest.TestCase):
                          '    ↳ "stopped before the wiki"')
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class GroupTest(unittest.TestCase):
     def test_rows_are_grouped_by_workspace_in_the_order_they_first_appear(self):
         a, b = live(pane_id="w8:p1"), live(pane_id="wD:p2", workspace_id="wD", workspace_label="notes")
@@ -164,3 +160,7 @@ class GroupTest(unittest.TestCase):
         line = table.group_header(table.Group("w8", "a" * 50, [live()]), 30, own=False)
         self.assertEqual(display.width(line), 30)
         self.assertTrue(line.endswith("…"), line)
+
+
+if __name__ == "__main__":
+    unittest.main()

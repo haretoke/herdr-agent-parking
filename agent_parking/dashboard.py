@@ -225,7 +225,7 @@ class Dashboard:
         if row is None:
             return
         question = 'void %s "%s"? Its record is forgotten; the transcript stays. (y/N)' % (
-            row.pane_id or "(no pane)", row.name or "")
+            row.pane_id or table.cells(row)["place_full"], row.name or "")
         self._ask(dialogs.Confirm([question], {"y": "yes"}, others_cancel=True),
                   lambda _: self._later("voiding…", lambda: self.actions.forget(row.session_id) or
                                         "voided the record of %s" % row.session_id[:8]))
@@ -234,7 +234,7 @@ class Dashboard:
         row = self._parked_row()
         if row is None:
             return
-        prompt = ['note for %s "%s" (a blank line or Ctrl-D ends it):' % (row.pane_id or "(no pane)", row.name or "")]
+        prompt = ['note for %s "%s" (a blank line or Ctrl-D ends it):' % (row.pane_id or table.cells(row)["place_full"], row.name or "")]
         self._ask(dialogs.TextInput(prompt, initial=row.record.get("note") or "", multiline=True),
                   lambda note: self._later("saving the note…", lambda: self.actions.set_note(row.session_id, note)
                                            or "note saved"))
