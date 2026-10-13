@@ -169,6 +169,15 @@ class RecordLabelsTest(BuildTestCase):
         self.assertEqual((row.pane_id, row.workspace_id, row.workspace_label, row.tab_label),
                          (None, "wZ", "old shop", "notes"))
 
+    def test_a_record_without_a_pane_in_a_workspace_still_there_takes_its_current_labels(self):
+        self.park(THIRD, "w1:p8", "billing", 5)  # the usual case: the parked pane was closed
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2")),
+                          "workspace.list": {"type": "workspace_list",
+                                             "workspaces": [{"workspace_id": "w1", "label": "shop-api"}]},
+                          "tab.list": {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "api"}]}})
+        row = got.rows[-1]
+        self.assertEqual((row.pane_id, row.workspace_label, row.tab_label), (None, "shop-api", "api"))
+
 
 class ResumedByHandTest(BuildTestCase):
     def test_a_session_resumed_by_hand_elsewhere_settles_its_record_and_gets_no_parked_row(self):

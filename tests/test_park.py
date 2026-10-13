@@ -222,6 +222,11 @@ class TabLabelTest(FlowTestCase):
         park.park(self.flow(**{"tab.list": tabs}), "w1:p2", note=None)
         self.assertEqual(self.saved()["tab_label"], "api")
 
+    def test_the_workspaces_name_is_recorded_for_the_group_of_a_record_without_a_pane(self):
+        workspaces = {"type": "workspace_list", "workspaces": [{"workspace_id": "w1", "label": "shop", "number": 1}]}
+        park.park(self.flow(**{"workspace.list": workspaces}), "w1:p2", note=None)
+        self.assertEqual(self.saved()["workspace_label"], "shop")
+
     def test_a_tab_named_only_by_its_number_records_no_name(self):
         # Herdr's own name for an unnamed tab, not one the user gave it.
         tabs = {"type": "tab_list", "tabs": [{"tab_id": "w1:t1", "label": "1", "number": 1}]}

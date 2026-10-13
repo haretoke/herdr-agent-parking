@@ -136,12 +136,15 @@ Group = namedtuple("Group", "workspace_id label rows")
 
 def groups(rows):
     """The rows grouped by workspace, the groups in the order their first row appears
-    (live rows come first, so a workspace with only parked sessions sinks)."""
+    (live rows come first, so a workspace with only parked sessions sinks), each named by
+    the first label any of its rows knows."""
     found = {}
     for row in rows:
-        if row.workspace_id not in found:
-            found[row.workspace_id] = Group(row.workspace_id, row.workspace_label if row.workspace_id else None, [])
-        found[row.workspace_id].rows.append(row)
+        group = found.get(row.workspace_id) or Group(row.workspace_id, None, [])
+        if row.workspace_id is not None and not group.label and row.workspace_label:
+            group = group._replace(label=row.workspace_label)
+        group.rows.append(row)
+        found[row.workspace_id] = group
     return list(found.values())
 
 

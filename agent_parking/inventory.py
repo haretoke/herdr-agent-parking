@@ -284,9 +284,10 @@ def _parked_rows(rt, panes, workspace_labels, tab_labels, now):
         if pane is not None:
             found.workspace_label = workspace_labels.get(pane.workspace_id)
             found.tab_label = tab_labels.get(pane.tab_id)
-        else:  # the record says where the session was, so its group is still named
-            found.workspace_label = decision.record.get("workspace_label")
-            found.tab_label = decision.record.get("tab_label")
+        else:  # the current names when the workspace is still there, else the record's,
+            # so a session of a closed workspace still says where it was
+            found.workspace_label = workspace_labels.get(found.workspace_id) or decision.record.get("workspace_label")
+            found.tab_label = tab_labels.get(found.tab_id) or decision.record.get("tab_label")
         (with_pane if pane is not None else without).append(found)
     return with_pane + without
 

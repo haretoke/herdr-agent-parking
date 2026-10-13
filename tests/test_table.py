@@ -145,6 +145,11 @@ class GroupTest(unittest.TestCase):
                          [table.Group("w8", "shop-api", [a, c]), table.Group("wD", "notes", [b]),
                           table.Group(None, None, [no_place])])
 
+    def test_a_group_takes_the_first_label_any_of_its_rows_knows(self):
+        first, second = live(pane_id="w8:p1", workspace_label=None), live(pane_id="w8:p2")
+        self.assertEqual(table.groups([first, second]), [table.Group("w8", "shop-api", [first, second])])
+        self.assertEqual(table.groups([]), [])
+
     def test_a_group_header_names_the_workspace_and_counts_its_rows_then_fills_the_width(self):
         group = table.Group("w8", "shop-api", [live(), live(status="parked", record={})])
         self.assertEqual(table.group_header(group, 60, own=False),

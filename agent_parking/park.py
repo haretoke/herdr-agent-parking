@@ -43,6 +43,8 @@ def park(rt, pane_id, note, keep=False):
         "tab_id": pane.tab_id, "workspace_id": pane.workspace_id, "title": pane.title,
         # A pane alone in its tab closes with the tab, and `r` names the tab it opens after it.
         "tab_label": inventory.labels(rt, "tab.list", "tabs", "tab_id").get(pane.tab_id),
+        # The dashboard groups a record whose pane is gone under its workspace's name.
+        "workspace_label": inventory.labels(rt, "workspace.list", "workspaces", "workspace_id").get(pane.workspace_id),
         "cwd": (background or {}).get("cwd") or process.get("cwd") or pane.cwd,
         # A view's own arguments (`agents`, `attach <id>`) are no flags of the session.
         "argv": argv[:1] if background else argv,
