@@ -4,6 +4,8 @@ Narrow panes drop the lowest-priority columns first and give the space to the na
 (decided with Fable, 2026-09-27; see DESIGN.md, "UI and keys").
 """
 
+from collections import namedtuple
+
 from . import display, inventory
 
 
@@ -121,3 +123,45 @@ def cells(row):
             "rss": "—" if row.record is not None else memory(row.rss_kb),
             "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else "",
             "account": inventory.account_name(row.env)}
+
+
+# The rows of one workspace, under one header line. `workspace_id` is None for parked
+# records that no longer say where they were.
+Group = namedtuple("Group", "workspace_id label rows")
+
+
+def groups(rows):
+    """The rows grouped by workspace, the groups in the order their first row appears
+    (live rows come first, so a workspace with only parked sessions sinks)."""
+    found = []
+    for row in rows:
+        for group in found:
+            if group.workspace_id == row.workspace_id:
+                group.rows.append(row)
+                break
+        else:
+            found.append(Group(row.workspace_id, row.workspace_label if row.workspace_id else None, [row]))
+    return found
+
+
+OWN_MARK = "●"
+
+
+def group_header(group, width, own):
+    """` ── shop-api (w8) · 1 claude · 1 parked ─────` cut or filled to `width`; the
+    workspace the dashboard runs in is marked with `●`."""
+    if group.workspace_id is None:
+        name = "(no workspace)"
+    elif group.label:
+        name = "%s (%s)" % (group.label, group.workspace_id)
+    else:
+        name = group.workspace_id
+    parts = [name]
+    live = sum(1 for row in group.rows if row.record is None)
+    parked = len(group.rows) - live
+    if live:
+        parts.append("%d claude" % live)
+    if parked:
+        parts.append("%d parked" % parked)
+    text = " ── " + (OWN_MARK + " " if own else "") + " · ".join(parts) + " "
+    return display.cell(text + "─" * max(0, width - display.width(text)), width)

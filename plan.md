@@ -885,7 +885,7 @@ design with Fable, checked by Codex):
 - [x] `cells` keeps the full `w8/t3/p36` as `place_full` and the `S` lists use it (structural)
 - [x] `place` drops the workspace: `t3/p36 web`, the label is the pane's else the tab's;
       `place` is 13 and `place_id` 11 columns; a paneless parked row shows `no pane 💤`
-- [ ] a group header line names a workspace: ` ── web (w8) · 2 claude · 1 parked ───…`
+- [x] a group header line names a workspace: ` ── web (w8) · 2 claude · 1 parked ───…`
       filled with `─` to the width, `w8` alone when the workspace has no label
 - [ ] the body groups the rows by workspace in the order they first appear, a header
       before each group; j/k move over the rows only; only groups with visible rows are

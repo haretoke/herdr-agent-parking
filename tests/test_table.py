@@ -128,3 +128,29 @@ class DetailTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GroupTest(unittest.TestCase):
+    def test_rows_are_grouped_by_workspace_in_the_order_they_first_appear(self):
+        a, b = live(pane_id="w8:p1"), live(pane_id="wD:p2", workspace_id="wD", workspace_label="notes")
+        c = live(pane_id="w8:p3", status="parked", record={})
+        no_place = Row(status="parked", name="billing", record={})
+        self.assertEqual(table.groups([a, b, c, no_place]),
+                         [table.Group("w8", "shop-api", [a, c]), table.Group("wD", "notes", [b]),
+                          table.Group(None, None, [no_place])])
+
+    def test_a_group_header_names_the_workspace_and_counts_its_rows_then_fills_the_width(self):
+        group = table.Group("w8", "shop-api", [live(), live(status="parked", record={})])
+        self.assertEqual(table.group_header(group, 60, own=False),
+                         " ── shop-api (w8) · 1 claude · 1 parked " + "─" * 20)
+        self.assertEqual(table.group_header(table.Group("wD", None, [live()]), 40, own=False),
+                         " ── wD · 1 claude " + "─" * 22)
+        self.assertEqual(table.group_header(table.Group(None, None, [live(record={})]), 40, own=False),
+                         " ── (no workspace) · 1 parked " + "─" * 10)
+
+    def test_the_dashboards_own_workspace_is_marked_and_a_long_header_is_cut(self):
+        group = table.Group("w8", "shop-api", [live()])
+        self.assertEqual(table.group_header(group, 60, own=True), " ── ● shop-api (w8) · 1 claude " + "─" * 29)
+        line = table.group_header(table.Group("w8", "a" * 50, [live()]), 30, own=False)
+        self.assertEqual(display.width(line), 30)
+        self.assertTrue(line.endswith("…"), line)
