@@ -8,15 +8,18 @@ with. Exiting it frees the memory and lets the next start pick up the current
 version, but then you have to note the session somewhere to find it again. Agent
 parking does that bookkeeping: it records how to resume each session before it
 exits, closes the pane, and brings the same session back where the pane was with one
-key, with a note you left when you parked it.
+key, with a note you left when you parked it. The rows are grouped by workspace, and
+the workspace and tab the dashboard was opened in are marked `●`.
 
 ```
  Agent parking · 3 claude · 1.1G
  ────────────────────────────────────────────────────────────────────────────────
-   place          name            status   idle   ctx           rss   ver
- ▶ w8/t3/p36 web  api gateway     idle     ≥1h12m 37k 18%       205M  2.1.283
-   w8/t4/p3A      invoice import  done     3h05m  compacted 2h  192M  2.1.281 old
-   wD/t2/p2T 💤   color notes     parked   2d     compacted 2d  —
+   place         name            status   idle   ctx           rss   ver
+ ── ● shop (w8) · 2 claude ──────────────────────────────────────────────────────
+ ▶ ●t3/p36 web   api gateway     idle     ≥1h12m 37k 18%       205M  2.1.283
+   t4/p3A        invoice import  done     3h05m  compacted 2h  192M  2.1.281 old
+ ── notes (wD) · 1 parked ───────────────────────────────────────────────────────
+   t2/p2T 💤     color notes     parked   2d     compacted 2d  —
      ↳ "stopped before pasting the table into the wiki"
  ────────────────────────────────────────────────────────────────────────────────
  s park  c compact  C compact+park  r unpark  R tune-up  g go  S idlestop  …

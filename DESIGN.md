@@ -103,7 +103,7 @@ Every Claude pane on this server, with these columns:
 
 | Column | Source |
 |---|---|
-| place | `workspace_id` / `tab_id` / `pane_id` (`pane list`) shown as `w8/t3/p36`, then one label: the pane `label` (set with `pane rename`), else the tab label (`tab list`), else the workspace label (`workspace list`). Parked rows show 💤 instead of a label. Labels Herdr cannot give are left out |
+| place | `tab_id` / `pane_id` (`pane list`) shown as `t3/p36`, then one label: the pane `label` (set with `pane rename`), else the tab label (`tab list`). The workspace is the group header above the row (below). Parked rows show 💤 instead of a label; a record without a pane shows `no pane 💤`. Labels Herdr cannot give are left out. A row of the tab the dashboard runs in carries `●` before its place |
 | name | `terminal_title_stripped` (Claude writes the `-n` / `/rename` / generated title to the terminal title). For a parked session, the record's `title` |
 | cwd | `pane.cwd` (the record's `cwd` when there is a record) |
 | status | `agent_status` (working / idle / done / blocked / unknown). Records: `parked`, `parking` (a park in progress), `pending` (`resume_pending`), `failed` (`park_failed`, `resume_failed`), `broken` (a file that is not JSON), `conflict` (another session runs in its pane) |
@@ -116,7 +116,20 @@ Every Claude pane on this server, with these columns:
 - The dashboard's own pane and non-Claude panes are not listed. The footer shows the
   count, the total Claude RSS, and the number of Codex panes ("codex: n, not managed").
 - A record whose pane is gone (closed by hand, or lost with a rebuilt container) is
-  listed at the end as "(no pane)". A server restart alone keeps pane IDs (spike 0-1).
+  listed as "no pane" in the group of its record's workspace, so a session of a closed
+  workspace still says where it was. A server restart alone keeps pane IDs (spike 0-1).
+- **Workspace groups** (asked by the user 2026-10-13, design checked by Codex): the rows
+  are grouped by workspace in the order their first row appears (live rows first, so a
+  workspace with only parked sessions sinks), each group under a header line
+  ` ── shop-api (w8) · 2 claude · 1 parked ────…` filled with `─` to the width (`w8`
+  alone for a workspace without a label, `(no workspace)` for records that never said).
+  The workspace the dashboard runs in (its pane in `pane.list`, else `HERDR_WORKSPACE_ID`)
+  is marked `● ` in its header. Headers are drawn at every width, are not selectable, and
+  only groups with a row matching `/` are shown. When the view starts inside a group its
+  header is shown again on the first line; with room for one line only the selected row
+  wins over its detail line and over the header. Alternatives weighed: a `ws` column
+  (costs the name's width at every tier) and a mark on the current workspace alone
+  (does not tell the other workspaces apart).
 - **Reconciliation**: every refresh matches records against panes. After `/exit`,
   Claude prints `Resume this session with: claude --resume ...` in the pane, so
   people resume by hand, and sometimes in another pane. The match runs against the
@@ -457,7 +470,7 @@ from the width on every redraw, lowest priority first, and the space goes to nam
 |---|---|
 | 78 or more | all |
 | 64–77 | without ver (an `old` session keeps a `!` beside its status) and rss |
-| 52–63 | also ctx shortened to the tokens (`37k`; `compacted 2h` becomes `cmp 2h`) and place without labels (the `w8/t3/p36` ids stay) |
+| 52–63 | also ctx shortened to the tokens (`37k`; `compacted 2h` becomes `cmp 2h`) and place without labels (the `t3/p36` ids stay) |
 | under 52 | also without idle and ctx: selection mark, place id, name, status and the 💤 mark (about 40 columns) |
 
 Whatever was dropped, plus the note, is shown on one detail line under the selected row
@@ -469,14 +482,18 @@ wrong one.
 ```
  Agent parking  ·  9 claude  ·  2.1 GB  ·  codex: 5 (not managed)          [?] help
  ──────────────────────────────────────────────────────────────────────────────────
-   place            name                     status   idle    ctx           rss   ver
- ▶ w8/t3/p36 web    api gateway refactor     idle     ≥1h12m  37k 18%       205M  2.1.283
-   w8/t4/p3A        invoice import fix    done     3h05m   compacted 2h  192M  2.1.281 old
-   wD/t5/p20        docs cleanup      working  —       112k          370M  2.1.283
-   wJ/t1/pS  infra  release checklist            blocked  12m     54k 27%       169M  2.1.283
-   wD/t2/p2T  💤    color pipeline notes      parked   2d      compacted 2d  —     2.1.280
-                    ↳ 2026-09-24 21:10  "stopped before pasting the table into the wiki"
-   (no pane)  💤    billing rollout check    parked   5d      41k           —     2.1.278
+   place         name                        status   idle    ctx           rss   ver
+ ── ● shop-api (w8) · 2 claude ────────────────────────────────────────────────────
+ ▶ ●t3/p36 web   api gateway refactor        idle     ≥1h12m  37k 18%       205M  2.1.283
+   t4/p3A        invoice import fix          done     3h05m   compacted 2h  192M  2.1.281 old
+ ── notes (wD) · 1 claude · 1 parked ──────────────────────────────────────────────
+   t5/p20        docs cleanup                working  —       112k          370M  2.1.283
+   t2/p2T 💤     color pipeline notes        parked   2d      compacted 2d  —     2.1.280
+                 ↳ 2026-09-24 21:10  "stopped before pasting the table into the wiki"
+ ── wJ · 1 claude ─────────────────────────────────────────────────────────────────
+   t1/pS infra   release checklist           blocked  12m     54k 27%       169M  2.1.283
+ ── old shop (wZ) · 1 parked ──────────────────────────────────────────────────────
+   no pane 💤    billing rollout check       parked   5d      41k           —     2.1.278
  ──────────────────────────────────────────────────────────────────────────────────
  s park  c compact  C compact+park  r unpark  R tune-up  g go  S idlestop  n note  x void  / filter  q
 ```
