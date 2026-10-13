@@ -21,7 +21,7 @@ def columns(width):
 
 MARK_WIDTH = 2  # the selection mark `▶ `
 MIN_NAME = 12
-FIXED = {"place": 14, "place_id": 12, "status": 8, "idle": 6, "ctx": 13, "ctx_short": 7, "rss": 5, "ver": 11}
+FIXED = {"place": 13, "place_id": 11, "status": 8, "idle": 6, "ctx": 13, "ctx_short": 7, "rss": 5, "ver": 11}
 
 
 def widths(cols, width):
@@ -78,11 +78,17 @@ def detail(cells, note, width):
 PARKED_MARK = "💤"
 
 
-def _ids(row):
-    """`w8/t3/p36` from the workspace, tab and pane ids (`w8:t3`, `w8:p36`)."""
+NO_PANE = "(no pane)"
+
+
+def _ids(row, with_workspace):
+    """`w8/t3/p36` from the workspace, tab and pane ids (`w8:t3`, `w8:p36`), or `t3/p36`
+    without the workspace (the group header names it)."""
     if not row.pane_id:
-        return "(no pane)"
-    parts = [row.workspace_id] + [(i or "").split(":")[-1] for i in (row.tab_id, row.pane_id)]
+        return NO_PANE
+    parts = [(i or "").split(":")[-1] for i in (row.tab_id, row.pane_id)]
+    if with_workspace:
+        parts.insert(0, row.workspace_id)
     return "/".join(p for p in parts if p)
 
 
@@ -103,13 +109,14 @@ def _short_ctx(ctx):
 
 def cells(row):
     """The text of every column for `row`."""
-    ids = _ids(row)
+    ids = _ids(row, with_workspace=False)
     if row.record is not None:
-        place = place_id = ids + " " + PARKED_MARK
+        place = place_id = ids.strip("()") + " " + PARKED_MARK
     else:
-        label = row.label or row.tab_label or row.workspace_label
+        label = row.label or row.tab_label
         place, place_id = (ids + " " + label if label else ids), ids
-    return {"place": place, "place_id": place_id, "place_full": ids, "name": row.name or "", "status": row.status or "",
+    return {"place": place, "place_id": place_id, "place_full": _ids(row, with_workspace=True),
+            "name": row.name or "", "status": row.status or "",
             "idle": row.idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
             "rss": "—" if row.record is not None else memory(row.rss_kb),
             "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else "",

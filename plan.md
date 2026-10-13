@@ -883,7 +883,7 @@ Workspace groups (asked by the user 2026-10-13: the `w8`/`wD` ids did not say wh
 workspace a row was in, since `place` shows one label and the pane's or the tab's wins;
 design with Fable, checked by Codex):
 - [x] `cells` keeps the full `w8/t3/p36` as `place_full` and the `S` lists use it (structural)
-- [ ] `place` drops the workspace: `t3/p36 web`, the label is the pane's else the tab's;
+- [x] `place` drops the workspace: `t3/p36 web`, the label is the pane's else the tab's;
       `place` is 13 and `place_id` 11 columns; a paneless parked row shows `no pane 💤`
 - [ ] a group header line names a workspace: ` ── web (w8) · 2 claude · 1 parked ───…`
       filled with `─` to the width, `w8` alone when the workspace has no label
