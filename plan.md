@@ -892,7 +892,7 @@ design with Fable, checked by Codex):
       shown under `/`; the selection stays on its session across groups
 - [x] scrolling keeps the header of the group at the top of the view (shown again when
       the view starts inside a group); the lines never exceed the height
-- [ ] the dashboard's own workspace (the pane with `HERDR_PANE_ID` in `pane.list`, else
+- [x] the dashboard's own workspace (the pane with `HERDR_PANE_ID` in `pane.list`, else
       `HERDR_WORKSPACE_ID`, else none) is marked `●` in its header, and the rows of its
       own tab carry `●` before their place
 - [ ] a parked record without a pane is grouped by the workspace and labels of its

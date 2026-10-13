@@ -49,6 +49,7 @@ class Dashboard:
         self._on_event = on_event  # a Herdr event, before the list is read again
         self.rows = []
         self.others = {}
+        self.own_workspace_id = self.own_tab_id = None  # where the dashboard runs, marked `●`
         self.selected = 0
         self.top = 0  # the first body line in view
         self.show_detail = True
@@ -62,6 +63,7 @@ class Dashboard:
         chosen = self._row()
         inventory = self._refresh()
         self.rows, self.others = inventory.rows, inventory.others
+        self.own_workspace_id, self.own_tab_id = inventory.own_workspace_id, inventory.own_tab_id
         self._keep(_key(chosen) if chosen else None)
 
     def _keep(self, chosen):
@@ -117,12 +119,14 @@ class Dashboard:
         body, headers, first, last, index = [], [], 0, 0, 0
         for group in self.groups():
             headers.append(len(body))
-            body.append(table.group_header(group, width, own=False))
+            own = group.workspace_id is not None and group.workspace_id == self.own_workspace_id
+            body.append(table.group_header(group, width, own=own))
             for row in group.rows:
                 cells = table.cells(row)
                 if index == self.selected:
                     first = len(body)
-                body.append(table.line(cells, width, selected=index == self.selected))
+                body.append(table.line(cells, width, selected=index == self.selected,
+                                       own_tab=row.tab_id is not None and row.tab_id == self.own_tab_id))
                 if index == self.selected and self.show_detail:
                     note = (row.record or {}).get("note")
                     body.extend(line for line in [table.detail(cells, note, width)] if line)

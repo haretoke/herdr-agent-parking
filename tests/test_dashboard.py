@@ -27,8 +27,8 @@ class FakeActions:
         return action
 
 
-def board(*rows, others=None, actions=None):
-    shown = dashboard.Dashboard(refresh=lambda: Inventory(list(rows), others or {}), actions=actions)
+def board(*rows, others=None, actions=None, own=(None, None)):
+    shown = dashboard.Dashboard(refresh=lambda: Inventory(list(rows), others or {}, *own), actions=actions)
     shown.refresh()
     return shown
 
@@ -104,6 +104,17 @@ class GroupTest(unittest.TestCase):
         self.assertEqual(shown._row().session_id, "b")
         shown.refresh()
         self.assertEqual(shown._row().session_id, "b")
+
+    def test_the_dashboards_own_workspace_and_tab_are_marked(self):
+        a = live("w8:p1", name="api")
+        b = live("wD:p2", name="notes", workspace_id="wD", workspace_label="notes", tab_id="wD:t1")
+        c = live("w8:p3", name="infra", tab_id="w8:t5")
+        lines = board(a, b, c, own=("w8", "w8:t3")).lines(78, 20)
+        self.assertEqual(lines[3], table.group_header(table.Group("w8", "shop-api", [a, c]), 78, own=True))
+        self.assertTrue(lines[4].startswith("▶ ●t3/p1 "), lines[4])
+        self.assertTrue(lines[5].startswith("  t5/p3 "), lines[5])
+        self.assertEqual(lines[6], table.group_header(table.Group("wD", "notes", [b]), 78, own=False))
+        self.assertTrue(lines[7].startswith("  t1/p2 "), lines[7])
 
     def test_a_filter_hides_the_groups_without_a_matching_row(self):
         shown = board(live("w8:p1", name="api"), live("wD:p2", name="notes", workspace_id="wD", workspace_label="notes"))

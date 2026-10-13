@@ -81,6 +81,16 @@ class LineTest(unittest.TestCase):
                 self.assertLessEqual(display.width(table.line(cells, width, selected=False)), width)
 
 
+class OwnTabTest(unittest.TestCase):
+    def test_a_row_of_the_dashboards_own_tab_carries_the_mark_before_its_place(self):
+        cells = table.cells(live(idle="12m"))
+        self.assertTrue(table.line(cells, 78, selected=False, own_tab=True).startswith("  ●t3/p36 web   api"))
+        self.assertTrue(table.line(cells, 51, selected=True, own_tab=True).startswith("▶ ●t3/p36     api"))
+        self.assertTrue(table.line(cells, 51, selected=True).startswith("▶ t3/p36      api"))
+        for width in (78, 51):
+            self.assertLessEqual(display.width(table.line(cells, width, selected=False, own_tab=True)), width)
+
+
 class OldMarkTest(unittest.TestCase):
     def test_an_old_session_keeps_a_mark_beside_its_status_when_ver_is_dropped(self):
         cells = table.cells(live(version="2.1.281", old=True, idle="12m"))

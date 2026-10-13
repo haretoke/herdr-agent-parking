@@ -39,13 +39,16 @@ def _pad(text, columns):
     return text + " " * (columns - display.width(text))
 
 
-def line(cells, width, selected):
-    """One row of the table at `width`, cut to the width when the name's minimum overflows it."""
+def line(cells, width, selected, own_tab=False):
+    """One row of the table at `width`, cut to the width when the name's minimum overflows
+    it; a row of the tab the dashboard runs in carries `●` before its place."""
     cols = columns(width)
     sizes = widths(cols, width)
     shown = dict(cells)
     if "ver" not in cols:
         shown["status"] += cells["old"]
+    if own_tab:
+        shown["place"], shown["place_id"] = OWN_MARK + cells["place"], OWN_MARK + cells["place_id"]
     text = ("▶ " if selected else "  ") + " ".join(_pad(shown[c], sizes[c]) for c in cols)
     return display.cell(text.rstrip(), width)
 
@@ -78,6 +81,7 @@ def detail(cells, note, width):
 
 
 PARKED_MARK = "💤"
+OWN_MARK = "●"  # the workspace and tab the dashboard runs in
 
 
 NO_PANE = "(no pane)"
@@ -142,9 +146,6 @@ def groups(rows):
         else:
             found.append(Group(row.workspace_id, row.workspace_label if row.workspace_id else None, [row]))
     return found
-
-
-OWN_MARK = "●"
 
 
 def group_header(group, width, own):

@@ -36,8 +36,18 @@ class Row:
     env: dict = field(default_factory=dict)  # its `resume_env` variables (account, config dir)
 
 
-# The dashboard's rows, and how many panes run each other agent (the "codex: n" in the title).
-Inventory = namedtuple("Inventory", "rows others")
+# The dashboard's rows, how many panes run each other agent (the "codex: n" in the title),
+# and the workspace and tab the dashboard runs in (None when Herdr cannot say).
+Inventory = namedtuple("Inventory", "rows others own_workspace_id own_tab_id", defaults=(None, None))
+
+
+def own_place(rt, panes, own_pane_id):
+    """The workspace and tab of the dashboard's own pane, from the pane list; without the
+    pane there, the workspace the action was run in (`HERDR_WORKSPACE_ID`), if any."""
+    for pane in panes:
+        if pane.pane_id == own_pane_id:
+            return pane.workspace_id, pane.tab_id
+    return rt.environ.get("HERDR_WORKSPACE_ID") or None, None
 
 
 def claude_panes(panes, own_pane_id):
@@ -246,7 +256,7 @@ def build(rt, tracker, own_pane_id):
         found.idle = idle.text(entry, now)
         rows.append(found)
     rows.extend(_parked_rows(rt, panes, workspace_labels, tab_labels, now))
-    return Inventory(rows, other_agents(panes))
+    return Inventory(rows, other_agents(panes), *own_place(rt, panes, own_pane_id))
 
 
 SHORT_STATUS = {"parked": "parked", "parking": "parking", "park_failed": "failed",

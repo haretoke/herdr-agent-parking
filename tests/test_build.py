@@ -58,6 +58,20 @@ class BuildRowsTest(BuildTestCase):
         self.assertEqual(got.others, {"codex": 2})
 
 
+class OwnPlaceTest(BuildTestCase):
+    def test_the_dashboards_own_workspace_and_tab_come_from_its_pane_in_the_list(self):
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p9", agent=None, session_id=None))})
+        self.assertEqual((got.own_workspace_id, got.own_tab_id), ("w1", "w1:t1"))
+
+    def test_without_its_pane_the_workspace_comes_from_the_environment_or_stays_unknown(self):
+        self.environ["HERDR_WORKSPACE_ID"] = "w7"
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"))})
+        self.assertEqual((got.own_workspace_id, got.own_tab_id), ("w7", None))
+        del self.environ["HERDR_WORKSPACE_ID"]
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"))}, own=None)
+        self.assertEqual((got.own_workspace_id, got.own_tab_id), (None, None))
+
+
 class DefaultLabelTest(BuildTestCase):
     def test_a_label_that_is_only_the_tab_or_workspace_number_is_left_out(self):
         # Seen on the Mac: a new tab's label is its number ("1"), which says nothing.
