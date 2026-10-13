@@ -38,7 +38,8 @@ def live(**fields):
 class CellsTest(unittest.TestCase):
     def test_a_live_row_gives_every_column_its_text(self):
         cells = table.cells(live(idle="≥1h12m"))
-        self.assertEqual(cells, {"place": "w8/t3/p36 web", "place_id": "w8/t3/p36", "name": "api gateway refactor",
+        self.assertEqual(cells, {"place": "w8/t3/p36 web", "place_id": "w8/t3/p36", "place_full": "w8/t3/p36",
+                                 "name": "api gateway refactor",
                                  "status": "idle", "idle": "≥1h12m", "ctx": "37k 18%", "ctx_short": "37k",
                                  "rss": "205M", "ver": "2.1.283", "old": "", "account": ""})
 
@@ -52,8 +53,10 @@ class CellsTest(unittest.TestCase):
         parked = table.cells(live(status="parked", rss_kb=None, version=None, record={}, idle="2d"))
         self.assertEqual((parked["place"], parked["place_id"], parked["rss"], parked["ver"]),
                          ("w8/t3/p36 💤", "w8/t3/p36 💤", "—", ""))
+        self.assertEqual(parked["place_full"], "w8/t3/p36")
         paneless = table.cells(Row(status="parked", name="billing", record={}, idle="5d"))
-        self.assertEqual((paneless["place"], paneless["place_id"]), ("(no pane) 💤", "(no pane) 💤"))
+        self.assertEqual((paneless["place"], paneless["place_id"], paneless["place_full"]),
+                         ("(no pane) 💤", "(no pane) 💤", "(no pane)"))
 
     def test_short_ctx_keeps_the_tokens_or_the_compaction_age(self):
         for ctx, short in [("37k 18%", "37k"), ("37k", "37k"), ("compacted 2h", "cmp 2h"),

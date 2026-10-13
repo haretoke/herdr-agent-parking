@@ -109,7 +109,7 @@ def cells(row):
     else:
         label = row.label or row.tab_label or row.workspace_label
         place, place_id = (ids + " " + label if label else ids), ids
-    return {"place": place, "place_id": place_id, "name": row.name or "", "status": row.status or "",
+    return {"place": place, "place_id": place_id, "place_full": ids, "name": row.name or "", "status": row.status or "",
             "idle": row.idle, "ctx": row.ctx, "ctx_short": _short_ctx(row.ctx),
             "rss": "—" if row.record is not None else memory(row.rss_kb),
             "ver": (row.version or "") + (" old" if row.old else ""), "old": "!" if row.old else "",

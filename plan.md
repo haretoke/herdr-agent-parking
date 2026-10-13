@@ -879,6 +879,25 @@ server is never restarted.
       proposals and a web search)
 - [x] the dialogs and progress messages of `r`, `R`, `S` and `x` use those names
 
+Workspace groups (asked by the user 2026-10-13: the `w8`/`wD` ids did not say which
+workspace a row was in, since `place` shows one label and the pane's or the tab's wins;
+design with Fable, checked by Codex):
+- [x] `cells` keeps the full `w8/t3/p36` as `place_full` and the `S` lists use it (structural)
+- [ ] `place` drops the workspace: `t3/p36 web`, the label is the pane's else the tab's;
+      `place` is 13 and `place_id` 11 columns; a paneless parked row shows `no pane 💤`
+- [ ] a group header line names a workspace: ` ── web (w8) · 2 claude · 1 parked ───…`
+      filled with `─` to the width, `w8` alone when the workspace has no label
+- [ ] the body groups the rows by workspace in the order they first appear, a header
+      before each group; j/k move over the rows only; only groups with visible rows are
+      shown under `/`; the selection stays on its session across groups
+- [ ] scrolling keeps the header of the group at the top of the view (shown again when
+      the view starts inside a group); the lines never exceed the height
+- [ ] the dashboard's own workspace (the pane with `HERDR_PANE_ID` in `pane.list`, else
+      `HERDR_WORKSPACE_ID`, else none) is marked `●` in its header, and the rows of its
+      own tab carry `●` before their place
+- [ ] a parked record without a pane is grouped by the workspace and labels of its
+      record, so a session of a closed workspace still says where it was
+
 ### cli
 - [x] `dashboard` starts the pane process
 - [x] `config.json` is read from `HERDR_PLUGIN_CONFIG_DIR` only when `HERDR_PLUGIN_ID` is this

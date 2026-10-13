@@ -332,8 +332,8 @@ class Dashboard:
             self.message = "no session idle for %dm or more" % minutes
             return
         lines = (["park the sessions idle for %dm or more:" % minutes] +
-                 ["[x] %s  %s  %s" % (table.cells(row)["place_id"], row.name or "", row.idle) for row in targets] +
-                 ["[ ] %s  %s  (%s, skipped)" % (table.cells(row)["place_id"], row.name or "", reason)
+                 ["[x] %s  %s  %s" % (table.cells(row)["place_full"], row.name or "", row.idle) for row in targets] +
+                 ["[ ] %s  %s  (%s, skipped)" % (table.cells(row)["place_full"], row.name or "", reason)
                   for row, reason in skipped] +
                  ["note for all (empty for none; a blank line or Ctrl-D ends it):"])
         self._ask(dialogs.TextInput(lines, multiline=True), lambda note: self._confirm_bulk(targets, note))
