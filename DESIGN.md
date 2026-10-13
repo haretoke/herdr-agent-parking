@@ -127,7 +127,13 @@ Every Claude pane on this server, with these columns:
   is marked `● ` in its header. Headers are drawn at every width, are not selectable, and
   only groups with a row matching `/` are shown. When the view starts inside a group its
   header is shown again on the first line; with room for one line only the selected row
-  wins over its detail line and over the header. Alternatives weighed: a `ws` column
+  wins over its detail line and over the header, and a view never ends with a header
+  alone. The screen never exceeds the pane's height: a low pane loses the title and
+  column titles first, then the start of the footer (a dialog's input line stays). `park`
+  records `workspace_label` for this; a record without a pane takes the workspace's
+  current labels when it is still there, else the record's, so in the `list` JSON such a
+  row's `workspace_label` and `tab_label` are now filled where they were null (same keys
+  and order). Alternatives weighed: a `ws` column
   (costs the name's width at every tier) and a mark on the current workspace alone
   (does not tell the other workspaces apart).
 - **Reconciliation**: every refresh matches records against panes. After `/exit`,
