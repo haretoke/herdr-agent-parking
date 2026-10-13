@@ -150,6 +150,12 @@ class GroupTest(unittest.TestCase):
         self.assertEqual(table.groups([first, second]), [table.Group("w8", "shop-api", [first, second])])
         self.assertEqual(table.groups([]), [])
 
+    def test_groups_follow_the_rows_not_the_ids(self):
+        d1, w8, d2 = (live(pane_id="wD:p1", workspace_id="wD", workspace_label="notes"), live(pane_id="w8:p2"),
+                      live(pane_id="wD:p3", workspace_id="wD", workspace_label="notes"))
+        self.assertEqual([(g.workspace_id, [r.pane_id for r in g.rows]) for g in table.groups([d1, w8, d2])],
+                         [("wD", ["wD:p1", "wD:p3"]), ("w8", ["w8:p2"])])
+
     def test_a_group_header_names_the_workspace_and_counts_its_rows_then_fills_the_width(self):
         group = table.Group("w8", "shop-api", [live(), live(status="parked", record={})])
         self.assertEqual(table.group_header(group, 60, own=False),

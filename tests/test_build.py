@@ -65,6 +65,8 @@ class OwnPlaceTest(BuildTestCase):
 
     def test_without_its_pane_the_workspace_comes_from_the_environment_or_stays_unknown(self):
         self.environ["HERDR_WORKSPACE_ID"] = "w7"
+        got = self.build({"pane.list": pane_list(raw_pane("w1:p2"), raw_pane("w1:p9", agent=None, session_id=None))})
+        self.assertEqual(got.own_workspace_id, "w1")  # the pane wins: the variable is the action's start
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2"))})
         self.assertEqual((got.own_workspace_id, got.own_tab_id), ("w7", None))
         del self.environ["HERDR_WORKSPACE_ID"]
@@ -171,6 +173,10 @@ class RecordLabelsTest(BuildTestCase):
 
     def test_a_record_without_a_pane_in_a_workspace_still_there_takes_its_current_labels(self):
         self.park(THIRD, "w1:p8", "billing", 5)  # the usual case: the parked pane was closed
+        directory = state.paths(self.environ, self.settings).records
+        record = records.read(directory, THIRD)
+        record.update({"workspace_label": "old shop", "tab_label": "old notes"})  # renamed since
+        records.write(directory, record)
         got = self.build({"pane.list": pane_list(raw_pane("w1:p2")),
                           "workspace.list": {"type": "workspace_list",
                                              "workspaces": [{"workspace_id": "w1", "label": "shop-api"}]},
